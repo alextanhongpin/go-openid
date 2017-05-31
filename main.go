@@ -17,16 +17,18 @@ func main() {
 		port = flag.Int("port", 8080, "The port for the server")
 		//env  = flag.String("env", "dev", "The working environment dev|stage|test|prod")
 	)
+	env := app.Env{
+		Db:     app.Database(),
+		Router: httprouter.New(),
+		Tmpl:   app.Template(),
+	}
 
-	r := httprouter.New()
-	db := app.Database()
-	tmpl := app.Template()
+	auth.FeatureToggle(true)(env)
 
-	auth.SetupAuth(db, r, tmpl)
-	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	env.Router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		w.Write([]byte("hello"))
 	})
 
 	fmt.Printf("listening to port*:%d. press ctrl + c to cancel", *port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), env.Router))
 }
