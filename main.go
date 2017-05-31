@@ -1,26 +1,32 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
+	"net/http"
 
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/julienschmidt/httprouter"
+
+	"github.com/alextanhongpin/go-openid/app"
+	"github.com/alextanhongpin/go-openid/auth"
 )
 
-type Email struct {
-	Gender string `validate:"eq=male|eq=female"` // checking enum
-	Value  string `validate:"email,required"`
-}
-
-// use a single instance of Validate, it caches struct info
-var validate *validator.Validate
-
 func main() {
+	var (
+		port = flag.Int("port", 8080, "The port for the server")
+		//env  = flag.String("env", "dev", "The working environment dev|stage|test|prod")
+	)
 
-	validate = validator.New()
-	a := Email{Gender: "malea", Value: "john.doe@mail.com"}
-	err := validate.Struct(a)
-	if err != nil {
-		fmt.Println("error: " + err.Error())
-	}
+	r := httprouter.New()
+	db := app.Database()
+	tmpl := app.Template()
 
+	auth.SetupAuth(db, r, tmpl)
+	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		w.Write([]byte("hello"))
+	})
+
+	fmt.Printf("listening to port*:%d. press ctrl + c to cancel", *port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
 }

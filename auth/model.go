@@ -1,7 +1,8 @@
 package auth
 
 import (
-	"fmt"
+	"time"
+	// "gopkg.in/go-playground/validator.v9"
 )
 
 // Address is the schema of the address in the database
@@ -20,7 +21,7 @@ type Address struct {
 type User struct {
 	Email               string    `json:"email" validate="email"`
 	EmailVerified       bool      `json:"email_verified"`
-	Password            string    `json:"password" validate="min=6"`
+	Password            string    `json:"password" validate="min=6,required"`
 	Role                []string  `json:"role" validate="dive,eq=admin|eq=user,required"`
 	Sub                 string    `json:"sub"`
 	Name                string    `json:"name"`
@@ -43,6 +44,6 @@ type User struct {
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
-func (user User) Register() error {
+// func (user User) Register() error {
 
-}
+// }
