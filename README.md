@@ -88,3 +88,32 @@ func handler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
   fmt.Fprintf(w, "hello request id: %d", reqID)
 }
 ```
+
+
+### mgo session.Copy or session.Clone
+First of all, we need to see the difference between mgo.Session.Copy() and mgo.Session.Clone(). While go.Session.Clone() returns a new session, the session uses the same socket connection. That isn't necessarily a bad thing, but keep in mind that on the server side, a stack is allocated per connection. So the sessions would share the same stack. Depending on your use cases, that may make a big difference.
+
+And here is the problem – if you open a new socket connect for each record, this leads to a three way handshake, which is slowish. Reusing the same socket reduces this overhead, but there still is some and has the drawback described above.
+
+
+
+### Cookie
+
+Setting a cookie
+
+```go
+    import "net/http"
+
+    expiration := time.Now().Add(365 * 24 * time.Hour)
+    cookie := http.Cookie{Name: "username", Value: "astaxie", Expires: expiration}
+    http.SetCookie(w, &cookie)
+```
+
+
+Getting a cookie
+```go
+    cookie, _ := r.Cookie("username")
+    fmt.Fprint(w, cookie)
+```
+
+

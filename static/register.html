@@ -3,7 +3,6 @@
 <head>
   <title>Register</title>
 
-  <link rel="stylesheet" type="text/css" href="reset.css">
   <style type="text/css">
     
     *, *:before, *:after {
@@ -130,7 +129,11 @@
 </head>
 <body>
 
-<header class='header'>App</header>
+<header class='header'>
+  <a href="/">App</a>
+
+  <a href="/login">Login</a>
+</header>
   
   <div id='ErrorSection'>
     <br>
@@ -232,7 +235,7 @@
         }
         return response.json()
       }).then((json) => {
-        if (!json.success) {
+        if (!json.ok) {
           console.error('error:', json)
           errorView.show(json.message)
           return

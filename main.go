@@ -19,11 +19,12 @@ func main() {
 	)
 
 	// Create a logger context
-
+	db := app.NewDatabase("go-openid")
+	defer db.Close()
 	env := app.Env{
-		Db:     app.Database(),
+		DB:     db,
 		Router: httprouter.New(),
-		Tmpl:   app.MakeTemplate(),
+		Tmpl:   app.NewTemplate(),
 		// Log: app.Logger()
 	}
 

@@ -25,8 +25,8 @@ func (template Template) Render(w http.ResponseWriter, name string, data interfa
   t.Execute(w, data)
 }
 
-// MakeTemplate returns a new template
-func MakeTemplate() *Template {
+// NewTemplate returns a new template
+func NewTemplate() *Template {
   templates := make(map[string]*template.Template)
 
   // Register templates here

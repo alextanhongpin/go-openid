@@ -1,9 +1,9 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -20,26 +20,110 @@ type endpoint struct {
 	svc service
 }
 
-func (e endpoint) createUserHandler() httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		var u User
-		err := json.NewDecoder(r.Body).Decode(&u)
-		fmt.Println(u, err)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+type Endpoint func(request interface{}) (response interface{}, err error)
 
-		fmt.Println(u)
-		err = e.svc.create(u)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		fmt.Fprintf(w, `{"ok": true, "redirect_uri": "/users/%s"}`, u.Email)
+// Endpoints  exposes
+type Endpoints struct {
+	// GetUserEndpoint does this
+	GetUserEndpoint Endpoint //httprouter.Handle
+}
+
+// MakeServerEndpoints doe
+func MakeServerEndpoints(s Service) *Endpoints {
+	return &Endpoints{
+		GetUserEndpoint: MakeGetUserEndpoint(s),
 	}
 }
 
+// MakeGetUserEndpoint asd
+func MakeGetUserEndpoint(s Service) Endpoint {
+	return func(request interface{}) (interface{}, error) {
+		req := request.(getUserRequest)
+		user, err := s.GetUser(req.ID)
+		if err != nil {
+			return getUserResponse{Name: "something"}, err
+		}
+		return user, nil
+	}
+	// return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	ps := r.Context().Value("params").(httprouter.Params)
+	// 	var req getUserRequest
+	// 	req.ID = ps.ByName("id")
+	// 	user, err := s.GetUser(req.ID)
+	// 	if err != nil {
+	// 		http.Error(w, err.Error(), http.StatusBadRequest)
+	// 		return
+	// 	}
+	// 	// No user found
+	// 	if user == nil {
+	// 		w.Write([]byte("no user found"))
+	// 		return
+	// 	}
+
+	// 	json.NewEncoder(w).Encode(user)
+	// })
+}
+
+// Middleware example
+// func (e Endpoints) GetUser(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		// do stuff
+// 		log.Println("At middleware one:start")
+// 		params := r.Context().Value("params").(httprouter.Params)
+// 		_, err := e.GetUserEndpoint(getUserRequest{ID: params.ByName("id")})
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadRequest)
+// 			return
+// 		}
+// 		next.ServeHTTP(w, r)
+// 		log.Println("At middleware one:end")
+// 	})
+// }
+
+// GetUser returns
+func (e Endpoints) GetUser() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		user, err := e.GetUserEndpoint(getUserRequest{ID: ps.ByName("id")})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		encodeResponse(w, user)
+	}
+}
+
+// Encodes the struct and returns the data as json
+func encodeResponse(w http.ResponseWriter, response interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// ErrorJson returns the error
+type ErrorJson struct {
+	Error   int    `json:"error"`
+	Message string `json:"message"`
+}
+
+// encodeError returns a json error
+func encodeError(w http.ResponseWriter, message string, code int) {
+	w.WriteHeader(code)
+	w.Header().Set("Content-Type", "application/json")
+	// json.NewEncoder(w).Encode(message)
+	json.NewEncoder(w).Encode(ErrorJson{
+		Error:   code,
+		Message: message,
+	})
+}
+
+type getUserRequest struct {
+	ID string
+}
+
+type getUserResponse struct {
+	Name string
+}
+
+// GET api/users/:id
 func (e endpoint) getUserHandler() httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		user, err := e.svc.fetchOne(ps.ByName("id"))
@@ -52,7 +136,52 @@ func (e endpoint) getUserHandler() httprouter.Handle {
 			w.Write([]byte("no user found"))
 			return
 		}
-		w.Write([]byte(user.Name))
+
+		json.NewEncoder(w).Encode(user)
+	}
+}
+
+type loginResponse struct {
+	OK          bool   `json:"ok"`
+	RedirectURI string `json:"redirect_uri"`
+}
+
+func (e endpoint) loginHandler() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		var user *User
+
+		// Decode the post payload
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Check if the user exists
+		user, err = e.svc.checkExist(user.Email)
+
+		if err != nil {
+			log.Printf("Error user not found err=%s", err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// User does not exist, throw the correct error
+		if user == nil {
+			log.Println("User does not exist")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		log.Println("User found!")
+		// User exists, redirect
+		w.Header().Set("Content-Type", "application/json")
+
+		response := loginResponse{
+			OK:          true,
+			RedirectURI: "/users/" + user.ID.Hex(),
+		}
+		json.NewEncoder(w).Encode(response)
 	}
 }
 
@@ -64,7 +193,6 @@ func (e endpoint) loginViewHandler(tmpl *app.Template) httprouter.Handle {
 
 func (e endpoint) viewUserHandler(tmpl *app.Template) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
 		user, err := e.svc.fetchOne(ps.ByName("id"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -75,14 +203,21 @@ func (e endpoint) viewUserHandler(tmpl *app.Template) httprouter.Handle {
 			w.Write([]byte("no user found"))
 			return
 		}
-		tmpl.Render(w, "login", user)
+		log.Println("rendering user view")
+		tmpl.Render(w, "user", user)
 	}
 }
 
 // POST /register
 // registerHandle register a user and return a redirect uri
-func (e endpoint) registerHandler() httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+type registerResponse struct {
+	OK          bool   `json:"ok"`
+	RedirectURI string `json:"redirect_uri"`
+	AccessToken string `json:"access_token"`
+}
+
+func (e endpoint) registerHandler(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		var u User
 
 		// Decode the body payload
@@ -92,19 +227,23 @@ func (e endpoint) registerHandler() httprouter.Handle {
 			return
 		}
 
+		log.Println("auth/endpoint.go -> registerHandler -> u=%v", u)
+
 		// Check if the user exist
-		user, err := e.svc.fetchOne(u.Email)
+		user, err := e.svc.checkExist(u.Email)
+		log.Printf("auth/*registerHandler user=%v", user)
 
 		// Error occured
 		if err != nil {
+			log.Printf("auth/*registerHandler error=%s", err.Error())
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// No user found, create new account
 		if user == nil {
-			log.Println("registerHandler: No user found.")
-			err := e.svc.create(u)
+			log.Println("registerHandler: No user found. Creating one")
+			userID, err := e.svc.create(u)
 			if err != nil {
 				log.Printf("registerHandler: Error creating user: %s", err.Error())
 				http.Error(w, err.Error(), http.StatusBadRequest)
@@ -112,18 +251,24 @@ func (e endpoint) registerHandler() httprouter.Handle {
 
 			// Successfully created, return payload
 			log.Println("registerHandler: successfully created user")
-			w.WriteHeader(http.StatusCreated)
-			w.Header().Set("Content-Type", "application/json")
+			ctx := context.WithValue(r.Context(), "userID", userID)
+			next(w, r.WithContext(ctx), ps)
+			// CReate a new jsonweb token
+			// w.WriteHeader(http.StatusCreated)
+			// w.Header().Set("Content-Type", "application/json")
 
-			w.Header().Set("Access-Control-Expose-Headers", "Location")
-			w.Header().Set("Location", "http://www.localhost:3000/prfile")
-			w.Write([]byte(`{"success": true, "redirect_uri": "/users/` + u.Email + `"}`))
+			// response := registerResponse{
+			// 	OK:          true,
+			// 	RedirectURI: "/users/" + userID,
+			// }
+			// json.NewEncoder(w).Encode(response)
 			return
 		}
-		log.Println("registerHandler: user exist")
+		log.Printf("registerHandler: user exist %+v", user)
 		// w.WriteHeader(http.StatusUnauthorized)
 		// w.Header().Set("Content-Type", "application/json")
 		// w.Write([]byte(`{"message": "user already exists"}`))
+
 		http.Error(w, `{"success": false, "message": "user already exists"}`, http.StatusUnauthorized)
 	}
 }
@@ -136,32 +281,10 @@ func (e endpoint) registerViewHandler(tmpl *app.Template) httprouter.Handle {
 	}
 }
 
-// func getUserHandler(db *memdb.MemDB) httprouter.Handle {
-// 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-// 		txn := db.Txn(false)
-// 		defer txn.Abort()
-
-// 		// Lookup by id
-// 		// raw, err := txn.First("user", "id", "john.doe@mail.com")
-// 		fmt.Println(r.FormValue("email"))
-
-// 		result, err := txn.Get("user", "id", r.FormValue("email"))
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		var users []string
-// 		// for raw := result.Next(); raw != nil; {
-// 		// 	users = append(users, raw.(*User).Name)
-// 		// }
-// 		for i := 0; i < 10; i++ {
-// 			raw := result.Next()
-// 			if raw == nil {
-// 				break
-// 			}
-// 			users = append(users, raw.(*User).Name)
-// 		}
-
-// 		fmt.Println(len(users))
-// 		w.Write([]byte(strings.Join(users, "-")))
-// 	}
-// }
+// GET api/users
+func (e endpoint) getUsersHandler() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		users := e.svc.fetchMany()
+		json.NewEncoder(w).Encode(users)
+	}
+}
