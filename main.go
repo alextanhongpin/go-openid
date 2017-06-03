@@ -17,10 +17,14 @@ func main() {
 		port = flag.Int("port", 8080, "The port for the server")
 		//env  = flag.String("env", "dev", "The working environment dev|stage|test|prod")
 	)
+
+	// Create a logger context
+
 	env := app.Env{
 		Db:     app.Database(),
 		Router: httprouter.New(),
-		Tmpl:   app.Template(),
+		Tmpl:   app.MakeTemplate(),
+		// Log: app.Logger()
 	}
 
 	auth.FeatureToggle(true)(env)

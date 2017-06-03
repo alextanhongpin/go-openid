@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
+	"log"
 	"net/http"
+
+	"github.com/alextanhongpin/go-openid/app"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -20,7 +22,6 @@ type endpoint struct {
 
 func (e endpoint) createUserHandler() httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 		var u User
 		err := json.NewDecoder(r.Body).Decode(&u)
 		fmt.Println(u, err)
@@ -30,7 +31,7 @@ func (e endpoint) createUserHandler() httprouter.Handle {
 		}
 
 		fmt.Println(u)
-		err = e.svc.create(u.Email, u.Password)
+		err = e.svc.create(u)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -55,24 +56,15 @@ func (e endpoint) getUserHandler() httprouter.Handle {
 	}
 }
 
-func (e endpoint) loginHandler(tmpl map[string]*template.Template) httprouter.Handle {
+func (e endpoint) loginViewHandler(tmpl *app.Template) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		t, ok := tmpl["login"]
-		if !ok {
-			http.Error(w, errorTemplateNotFound.Error(), http.StatusBadRequest)
-			return
-		}
-		t.Execute(w, nil)
+		tmpl.Render(w, "login", nil)
 	}
 }
 
-func (e endpoint) viewUserHandler(tmpl map[string]*template.Template) httprouter.Handle {
+func (e endpoint) viewUserHandler(tmpl *app.Template) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		t, ok := tmpl["user"]
-		if !ok {
-			http.Error(w, errorTemplateNotFound.Error(), http.StatusBadRequest)
-			return
-		}
+
 		user, err := e.svc.fetchOne(ps.ByName("id"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
@@ -83,7 +75,64 @@ func (e endpoint) viewUserHandler(tmpl map[string]*template.Template) httprouter
 			w.Write([]byte("no user found"))
 			return
 		}
-		t.Execute(w, user)
+		tmpl.Render(w, "login", user)
+	}
+}
+
+// POST /register
+// registerHandle register a user and return a redirect uri
+func (e endpoint) registerHandler() httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		var u User
+
+		// Decode the body payload
+		err := json.NewDecoder(r.Body).Decode(&u)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Check if the user exist
+		user, err := e.svc.fetchOne(u.Email)
+
+		// Error occured
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// No user found, create new account
+		if user == nil {
+			log.Println("registerHandler: No user found.")
+			err := e.svc.create(u)
+			if err != nil {
+				log.Printf("registerHandler: Error creating user: %s", err.Error())
+				http.Error(w, err.Error(), http.StatusBadRequest)
+			}
+
+			// Successfully created, return payload
+			log.Println("registerHandler: successfully created user")
+			w.WriteHeader(http.StatusCreated)
+			w.Header().Set("Content-Type", "application/json")
+
+			w.Header().Set("Access-Control-Expose-Headers", "Location")
+			w.Header().Set("Location", "http://www.localhost:3000/prfile")
+			w.Write([]byte(`{"success": true, "redirect_uri": "/users/` + u.Email + `"}`))
+			return
+		}
+		log.Println("registerHandler: user exist")
+		// w.WriteHeader(http.StatusUnauthorized)
+		// w.Header().Set("Content-Type", "application/json")
+		// w.Write([]byte(`{"message": "user already exists"}`))
+		http.Error(w, `{"success": false, "message": "user already exists"}`, http.StatusUnauthorized)
+	}
+}
+
+// GET register/
+// registerViewHandler renders the register view
+func (e endpoint) registerViewHandler(tmpl *app.Template) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		tmpl.Render(w, "register", nil)
 	}
 }
 

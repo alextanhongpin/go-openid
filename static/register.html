@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login</title>
+  <title>Register</title>
 
   <link rel="stylesheet" type="text/css" href="reset.css">
   <style type="text/css">
@@ -109,16 +109,42 @@
     .align-right {
       text-align: right;
     }
+    .error {
+      color: #FF4444;
+    }
+    #ErrorSection {
+      max-width: 460px;
+      width: 100%;
+      margin: 0 auto;
+      display: none;
+    }
+    #ErrorSection.is-visible {
+      display: block;
+    }
+    .error-view {
+      background: #FFBBBB;;
+      padding: 0 20px;
+    }
   </style>
 
 </head>
 <body>
 
 <header class='header'>App</header>
+  
+  <div id='ErrorSection'>
+    <br>
+    <br>
+    <div class='error-view'>
+      <br>
+        <div class='error'>Error!</div>
+      <br>
+    </div>
+  </div>
 
 <div class='login-form'>
-  <h1 class='title'>Sign In</h1>
-  <span class='subtitle'>Please sign in to proceed.</span>
+  <h1 class='title'>Register</h1>
+  <span class='subtitle'>Create a new account.</span>
   
   <br>
   <br>
@@ -169,32 +195,69 @@
 <script type="text/javascript">
   (function () {
     'use strict'
-    {
-      const submit = document.getElementById('submit')
-      const email = document.getElementById('email')
-      const password = document.getElementById('password')
 
-      submit.addEventListener('click', (evt) => {
-        window.fetch('/login', {
-          method: 'post',
-          body: JSON.stringify({
-            email: email.value,
-            password: password.value
-          }),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }).then((response) => {
-          return response.json()
-        }).then((json) => {
-          console.log(json)
-          if (json.ok) {
-            window.location.href = json.redirect_uri
-          }
-        }).catch((error) => {
-          console.log(error)
-        })
-      }, false)
+    const submit = document.getElementById('submit')
+    const email = document.getElementById('email')
+    const password = document.getElementById('password')
+    const errorView = new ErrorView(document.getElementById('ErrorSection'))
+
+    submit.addEventListener('click', (evt) => {
+      errorView.hide()
+      if (!password.value.trim().length) {
+        errorView.show('Password is required')
+        return
+      }
+
+      if (!email.value.trim().length) {
+        errorView.show('Email is required')
+        return
+      }
+      window.fetch('/register', {
+        method: 'post',
+        body: JSON.stringify({
+          email: email.value,
+          password: password.value
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).then((response) => {
+        console.log(response.headers.get('Location'))
+        if (!response) {
+          return null
+        }
+        if (response.headers.get('Location')) {
+          window.location.href = response.headers.get('Location')
+          return
+        }
+        return response.json()
+      }).then((json) => {
+        if (!json.success) {
+          console.error('error:', json)
+          errorView.show(json.message)
+          return
+        }
+
+        console.log('success:', json)
+        if (json.redirect_uri) {
+          window.location.href = json.redirect_uri
+        }
+      }).catch((error) => {
+        console.error('error:', error)
+        errorView.show(error.message)
+      })
+    }, false)
+
+    function ErrorView (el) {
+      return {
+        show (message) {
+          el.querySelector('.error').innerHTML = message
+          el.classList.add('is-visible')
+        },
+        hide () {
+          el.classList.remove('is-visible')
+        }
+      }
     }
   })()
 </script>

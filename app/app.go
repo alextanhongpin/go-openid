@@ -1,8 +1,6 @@
 package app
 
 import (
-  "html/template"
-
   "github.com/hashicorp/go-memdb"
   "github.com/julienschmidt/httprouter"
 )
@@ -11,6 +9,7 @@ import (
 type Env struct {
   Db     *memdb.MemDB
   Router *httprouter.Router
-  Tmpl   map[string]*template.Template
+  Tmpl   *Template
+  // Log    zap.Logger
   // log
 }

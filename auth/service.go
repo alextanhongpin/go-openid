@@ -9,26 +9,26 @@ import (
 )
 
 type service interface {
-  fetchOne(email string) (*User, error)
+  fetchOne(string) (*User, error)
   // fetchMany() ([]User, error)
-  create(email, password string) error
+  create(User) error
 }
 
 type userService struct {
   db *memdb.MemDB
 }
 
-func (svc userService) create(email, password string) error {
+func (svc userService) create(user User) error {
   txn := svc.db.Txn(true)
   defer txn.Abort()
 
-  hashedPassword, err := util.HashPassword(password)
+  hashedPassword, err := util.HashPassword(user.Password)
   if err != nil {
     return nil
   }
 
   u := &User{
-    Email:     email,
+    Email:     user.Email,
     Name:      "john",
     Password:  hashedPassword,
     CreatedAt: time.Now(),
