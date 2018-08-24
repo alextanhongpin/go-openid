@@ -40,8 +40,8 @@ func (c *clientService) Get(id string) (*Client, error) {
 }
 
 func (c *clientService) Register(req Client) error {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
 	if _, ok := c.db[req.ID]; ok {
 		return ErrForbidden
 	}
