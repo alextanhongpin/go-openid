@@ -1,7 +1,6 @@
 package openid
 
 import (
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -28,28 +27,36 @@ import (
 // 		t.Errorf("handler returned wrong body: got %v want %v", rr.Body.String(), expected)
 // 	}
 // }
+type mockAuthService struct{}
+
+const authorizationCode = "secret_code"
+
+func (s *mockAuthService) GenerateCode() string {
+	return authorizationCode
+}
 
 func TestAuthorizationRequest(t *testing.T) {
-	payload := map[string]string{
-		"response_type": "code",
-		"client_id":     "abc123",
-		"redirect_uri":  "http://client.com",
-		"scope":         "profile",
-		"state":         "xyz",
+	payload := AuthorizationRequest{
+		ResponseType: "code",
+		ClientID:     "abc123",
+		RedirectURI:  "http://client.com",
+		Scope:        "profile",
+		State:        "xyz",
+	}
+	q, err := EncodeAuthorizationRequest(&payload)
+	if err != nil {
+		t.Fatal(err)
 	}
 	req, err := http.NewRequest("GET", "/authorize", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	q := req.URL.Query()
-	for k, v := range payload {
-		q.Add(k, v)
-	}
 	req.URL.RawQuery = q.Encode()
-
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(HandleAuthorizationRequest)
+
+	h := HandleAuthorizationRequest(&mockAuthService{})
+	handler := http.HandlerFunc(h)
 	handler.ServeHTTP(rr, req)
 
 	// Check status code
@@ -63,17 +70,16 @@ func TestAuthorizationRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	qq := u.Query()
+	authRes := DecodeAuthorizationResponse(u.Query())
 
-	if state := qq.Get("state"); state != payload["state"] {
-		t.Errorf("handler returned wrong state: got %v want %v", state, payload["state"])
+	if state := authRes.State; state != payload.State {
+		t.Errorf("handler returned wrong state: got %v want %v", state, payload.State)
 	}
 
 	// Find a way to mock the code generation
-	if code := qq.Get("code"); code != payload["code"] {
-		t.Errorf("handler returned wrong code: got %v want %v", code, payload["code"])
+	if code := authRes.Code; code != authorizationCode {
+		t.Errorf("handler returned wrong code: got %v want %v", code, authorizationCode)
 	}
-	log.Printf("got %#v", rr.Header().Get("Location"))
 }
 
 // Testing POST
