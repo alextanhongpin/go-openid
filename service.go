@@ -1,91 +1,122 @@
 package openid
 
 import (
+	"errors"
 	"log"
-	"sync"
+	"strings"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	uuid "github.com/satori/go.uuid"
 )
 
 type Config struct {
-	AccessTokenDuration int64
+	AccessTokenDuration time.Duration
+	CodeDuration        time.Duration
 }
 
 func DefaultConfig() *Config {
 	return &Config{
-		AccessTokenDuration: 10000,
+		AccessTokenDuration: 2 * time.Hour,
+		CodeDuration:        10 * time.Minute,
 	}
+}
+
+type OpenID interface {
+	AuthorizationCode(AuthorizationRequest) (*AuthorizationResponse, error)
+	Token(AccessTokenRequest) (*AccessTokenResponse, error)
 }
 
 type Service struct {
-	sync.RWMutex
-	config           Config
-	ClientCache      map[string]struct{}
-	CodeCache        map[string]time.Time
-	RedirectURICache map[string]string
+	config      Config
+	CodeStore   CodeStore
+	ClientStore ClientStore
 }
 
-func (s *Service) generateCode() string {
-	return ""
-}
-
-func (s *Service) CheckCode (clientID string) bool {
-	s.RLock()
-	duration, ok := s.CodeCache.Get(clientID)
-	s.RUnlock()
-	return ok && time.Since(duration) < s.config.CodeTTL
-}
-
-func (s *Service) AuthorizationCode(req AuthorizationCodeRequest) (*AuthorizationCodeResponse, error) {
+func (s *Service) AuthorizationCode(req AuthorizationRequest) (*AuthorizationResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
-	// Check if the client has generated the code before
 
+	// TODO: Generate the code
 	code := s.generateCode()
 
-	return &AuthorizationCodeResponse{
-		Code:  
+	// Store the code in the store with the current time
+	s.CodeStore.Put(req.ClientID, code)
+
+	return &AuthorizationResponse{
+		Code:  code.Code,
 		State: req.State,
 	}, nil
 }
-func (s *Service) generateAccessToken() string {
-	claims := &jwt.StandardClaims{
-		ExpiresAt: s.config.AccessTokenDuration,
-		Issuer:    "test",
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString(SigningKey)
-	log.Println(err)
 
-	return ss
+func (s *Service) validateCode(clientID, code string) error {
+	c := s.CodeStore.Get(clientID)
+	if c.Code != code {
+		return errors.New("invalid code")
+	}
+	if c.Expired() {
+		// Remove expired code
+		s.CodeStore.Delete(clientID)
+		return errors.New("code expired")
+	}
+	// Delete the authorization code so that it can't be reused
+	s.CodeStore.Delete(clientID)
+	return nil
 }
-func (s *Service) RequestAccessToken(req AccessTokenRequest) (*AccessTokenResponse, error) {
+
+func (s *Service) Token(req AccessTokenRequest) (*AccessTokenResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
-	s.RLock()
-	_, hasClient := s.ClientCache[req.ClientID]
-	codeDuration, hasCode := s.CodeCache[req.Code]
-	redirectURI, hasRedirectURI := s.RedirectURICache[req.ClientID]
-	s.RUnlock()
-	if !hasClient {
-		return nil, ErrForbidden
-	}
-	if !hasCode || time.Since(codeDuration) > 10*time.Minute {
-		return nil, ErrForbidden
-	}
-	if !hasRedirectURI || redirectURI != req.RedirectURI {
+	// Check if the client exist
+	client := s.ClientStore.Get(req.ClientID)
+	if client == nil {
 		return nil, ErrForbidden
 	}
 
-	res := AccessTokenResponse{
-		AccessToken:  s.generateAccessToken(),
-		TokenType:    "bearer",
-		ExpiresIn:    s.config.AccessTokenDuration,
-		RefreshToken: s.generateRefreshToken(),
+	// Check if client redirect uri is valid
+	if !strings.Contains(client.RedirectURIs, req.RedirectURI) {
+		return nil, ErrForbidden
 	}
-	return nil, nil
+
+	// Check if the token is valid
+	if err := s.validateCode(req.ClientID, req.Code); err != nil {
+		return nil, err
+	}
+
+	// Finalize the response
+	return &AccessTokenResponse{
+		AccessToken:  s.generateAccessToken(req.ClientID),
+		TokenType:    "Bearer",
+		ExpiresIn:    int64(s.config.AccessTokenDuration.Seconds()),
+		RefreshToken: s.generateRefreshToken(req.ClientID),
+	}, nil
+}
+
+func (s *Service) generateAccessToken(clientID string) string {
+	claims := &jwt.StandardClaims{
+		ExpiresAt: int64(s.config.AccessTokenDuration.Seconds()),
+		Issuer:    "test",
+		Subject:   clientID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString(SigningKey)
+	if err != nil {
+		log.Println(err)
+	}
+	return ss
+}
+
+func (s *Service) generateRefreshToken(clientID string) string {
+	return "refresh_token"
+}
+
+func (s *Service) generateCode() *Code {
+	return &Code{
+		Code:      uuid.Must(uuid.NewV4()).String(),
+		CreatedAt: time.Now(),
+		TTL:       s.config.CodeDuration,
+	}
 }

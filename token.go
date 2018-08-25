@@ -1,10 +1,7 @@
 package openid
 
 import (
-	"encoding/json"
 	"errors"
-	"log"
-	"net/http"
 )
 
 var SigningKey = []byte("JWT_SECRET")
@@ -45,24 +42,25 @@ type AccessTokenService interface {
 	Do(AccessTokenRequest) (*AccessTokenResponse, error)
 }
 
-func HandleAccessTokenRequest(s OAuthService) http.HandlerFunc {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		authHdr := r.Header.Get("Authorization")
-		log.Println("authHdr", authHdr)
-		var req AccessTokenRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		res, err := s.RequestAccessToken(req)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-
-			return
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Pragma", "no-cache")
-		json.NewEncoder(w).Encode(res)
-	}
-}
+//
+// func HandleAccessTokenRequest(s OAuthService) http.HandlerFunc {
+//
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		authHdr := r.Header.Get("Authorization")
+// 		log.Println("authHdr", authHdr)
+// 		var req AccessTokenRequest
+// 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadRequest)
+// 			return
+// 		}
+// 		res, err := s.RequestAccessToken(req)
+// 		if err != nil {
+// 			http.Error(w, err.Error(), http.StatusBadRequest)
+//
+// 			return
+// 		}
+// 		w.Header().Set("Cache-Control", "no-store")
+// 		w.Header().Set("Pragma", "no-cache")
+// 		json.NewEncoder(w).Encode(res)
+// 	}
+// }
