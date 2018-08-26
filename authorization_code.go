@@ -1,21 +1,9 @@
 package openid
 
 import (
-	"errors"
 	"log"
 	"net/http"
 	"net/url"
-)
-
-// Authorization errors
-var (
-	ErrInvalidRequest          = errors.New("invalid request")
-	ErrUnauthorizedClient      = errors.New("unauthorized client")
-	ErrAccessDenied            = errors.New("access denied")
-	ErrUnsupportedResponseType = errors.New("unsupported response type")
-	ErrInvalidScope            = errors.New("invalid scope")
-	ErrServerError             = errors.New("server error")
-	ErrTemporarilyUnavailable  = errors.New("temporarily unavailable")
 )
 
 type AuthorizationRequest struct {
@@ -83,7 +71,7 @@ func DecodeAuthorizationResponse(u url.Values) *AuthorizationResponse {
 		State: u.Get("state"),
 	}
 }
-func EncodeAuthorizationResponse(r AuthorizationResponse, targetURL string) (*url.URL, error) {
+func EncodeAuthorizationResponse(r *AuthorizationResponse, targetURL string) (*url.URL, error) {
 	u, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, err
@@ -106,7 +94,7 @@ func HandleAuthorizationRequest(s AuthorizationService) http.HandlerFunc {
 			log.Fatal(err)
 		}
 
-		res := AuthorizationResponse{
+		res := &AuthorizationResponse{
 			Code:  s.GenerateCode(),
 			State: req.State,
 		}

@@ -11,18 +11,17 @@ type CodeKV struct {
 	db map[string]*openid.Code
 }
 
-func (c *CodeKV) Get(id string) *openid.Code {
-	if id == "" {
-		return nil
+func NewCodeKV() *CodeKV {
+	return &CodeKV{
+		db: make(map[string]*openid.Code),
 	}
+}
+
+func (c *CodeKV) Get(id string) (*openid.Code, bool) {
 	c.RLock()
 	code, ok := c.db[id]
 	c.RUnlock()
-
-	if !ok {
-		return nil
-	}
-	return code
+	return code, ok
 }
 
 func (c *CodeKV) Put(id string, code *openid.Code) {

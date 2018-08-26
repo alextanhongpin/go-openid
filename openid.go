@@ -44,19 +44,6 @@ func (p Prompt) String() string {
 	return [...]string{"none", "login", "consent", "select_account"}[p]
 }
 
-// Authentication Error Response
-var (
-	ErrInteractionRequired      = errors.New("interaction required")
-	ErrLoginRequired            = errors.New("login required")
-	ErrAccountSelectionRequired = errors.New("account selection required")
-	ErrConsentRequired          = errors.New("consent required")
-	ErrInvalidRequestURI        = errors.New("invalid request uri")
-	ErrInvalidRequestObject     = errors.New("invalid request object")
-	ErrRequestNotSupported      = errors.New("request not supported")
-	ErrRequestURINotSupported   = errors.New("request uri not supported")
-	ErrRegistrationNotSupported = errors.New("registration not supported")
-)
-
 // AuthenticationRequest is an OAuth 2.0 Authorization Request that requests that the End User be authenticated by the Authorization Server.
 type AuthenticationRequest struct {
 	Scope        string
@@ -153,10 +140,6 @@ func (s Scope) String() string {
 type RefreshRequest struct {
 }
 type RefreshResponse struct{}
-
-func validateContentType() {
-	// Check if the contentType == "application/x-www-form-urlencoded"
-}
 
 // func makeAccessTokenRequest () {
 // 	t := &http.Transport{

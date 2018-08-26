@@ -1,17 +1,10 @@
 package openid
 
-import (
-	"errors"
-)
-
-var SigningKey = []byte("JWT_SECRET")
-var ErrForbidden = errors.New("forbidden request")
-
 type AccessTokenRequest struct {
-	GrantType   string `json:"grant_type"`
-	Code        string `json:"code"`
-	RedirectURI string `json:"redirect_uri"`
-	ClientID    string `json:"client_id"`
+	GrantType   string `json:"grant_type,omitempty"`
+	Code        string `json:"code,omitempty"`
+	RedirectURI string `json:"redirect_uri,omitempty"`
+	ClientID    string `json:"client_id,omitempty"`
 }
 
 func (r *AccessTokenRequest) Validate() error {
@@ -38,29 +31,3 @@ type AccessTokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 	RefreshToken string `json:"refresh_token"`
 }
-type AccessTokenService interface {
-	Do(AccessTokenRequest) (*AccessTokenResponse, error)
-}
-
-//
-// func HandleAccessTokenRequest(s OAuthService) http.HandlerFunc {
-//
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		authHdr := r.Header.Get("Authorization")
-// 		log.Println("authHdr", authHdr)
-// 		var req AccessTokenRequest
-// 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-// 		res, err := s.RequestAccessToken(req)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-//
-// 			return
-// 		}
-// 		w.Header().Set("Cache-Control", "no-store")
-// 		w.Header().Set("Pragma", "no-cache")
-// 		json.NewEncoder(w).Encode(res)
-// 	}
-// }

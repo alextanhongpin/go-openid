@@ -9,14 +9,14 @@ import (
 )
 
 func main() {
-	db := NewDatabase()
+	//	db := NewDatabase()
 
-	e := Endpoints{
-		service: NewService(db),
-	}
+	//	e := Endpoints{
+	//		service: NewService(db),
+	//	}
 	// Create multiple endpoints
 	r := httprouter.New()
-	r.GET("/connect/register", e.Register)
+	//r.GET("/connect/register", e.Register)
 
 	srv := &http.Server{
 		Addr:         ":8080",
