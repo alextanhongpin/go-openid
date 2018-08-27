@@ -50,3 +50,24 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 	json.NewEncoder(w).Encode(res)
 }
+
+func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var req oidc.ClientRegistrationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	res, err := e.service.RegisterClient(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	// Set the appropriate headers
+	w.WriteHeader(http.StatusCreated)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+
+	json.NewEncoder(w).Encode(res)
+}

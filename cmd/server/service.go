@@ -12,7 +12,7 @@ import (
 type OIDService interface {
 	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
-	// RegisterClient
+	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
 	// RegisterUser
 	// Authenticate
 }
@@ -21,10 +21,11 @@ type tokenGenerator func() string
 
 // Service fulfils the OIDService interface.
 type Service struct {
-	db      *Database
-	genCode tokenGenerator
-	genAT   tokenGenerator
-	genRT   tokenGenerator
+	db        *Database
+	genCode   tokenGenerator
+	genAT     tokenGenerator
+	genRT     tokenGenerator
+	newClient func(*oidc.ClientRegistrationRequest) *oidc.Client
 }
 
 // NewService returns a pointer to a new service.
@@ -37,6 +38,9 @@ func NewService(db *Database, codeGen tokenGenerator, atGen tokenGenerator, rtGe
 		genCode: codeGen,
 		genAT:   atGen,
 		genRT:   rtGen,
+		newClient: func(req *oidc.ClientRegistrationRequest) *oidc.Client {
+			return oidc.NewClient(req)
+		},
 	}
 }
 
@@ -56,8 +60,8 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	cid := req.ClientID
 
 	// Check if client exist
-	client, exist := s.db.Client.Get(cid)
-	if !exist || client == nil {
+	client := s.db.Client.GetByID(cid)
+	if client == nil {
 		return nil, oidc.ErrForbidden
 	}
 
@@ -67,7 +71,7 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	}
 
 	// Check if client has code, if yes, remove existing ones and return a new one
-	if _, exist = s.db.Code.Get(cid); exist {
+	if _, exist := s.db.Code.Get(cid); exist {
 		s.db.Code.Delete(cid)
 	}
 	newCode := oidc.NewCode(s.genCode())
@@ -89,11 +93,10 @@ func (s *Service) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oid
 
 	cid := req.ClientID
 	// Check if the client exists
-	client, exist := s.db.Client.Get(cid)
-	if !exist || client == nil {
+	client := s.db.Client.GetByID(cid)
+	if client == nil {
 		return nil, oidc.ErrForbidden
 	}
-
 	// Check if redirect uri is correct
 	if match := validateRedirectURIs(client.RedirectURIs, req.RedirectURI); !match {
 		return nil, errors.New("one or more redirect uri is incorrect")
@@ -128,14 +131,16 @@ func (s *Service) RegisterClient(ctx context.Context, req *oidc.ClientRegistrati
 		return nil, err
 	}
 	// Check if client is already registered
-	// s.db.Client.Get(req.?)
+	if _, exist := s.db.Client.Get(req.ClientName); exist {
+		return nil, errors.New("client is already registered")
+	}
 
 	// If client is already registered, return err
 	// If the client is not registered, create a new client
-	// client := NewClient(clientID, clientSecret)
+	client := s.newClient(req)
 
 	// Save the client to the storage
-	// s.db.Client.Put(clientID, client)
+	s.db.Client.Put(req.ClientName, client)
 
-	return nil, nil
+	return client.ClientRegistrationResponse, nil
 }

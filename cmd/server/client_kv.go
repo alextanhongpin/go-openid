@@ -20,23 +20,47 @@ func NewClientKV() *ClientKV {
 }
 
 // Get returns a client by id and a status indicating that the client exist.
-func (c *ClientKV) Get(id string) (*oidc.Client, bool) {
+func (c *ClientKV) Get(name string) (*oidc.Client, bool) {
 	c.RLock()
-	client, ok := c.db[id]
+	client, ok := c.db[name]
 	c.RUnlock()
 	return client, ok
 }
 
+func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
+	c.RLock()
+	for _, c := range c.db {
+		if c.ClientID == id {
+			client = c
+			break
+		}
+	}
+	c.RUnlock()
+	return
+}
+
+func (c *ClientKV) GetByIDAndSecret(id, secret string) (client *oidc.Client) {
+	c.RLock()
+	for _, c := range c.db {
+		if c.ClientID == id && c.ClientSecret == secret {
+			client = c
+			break
+		}
+	}
+	c.RUnlock()
+	return
+}
+
 // Put insert a new client by id.
-func (c *ClientKV) Put(id string, client *oidc.Client) {
+func (c *ClientKV) Put(name string, client *oidc.Client) {
 	c.Lock()
-	c.db[id] = client
+	c.db[name] = client
 	c.Unlock()
 }
 
 // Delete removes a client from the store.
-func (c *ClientKV) Delete(id string) {
+func (c *ClientKV) Delete(name string) {
 	c.Lock()
-	delete(c.db, id)
+	delete(c.db, name)
 	c.Unlock()
 }

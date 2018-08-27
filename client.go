@@ -3,12 +3,31 @@ package oidc
 const ClientRegistrationEndpoint = "/connect/register"
 
 type Client struct {
-	RedirectURIs                 []string
-	ResponseTypes                []string
-	GrantTypes                   []string
-	ApplicationType              string
-	Contacts                     []string
-	ClientName                   string
+	*ClientRegistrationRequest
+	*ClientRegistrationResponse
+}
+
+func NewClient(req *ClientRegistrationRequest) *Client {
+	return &Client{
+		ClientRegistrationRequest: req,
+		ClientRegistrationResponse: &ClientRegistrationResponse{
+			ClientID:                "fake client id",
+			ClientSecret:            "fake client secret",
+			RegistrationAccessToken: "",
+			RegistrationClientURI:   "",
+			ClientIDIssuedAt:        0,
+			ClientSecretExpiresAt:   0,
+		},
+	}
+}
+
+type ClientRegistrationRequest struct {
+	RedirectURIs                 []string `json:"redirect_uris"`
+	ResponseTypes                []string `json:"response_types"`
+	GrantTypes                   []string `json:"grant_types"`
+	ApplicationType              string   `json:"application_type"`
+	Contacts                     []string `json:"contacts"`
+	ClientName                   string   `json:"client_name"`
 	LogoURI                      string
 	ClientURI                    string
 	PolicyURI                    string
@@ -35,7 +54,10 @@ type Client struct {
 	RequestURIs                  []string
 }
 
-type ClientRegistrationRequest struct{}
+func (c *ClientRegistrationRequest) Validate() error {
+	return nil
+}
+
 type ClientRegistrationResponse struct {
 	ClientID                string
 	ClientSecret            string

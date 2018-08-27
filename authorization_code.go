@@ -14,7 +14,8 @@ type AuthorizationRequest struct {
 	State        string `json:"state"`
 }
 
-// DecodeAuthorizationRequest takes in a url with the query string parameters and converts it into a struct
+// DecodeAuthorizationRequest takes in a url with the query string parameters
+// and converts it into a struct
 func DecodeAuthorizationRequest(u url.Values) *AuthorizationRequest {
 	return &AuthorizationRequest{
 		ResponseType: u.Get("response_type"),
@@ -25,7 +26,7 @@ func DecodeAuthorizationRequest(u url.Values) *AuthorizationRequest {
 	}
 }
 
-// Encode converts the struct into url with query string
+// EncodeAuthorizationRequest converts the struct into url with query string
 func EncodeAuthorizationRequest(r *AuthorizationRequest) (url.Values, error) {
 	u, err := url.Parse("")
 	if err != nil {
