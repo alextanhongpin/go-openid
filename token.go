@@ -1,4 +1,4 @@
-package openid
+package oidc
 
 type AccessTokenRequest struct {
 	GrantType   string `json:"grant_type,omitempty"`

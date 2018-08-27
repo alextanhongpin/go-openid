@@ -1,4 +1,4 @@
-package openid
+package oidc
 
 import (
 	"log"

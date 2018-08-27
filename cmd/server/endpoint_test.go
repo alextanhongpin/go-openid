@@ -9,10 +9,10 @@ import (
 	"net/url"
 	"testing"
 
-	openid "github.com/alextanhongpin/go-openid"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/crypto/argon2"
+
+	oidc "github.com/alextanhongpin/go-openid"
 )
 
 func newMockEndpoint() *Endpoints {
@@ -30,11 +30,18 @@ func newMockEndpoint() *Endpoints {
 	}
 }
 
-func TestArgon2(t *testing.T) {
-	key := argon2.IDKey([]byte("hello world"), []byte("hello"), 1, 64*1024, 4, 32)
-	log.Println(crypto.Argon2id(key))
-
+func setupAuthorizationRequest() url.Values {
+	req := &oidc.AuthorizationRequest{
+		ResponseType: "code",
+		ClientID:     "1",
+		RedirectURI:  "http://client/cb",
+		Scope:        "profile",
+		State:        "123",
+	}
+	q, _ := oidc.EncodeAuthorizationRequest(req)
+	return q
 }
+
 func TestAuthorizeEndpoint(t *testing.T) {
 	assert := assert.New(t)
 
@@ -46,21 +53,12 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	router.GET("/authorize", e.Authorize)
 
 	// Setup payload
-	authReq := &openid.AuthorizationRequest{
-		ResponseType: "code",
-		ClientID:     "1",
-		RedirectURI:  "http://client/cb",
-		Scope:        "profile",
-		State:        "123",
-	}
-	rawQuery, err := openid.EncodeAuthorizationRequest(authReq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	q := setupAuthorizationRequest()
 
 	// Setup request
 	req, _ := http.NewRequest("GET", "/authorize", nil)
-	req.URL.RawQuery = rawQuery.Encode()
+	req.URL.RawQuery = q.Encode()
+
 	rr := httptest.NewRecorder()
 
 	// Serve mock requests
@@ -71,15 +69,22 @@ func TestAuthorizeEndpoint(t *testing.T) {
 
 	log.Println(rr.Body.String())
 
-	u, err := url.Parse(rr.Header().Get("Location"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	res := openid.DecodeAuthorizationResponse(u.Query())
+	u, _ := url.Parse(rr.Header().Get("Location"))
+	res := oidc.DecodeAuthorizationResponse(u.Query())
 	assert.Equal(res.Code, "code", "handler return wrong authorization code")
 	assert.Equal(res.State, authReq.State, "handler return wrong state")
 }
 
+func setupTokenRequest() []byte {
+	req := oidc.AccessTokenRequest{
+		GrantType:   "authorization_code",
+		Code:        "xyz",
+		RedirectURI: "http://client/cb",
+		ClientID:    "1234",
+	}
+	js, _ := json.Marshal(req)
+	return js
+}
 func TestTokenEndpoint(t *testing.T) {
 	assert := assert.New(t)
 
@@ -89,23 +94,12 @@ func TestTokenEndpoint(t *testing.T) {
 	router.POST("/token", e.Token)
 
 	// Setup payload
-	atReq := openid.AccessTokenRequest{
-		GrantType:   "authorization_code",
-		Code:        "XYZ",
-		RedirectURI: "http://client/cb",
-		ClientID:    "123",
-	}
-	atReqJSON, err := json.Marshal(atReq)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req, err := http.NewRequest("POST", "/token", bytes.NewBuffer(atReqJSON))
-	if err != nil {
-		t.Fatal(err)
-	}
+	payload := setupTokenRequest()
+	req, _ := http.NewRequest("POST", "/token", bytes.NewBuffer(payload))
 
 	rr := httptest.NewRecorder()
 	log.Println(rr.Body.String())
+
 	// Setup mock requests
 	router.ServeHTTP(rr, req)
 

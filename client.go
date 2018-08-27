@@ -1,7 +1,9 @@
-package openid
+package oidc
+
+const ClientRegistrationEndpoint = "/connect/register"
 
 type Client struct {
-	RedirectURIs                 string
+	RedirectURIs                 []string
 	ResponseTypes                []string
 	GrantTypes                   []string
 	ApplicationType              string
@@ -31,4 +33,19 @@ type Client struct {
 	DefaultAcrValues             string
 	InitiateLoginURI             string
 	RequestURIs                  []string
+}
+
+type ClientRegistrationRequest struct{}
+type ClientRegistrationResponse struct {
+	ClientID                string
+	ClientSecret            string
+	RegistrationAccessToken string
+	RegistrationClientURI   string
+	ClientIDIssuedAt        int64
+	ClientSecretExpiresAt   int64
+}
+
+type ClientErrorResponse struct {
+	Error            string
+	ErrorDescription string
 }

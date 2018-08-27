@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	openid "github.com/alextanhongpin/go-openid"
+	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -17,7 +17,7 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 	// Can be extracted as a middleware
 
 	// Construct request parameters
-	req := openid.DecodeAuthorizationRequest(r.URL.Query())
+	req := oidc.DecodeAuthorizationRequest(r.URL.Query())
 
 	// Call service
 	res, err := e.service.Authorize(r.Context(), req)
@@ -25,7 +25,7 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	redirectURI, err := openid.EncodeAuthorizationResponse(res, req.RedirectURI)
+	redirectURI, err := oidc.EncodeAuthorizationResponse(res, req.RedirectURI)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -34,7 +34,7 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 }
 
 func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	var req openid.AccessTokenRequest
+	var req oidc.AccessTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

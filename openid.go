@@ -1,4 +1,4 @@
-package openid
+package oidc
 
 import (
 	"errors"
@@ -66,7 +66,7 @@ func (a *AuthenticationRequest) Validate() error {
 	if a.Scope == "" {
 		return errors.New("invalid scope")
 	}
-	// if !a.Scope.Contain("openid") {
+	// if !a.Scope.Contain("oidc") {
 	// 	return errors.New("invalid scope")
 	// }
 	// Check other required values

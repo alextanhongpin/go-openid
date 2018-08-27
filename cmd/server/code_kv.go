@@ -3,28 +3,28 @@ package main
 import (
 	"sync"
 
-	openid "github.com/alextanhongpin/go-openid"
+	oidc "github.com/alextanhongpin/go-openid"
 )
 
 type CodeKV struct {
 	sync.RWMutex
-	db map[string]*openid.Code
+	db map[string]*oidc.Code
 }
 
 func NewCodeKV() *CodeKV {
 	return &CodeKV{
-		db: make(map[string]*openid.Code),
+		db: make(map[string]*oidc.Code),
 	}
 }
 
-func (c *CodeKV) Get(id string) (*openid.Code, bool) {
+func (c *CodeKV) Get(id string) (*oidc.Code, bool) {
 	c.RLock()
 	code, ok := c.db[id]
 	c.RUnlock()
 	return code, ok
 }
 
-func (c *CodeKV) Put(id string, code *openid.Code) {
+func (c *CodeKV) Put(id string, code *oidc.Code) {
 	c.Lock()
 	c.db[id] = code
 	c.Unlock()

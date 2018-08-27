@@ -1,4 +1,4 @@
-package openid
+package oidc
 
 import "errors"
 
@@ -24,6 +24,12 @@ var (
 	ErrInvalidScope            = errors.New("invalid scope")
 	ErrServerError             = errors.New("server error")
 	ErrTemporarilyUnavailable  = errors.New("temporarily unavailable")
+)
+
+// Client Registration errors
+var (
+	ErrInvalidRedirectURI    = errors.New("invalid redirect uri")
+	ErrInvalidClientMetadata = errors.New("invalid client metadata")
 )
 
 var ErrForbidden = errors.New("forbidden request")
