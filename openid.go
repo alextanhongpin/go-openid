@@ -6,16 +6,16 @@ import (
 
 // IDToken is a security token that contains Claims about the Authentication of an End-User by and Authorization Server when using Client, and potentially other requested Claims.
 type IDToken struct {
-	Iss      string   `json:"iss"`
-	Sub      string   `json:"sub"`
-	Aud      string   `json:"aud"`
-	Exp      int64    `json:"exp"`
-	Iat      int64    `json:"iat"`
-	AuthTime int64    `json:"auth_time"`
-	Nonce    string   `json:"nonce"`
-	Acr      string   `json:"acr"`
-	Amr      []string `json:"amr"`
-	Azp      string   `json:"azp"`
+	Issuer    string   `json:"iss"`
+	Subject   string   `json:"sub"`
+	Audience  string   `json:"aud"`
+	ExpiresIn int64    `json:"exp"`
+	Iat       int64    `json:"iat"`
+	AuthTime  int64    `json:"auth_time"`
+	Nonce     string   `json:"nonce"`
+	Acr       string   `json:"acr"`
+	Amr       []string `json:"amr"`
+	Azp       string   `json:"azp"`
 }
 
 type Display int
