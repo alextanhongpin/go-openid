@@ -67,6 +67,7 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 
 	// Check if redirect uri is correct
 	if match := validateRedirectURIs(client.RedirectURIs, req.RedirectURI); !match {
+		// TODO: Return the error query string in the redirect uri
 		return nil, errors.New("one or more redirect uri is incorrect")
 	}
 

@@ -28,9 +28,6 @@ func newMockService(db *Database) *Service {
 }
 
 func newMockEndpoint(s *Service) *Endpoints {
-	if s == nil {
-		s = newMockService(nil)
-	}
 	return &Endpoints{
 		service: s,
 	}

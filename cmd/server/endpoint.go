@@ -25,11 +25,13 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	redirectURI, err := oidc.EncodeAuthorizationResponse(res, req.RedirectURI)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	http.Redirect(w, r, redirectURI.String(), http.StatusFound)
 }
 
@@ -39,12 +41,16 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	res, err := e.service.Token(r.Context(), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	// Set the appropriate headers
+	// TODO: What status type to return here?
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
@@ -52,16 +58,19 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 }
 
 func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Check for authorization headers to see if the client can register
 	var req oidc.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
 	res, err := e.service.RegisterClient(r.Context(), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	// Set the appropriate headers
 	w.WriteHeader(http.StatusCreated)
 
