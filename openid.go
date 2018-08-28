@@ -6,16 +6,37 @@ import (
 
 // IDToken is a security token that contains Claims about the Authentication of an End-User by and Authorization Server when using Client, and potentially other requested Claims.
 type IDToken struct {
-	Issuer    string   `json:"iss"`
-	Subject   string   `json:"sub"`
-	Audience  string   `json:"aud"`
-	ExpiresIn int64    `json:"exp"`
-	Iat       int64    `json:"iat"`
-	AuthTime  int64    `json:"auth_time"`
-	Nonce     string   `json:"nonce"`
-	Acr       string   `json:"acr"`
-	Amr       []string `json:"amr"`
-	Azp       string   `json:"azp"`
+	Issuer          string   `json:"iss"`
+	Subject         string   `json:"sub"`
+	Audience        string   `json:"aud"`
+	ExpiresIn       int64    `json:"exp"`
+	IssuedAt        int64    `json:"iat"`
+	AuthTime        int64    `json:"auth_time"`
+	Nonce           string   `json:"nonce"`
+	AuthCtxClassRef string   `json:"acr"`
+	AuthMethodRefs  []string `json:"amr"`
+	AuthorizedParty string   `json:"azp"`
+}
+
+func (i *IDToken) Validate() error {
+	if i.Issuer == "" {
+		return errors.New("issuer cannot be empty")
+	}
+
+	if i.Subject == "" {
+		return errors.New("subject cannot be empty")
+	}
+	if i.Audience == "" {
+		return errors.New("audience cannot be empty")
+	}
+
+	if i.ExpiresIn == 0 {
+		return errors.New("exp cannot be zero")
+	}
+	if i.IssuedAt == 0 {
+		return errors.New("issued at date cannot be zero")
+	}
+	return nil
 }
 
 type Display int
@@ -99,26 +120,30 @@ type Address struct {
 }
 
 type StandardClaims struct {
-	Sub                 string
-	Name                string
-	GivenName           string
-	FamilyName          string
-	MiddleName          string
-	Nickname            string
-	PreferredUsername   string
-	Profile             string
-	Picture             string
-	Website             string
-	Email               string
-	EmailVerified       bool
-	Gender              string
-	Birthdate           string
-	ZoneInfo            string
-	Locale              string
+	// Scope: Profile
+	Sub               string
+	Name              string
+	GivenName         string
+	FamilyName        string
+	MiddleName        string
+	Nickname          string
+	PreferredUsername string
+	Profile           string
+	Picture           string
+	Website           string
+	Gender            string
+	Birthdate         string
+	ZoneInfo          string
+	Locale            string
+	UpdatedAt         int64
+	// Scope: Email
+	Email         string
+	EmailVerified bool
+	// Scope: Address
+	Address Address
+	// Scope: Phone
 	PhoneNumber         string
 	PhoneNumberVerified bool
-	Address             Address
-	UpdatedAt           int64
 }
 
 type UserInfoRequest struct{}

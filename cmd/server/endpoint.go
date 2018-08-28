@@ -95,5 +95,10 @@ func (e *Endpoints) Client() {
 // .well-known/openid-configuration
 func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
 
+	return nil, nil
 }
 func (e *Endpoints) RefreshToken() {}
+
+func (e *Endpoints) UserInfo() {
+
+}

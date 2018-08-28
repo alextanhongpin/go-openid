@@ -86,10 +86,10 @@ func EncodeAuthorizationResponse(r *AuthorizationResponse, targetURL string) (*u
 
 // AuthorizationError represents the struct for the error.
 type AuthorizationError struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	ErrorURI         string `json:"error_uri"`
-	State            string `json:"state"`
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
+	ErrorURI         string `json:"error_uri,omitempty"`
+	State            string `json:"state,omitempty"`
 }
 
 // EncodeAuthorizationError takes a struct and url and embed the struct as query string parameters to the url.
