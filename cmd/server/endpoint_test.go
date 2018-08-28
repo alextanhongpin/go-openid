@@ -154,14 +154,14 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	e := newMockEndpoint(s)
 
 	router := httprouter.New()
-	router.POST("/client/register", e.RegisterClient)
+	router.POST("/connect/register", e.RegisterClient)
 
 	// Setup payload
 	clientReq := &oidc.ClientRegistrationRequest{
 		ClientName: "oidc_app",
 	}
 	clientJSON, _ := json.Marshal(clientReq)
-	req, _ := http.NewRequest("POST", "/client/register", bytes.NewBuffer(clientJSON))
+	req, _ := http.NewRequest("POST", "/connect/register", bytes.NewBuffer(clientJSON))
 
 	rr := httptest.NewRecorder()
 

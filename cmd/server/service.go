@@ -8,7 +8,7 @@ import (
 	oidc "github.com/alextanhongpin/go-openid"
 )
 
-// OIDService represents the interface for the services available for OpenID Protocol
+// OIDService represents the interface for the services available for OpenID Connect Protocol.
 type OIDService interface {
 	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
@@ -17,27 +17,28 @@ type OIDService interface {
 	// Authenticate
 }
 
+// tokenGenerator represents the function to generate token.
 type tokenGenerator func() string
 
 // Service fulfils the OIDService interface.
 type Service struct {
-	db        *Database
-	genCode   tokenGenerator
-	genAT     tokenGenerator
-	genRT     tokenGenerator
-	newClient func(*oidc.ClientRegistrationRequest) *oidc.Client
+	db                   *Database
+	generateCode         tokenGenerator
+	generateAccessToken  tokenGenerator
+	generateRefreshToken tokenGenerator
+	newClient            func(*oidc.ClientRegistrationRequest) *oidc.Client
 }
 
 // NewService returns a pointer to a new service.
-func NewService(db *Database, codeGen tokenGenerator, atGen tokenGenerator, rtGen tokenGenerator) *Service {
+func NewService(db *Database, gc tokenGenerator, gat tokenGenerator, grt tokenGenerator) *Service {
 	if db == nil {
 		db = NewDatabase()
 	}
 	return &Service{
-		db:      db,
-		genCode: codeGen,
-		genAT:   atGen,
-		genRT:   rtGen,
+		db:                   db,
+		generateCode:         gc,
+		generateAccessToken:  gat,
+		generateRefreshToken: grt,
 		newClient: func(req *oidc.ClientRegistrationRequest) *oidc.Client {
 			return oidc.NewClient(req)
 		},
@@ -75,7 +76,7 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	if _, exist := s.db.Code.Get(cid); exist {
 		s.db.Code.Delete(cid)
 	}
-	newCode := oidc.NewCode(s.genCode())
+	newCode := oidc.NewCode(s.generateCode())
 
 	// Set the code in the storage
 	s.db.Code.Put(cid, newCode)
@@ -120,13 +121,14 @@ func (s *Service) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oid
 
 	// Finalize the response and return the access token
 	return &oidc.AccessTokenResponse{
-		AccessToken:  s.genAT(),
+		AccessToken:  s.generateAccessToken(),
 		TokenType:    "Bearer",
 		ExpiresIn:    3600,
-		RefreshToken: s.genRT(),
+		RefreshToken: s.generateRefreshToken(),
 	}, nil
 }
 
+// RegisterClient represents the dynamic client registration at the connect/register endpoint
 func (s *Service) RegisterClient(ctx context.Context, req *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err

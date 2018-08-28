@@ -2,11 +2,13 @@ package oidc
 
 const ClientRegistrationEndpoint = "/connect/register"
 
+// Client represents both private and public metadata of the client.
 type Client struct {
 	*ClientRegistrationRequest
 	*ClientRegistrationResponse
 }
 
+// NewClient returns a client metadata given the public client metadata
 func NewClient(req *ClientRegistrationRequest) *Client {
 	return &Client{
 		ClientRegistrationRequest: req,
@@ -21,6 +23,7 @@ func NewClient(req *ClientRegistrationRequest) *Client {
 	}
 }
 
+// ClientRegistrationRequest represents the client registration request.
 type ClientRegistrationRequest struct {
 	RedirectURIs                 []string `json:"redirect_uris"`
 	ResponseTypes                []string `json:"response_types"`
@@ -28,16 +31,16 @@ type ClientRegistrationRequest struct {
 	ApplicationType              string   `json:"application_type"`
 	Contacts                     []string `json:"contacts"`
 	ClientName                   string   `json:"client_name"`
-	LogoURI                      string
-	ClientURI                    string
-	PolicyURI                    string
-	TosURI                       string
-	JwksURI                      string
-	Jwks                         string
-	SectorIdentifierURI          string
-	SubjectType                  string
-	IDTokenSignedResponseAlg     string
-	IDTokenEncryptedResponseAlg  string
+	LogoURI                      string   `json:"logo_uri"`
+	ClientURI                    string   `json:"client_uri"`
+	PolicyURI                    string   `json:"policy_uri"`
+	TosURI                       string   `json:"tos_uri"`
+	JwksURI                      string   `json:"jwks_uri"`
+	Jwks                         string   `json:"jwks"`
+	SectorIdentifierURI          string   `json:"sector_identifier_uri"`
+	SubjectType                  string   `json:"subject_type"`
+	IDTokenSignedResponseAlg     string   `json:"id_token_signed_response_alg"`
+	IDTokenEncryptedResponseAlg  string   `json:"id_token_encrypted_response_alg"`
 	IDTokenEncryptedResponseEnc  string
 	UserinfoSignedResponseAlg    string
 	UserinfoEncryptedResponseAlg string
@@ -54,20 +57,28 @@ type ClientRegistrationRequest struct {
 	RequestURIs                  []string
 }
 
+// Validate performs a simple validation on the client payload request.
 func (c *ClientRegistrationRequest) Validate() error {
+	// Check the redirect uri
+	// return ErrInvalidRedirectURI
+
+	// Check the client metadata
+	// return ErrInvalidClientMetadata
 	return nil
 }
 
+// ClientRegistrationResponse represents the response payload of the client.
 type ClientRegistrationResponse struct {
-	ClientID                string
-	ClientSecret            string
-	RegistrationAccessToken string
-	RegistrationClientURI   string
-	ClientIDIssuedAt        int64
-	ClientSecretExpiresAt   int64
+	ClientID                string `json:"client_id"`
+	ClientSecret            string `json:"client_secret"`
+	RegistrationAccessToken string `json:"registration_access_token"`
+	RegistrationClientURI   string `json:"registration_client_uri"`
+	ClientIDIssuedAt        int64  `json:"client_id_issued_at"`
+	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at"`
 }
 
+// ClientErrorResponse represents the error response of the client.
 type ClientErrorResponse struct {
-	Error            string
-	ErrorDescription string
+	Error            string `json:"error"`
+	ErrorDescription string `json:"error_description"`
 }

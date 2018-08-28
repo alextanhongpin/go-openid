@@ -27,6 +27,7 @@ func (c *ClientKV) Get(name string) (*oidc.Client, bool) {
 	return client, ok
 }
 
+// GetByID returns the client by client id.
 func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
 	c.RLock()
 	for _, c := range c.db {
@@ -39,6 +40,7 @@ func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
 	return
 }
 
+// GetByIDAndSecret returns the client by client id and client secret.
 func (c *ClientKV) GetByIDAndSecret(id, secret string) (client *oidc.Client) {
 	c.RLock()
 	for _, c := range c.db {

@@ -1,11 +1,10 @@
 package oidc
 
 import (
-	"log"
-	"net/http"
 	"net/url"
 )
 
+// AuthorizationRequest represents the request payload for authorization.
 type AuthorizationRequest struct {
 	ResponseType string `json:"response_type"`
 	ClientID     string `json:"client_id"`
@@ -15,7 +14,7 @@ type AuthorizationRequest struct {
 }
 
 // DecodeAuthorizationRequest takes in a url with the query string parameters
-// and converts it into a struct
+// and converts it into a struct.
 func DecodeAuthorizationRequest(u url.Values) *AuthorizationRequest {
 	return &AuthorizationRequest{
 		ResponseType: u.Get("response_type"),
@@ -26,7 +25,7 @@ func DecodeAuthorizationRequest(u url.Values) *AuthorizationRequest {
 	}
 }
 
-// EncodeAuthorizationRequest converts the struct into url with query string
+// EncodeAuthorizationRequest converts the struct into url with query string.
 func EncodeAuthorizationRequest(r *AuthorizationRequest) (url.Values, error) {
 	u, err := url.Parse("")
 	if err != nil {
@@ -42,28 +41,29 @@ func EncodeAuthorizationRequest(r *AuthorizationRequest) (url.Values, error) {
 	return q, nil
 }
 
-// Validate performs validation on required fields
+// Validate performs validation on required fields.
 func (r *AuthorizationRequest) Validate() error {
 	// Required fields
 	if r.ResponseType != "code" {
 		return ErrUnsupportedResponseType
 	}
 	if r.ClientID == "" {
+		return ErrUnauthorizedClient
 	}
 	// Optional fields
 	if r.RedirectURI == "" {
+		return ErrInvalidRequest
 	}
 	if r.Scope == "" {
 		return ErrInvalidScope
 	}
-	if r.State == "" {
-	}
+	// if r.State == "" { }
 	return nil
 }
 
 type AuthorizationResponse struct {
-	Code  string `json:"code"`
-	State string `json:"state"`
+	Code  string `json:"code,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 func DecodeAuthorizationResponse(u url.Values) *AuthorizationResponse {
@@ -84,32 +84,35 @@ func EncodeAuthorizationResponse(r *AuthorizationResponse, targetURL string) (*u
 	return u, nil
 }
 
-type AuthorizationService interface {
-	GenerateCode() string
-}
-
-func HandleAuthorizationRequest(s AuthorizationService) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		req := DecodeAuthorizationRequest(r.URL.Query())
-		if err := req.Validate(); err != nil {
-			log.Fatal(err)
-		}
-
-		res := &AuthorizationResponse{
-			Code:  s.GenerateCode(),
-			State: req.State,
-		}
-		redirectURL, err := EncodeAuthorizationResponse(res, req.RedirectURI)
-		if err != nil {
-			log.Fatal(err)
-		}
-		http.Redirect(w, r, redirectURL.String(), http.StatusFound)
-	}
-}
-
+// AuthorizationError represents the struct for the error.
 type AuthorizationError struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
 	ErrorURI         string `json:"error_uri"`
 	State            string `json:"state"`
+}
+
+// EncodeAuthorizationError takes a struct and url and embed the struct as query string parameters to the url.
+func EncodeAuthorizationError(r *AuthorizationError, targetURL string) (*url.URL, error) {
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		return nil, err
+	}
+	q := u.Query()
+	q.Add("error", r.Error)
+	q.Add("error_description", r.ErrorDescription)
+	q.Add("error_uri", r.ErrorURI)
+	q.Add("state", r.State)
+	u.RawQuery = q.Encode()
+	return u, nil
+}
+
+// DecodeAuthorizationRequest takes the query string and returns a struct.
+func DecodeAuthorizationError(u url.Values) *AuthorizationError {
+	return &AuthorizationError{
+		Error:            u.Get("error"),
+		ErrorDescription: u.Get("error_description"),
+		ErrorURI:         u.Get("error_uri"),
+		State:            u.Get("state"),
+	}
 }

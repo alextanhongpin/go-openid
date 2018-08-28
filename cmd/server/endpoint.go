@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -80,3 +81,19 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 
 	json.NewEncoder(w).Encode(res)
 }
+
+func (e *Endpoints) Client() {
+	// GET /connect/register?client_id=
+	// Authorization: Bearer this.is.an.access.token.value
+	// return 200, cache-control: no-store, pragma: no-cache
+	// Client does not exist, invalid client, invalid token returns 401 unauthorized
+	// No permission: 403 forbidden
+	// Do not return 404
+}
+
+// .well-known/webfinger
+// .well-known/openid-configuration
+func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
+
+}
+func (e *Endpoints) RefreshToken() {}
