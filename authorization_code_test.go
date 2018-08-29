@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/alextanhongpin/go-openid/pkg/querystring"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,10 +19,7 @@ func TestEncodeAuthorizationRequest(t *testing.T) {
 		Scope:        "email",
 		State:        "xyz",
 	}
-	u, err := EncodeAuthorizationRequest(req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	u := querystring.Encode(req)
 	assert.Equal("client_id=abc&redirect_uri=http%3A%2F%2Fclient.example.com%2Fcb&response_type=code&scope=email&state=xyz", u.Encode(), "should encode authorization request")
 }
 
@@ -31,7 +29,9 @@ func TestDecodeAuthorizationRequest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req := DecodeAuthorizationRequest(u.Query())
+	var req AuthorizationRequest
+	err = querystring.Decode(&req, u.Query())
+	assert.Nil(err)
 	assert.Equal("code", req.ResponseType, "should have field code")
 	assert.Equal("abc", req.ClientID, "should have field client id")
 	assert.Equal("http://client.example.com/cb", req.RedirectURI, "should have field redirect uri")
@@ -59,11 +59,11 @@ func TestEncodeAuthorizationError(t *testing.T) {
 		Error: "access_denied",
 		State: "xyz",
 	}
-	redirectURI, err := EncodeAuthorizationError(res, "https://client.example.com/cb")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal("https://client.example.com/cb?error=access_denied&state=xyz", redirectURI.String(), "should encode the correct authorization error")
+	u, err := url.Parse("https://client.example.com/cb")
+	assert.Nil(err)
+	q := querystring.Encode(res)
+	u.RawQuery = q.Encode()
+	assert.Equal("https://client.example.com/cb?error=access_denied&state=xyz", u.String(), "should encode the correct authorization error")
 
 }
 func TestAuthorizationErrorFlow(t *testing.T) {

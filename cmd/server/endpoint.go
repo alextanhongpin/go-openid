@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/querystring"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -18,22 +20,30 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 	// Can be extracted as a middleware
 
 	// Construct request parameters
-	req := oidc.DecodeAuthorizationRequest(r.URL.Query())
+	var req oidc.AuthorizationRequest
+	if err := querystring.Decode(&req, r.URL.Query()); err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 
+	// Prepare redirect uri
+	u, err := url.Parse(req.RedirectURI)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	// Call service
 	res, err := e.service.Authorize(r.Context(), req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		q := querystring.Encode(err)
+		u.RawQuery = q.Encode()
+		http.Redirect(w, r, u.String(), http.StatusFound)
 		return
 	}
 
-	redirectURI, err := oidc.EncodeAuthorizationResponse(res, req.RedirectURI)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-
-	http.Redirect(w, r, redirectURI.String(), http.StatusFound)
+	q := querystring.Encode(res)
+	u.RawQuery = q.Encode()
+	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
 func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -49,8 +59,9 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		return
 	}
 
-	// Set the appropriate headers
 	// TODO: What status type to return here?
+	w.WriteHeader(http.StatusOK)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")

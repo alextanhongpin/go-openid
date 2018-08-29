@@ -2,6 +2,7 @@ package oidc
 
 import (
 	"errors"
+	"strings"
 )
 
 // IDToken is a security token that contains Claims about the Authentication of an End-User by and Authorization Server when using Client, and potentially other requested Claims.
@@ -18,22 +19,21 @@ type IDToken struct {
 	AuthorizedParty string   `json:"azp"`
 }
 
+// Validate performs validation on required fields.
 func (i *IDToken) Validate() error {
-	if i.Issuer == "" {
+	if strings.TrimSpace(i.Issuer) == "" {
 		return errors.New("issuer cannot be empty")
 	}
-
-	if i.Subject == "" {
+	if strings.TrimSpace(i.Subject) == "" {
 		return errors.New("subject cannot be empty")
 	}
-	if i.Audience == "" {
+	if strings.TrimSpace(i.Audience) == "" {
 		return errors.New("audience cannot be empty")
 	}
-
-	if i.ExpiresIn == 0 {
+	if i.ExpiresIn < 1 {
 		return errors.New("exp cannot be zero")
 	}
-	if i.IssuedAt == 0 {
+	if i.IssuedAt < 1 {
 		return errors.New("issued at date cannot be zero")
 	}
 	return nil

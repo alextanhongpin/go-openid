@@ -3,14 +3,13 @@ package main
 import (
 	"context"
 	"errors"
-	"strings"
 
 	oidc "github.com/alextanhongpin/go-openid"
 )
 
 // OIDService represents the interface for the services available for OpenID Connect Protocol.
 type OIDService interface {
-	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error)
+	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
 	// RegisterUser
@@ -19,6 +18,10 @@ type OIDService interface {
 
 // tokenGenerator represents the function to generate token.
 type tokenGenerator func() string
+
+type Client interface {
+	New(*oidc.ClientRegistrationRequest) *oidc.Client
+}
 
 // Service fulfils the OIDService interface.
 type Service struct {
@@ -44,17 +47,7 @@ func NewService(db *Database, gc tokenGenerator, gat tokenGenerator, grt tokenGe
 		},
 	}
 }
-
-func validateRedirectURIs(uris []string, uri string) bool {
-	for _, u := range uris {
-		if strings.Compare(u, uri) == 0 {
-			return true
-		}
-	}
-	return false
-}
-
-func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error) {
+func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -63,13 +56,24 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	// Check if client exist
 	client := s.db.Client.GetByID(cid)
 	if client == nil {
-		return nil, oidc.ErrForbidden
+		return nil, &AuthorizationError{
+			Error:            oidc.ErrForbidden,
+			ErrorDescription: "",
+			ErrorURI:         "",
+			State:            req.State,
+		}
 	}
 
 	// Check if redirect uri is correct
-	if match := validateRedirectURIs(client.RedirectURIs, req.RedirectURI); !match {
+	if match := client.RedirectURIs.Contains(req.RedirectURI); !match {
 		// TODO: Return the error query string in the redirect uri
-		return nil, errors.New("one or more redirect uri is incorrect")
+		return nil, &AuthorizationError{
+			Error:            oidc.ErrForbidden,
+			ErrorDescription: "one or more redirect uris are incorrect",
+			ErrorURI:         "",
+			State:            req.State,
+		}
+
 	}
 
 	// Check if client has code, if yes, remove existing ones and return a new one
@@ -100,7 +104,7 @@ func (s *Service) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oid
 		return nil, oidc.ErrForbidden
 	}
 	// Check if redirect uri is correct
-	if match := validateRedirectURIs(client.RedirectURIs, req.RedirectURI); !match {
+	if match := client.RedirectURIs.Contains(req.RedirectURI); !match {
 		return nil, errors.New("one or more redirect uri is incorrect")
 	}
 

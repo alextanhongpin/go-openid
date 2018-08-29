@@ -12,51 +12,15 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
-
-func newMockService(db *Database) *Service {
-	codeGen := func() string {
-		return "code"
-	}
-	atGen := func() string {
-		return "access_token"
-	}
-	rtGen := func() string {
-		return "refresh_token"
-	}
-	return NewService(db, codeGen, atGen, rtGen)
-}
-
-func newMockEndpoint(s *Service) *Endpoints {
-	return &Endpoints{
-		service: s,
-	}
-}
-
-func setupAuthorizationRequest() *oidc.AuthorizationRequest {
-	return &oidc.AuthorizationRequest{
-		ResponseType: "code",
-		ClientID:     "1",
-		RedirectURI:  "http://client/cb",
-		Scope:        "profile",
-		State:        "123",
-	}
-}
 
 func TestAuthorizeEndpoint(t *testing.T) {
 	assert := assert.New(t)
 
 	// Setup mock endpoint
 	db := NewDatabase()
-	db.Client.Put("1", &oidc.Client{
-		ClientRegistrationRequest: &oidc.ClientRegistrationRequest{
-			ClientName:   "oidc_app",
-			RedirectURIs: []string{"http://client/cb"},
-		},
-		ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
-			ClientID: "1",
-		},
-	})
+	injectClient(db)
 	s := newMockService(db)
 	e := newMockEndpoint(s)
 
@@ -65,11 +29,17 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	router.GET("/authorize", e.Authorize)
 
 	// Setup payload
-	authzReq := setupAuthorizationRequest()
-	q, _ := oidc.EncodeAuthorizationRequest(authzReq)
+	authzReq := &oidc.AuthorizationRequest{
+		ResponseType: "code",
+		ClientID:     "1",
+		RedirectURI:  "http://client/cb",
+		Scope:        "profile",
+		State:        "123",
+	}
+	q := querystring.Encode(authzReq)
 
 	// Setup request
-	req, _ := http.NewRequest("GET", "/authorize", nil)
+	req := httptest.NewRequest("GET", "/authorize", nil)
 	req.URL.RawQuery = q.Encode()
 
 	rr := httptest.NewRecorder()
@@ -80,36 +50,24 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	// Check status code
 	assert.Equal(http.StatusFound, rr.Code, "handler return wrong status code")
 
+	// Get the response, which is a redirect uri stored in header Location
 	u, _ := url.Parse(rr.Header().Get("Location"))
-	res := oidc.DecodeAuthorizationResponse(u.Query())
 
-	assert.Equal("code", res.Code, "handler return wrong authorization code")
-	assert.Equal(authzReq.State, res.State, "handler return wrong state")
+	var res oidc.AuthorizationResponse
+	err := querystring.Decode(&res, u.Query())
+	assert.Nil(err)
 
-	// TODO: Test the db to see if the data is stored
-}
-
-func setupTokenRequest() *oidc.AccessTokenRequest {
-	return &oidc.AccessTokenRequest{
-		GrantType:   "authorization_code",
-		Code:        "xyz",
-		RedirectURI: "http://client/cb",
-		ClientID:    "1234",
-	}
+	assert.Equal("code", res.Code, "should return an authorization code")
+	assert.Equal(authzReq.State, res.State, "should return the given state")
+	code, exist := db.Code.Get(authzReq.ClientID)
+	assert.True(exist, "should have the client id in the db")
+	assert.Equal(res.Code, code, "should match the code in the db")
 }
 
 func TestTokenEndpoint(t *testing.T) {
 	assert := assert.New(t)
 	db := NewDatabase()
-	db.Client.Put("oidc_app", &oidc.Client{
-		ClientRegistrationRequest: &oidc.ClientRegistrationRequest{
-			ClientName:   "oidc_app",
-			RedirectURIs: []string{"http://client/cb"},
-		},
-		ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
-			ClientID: "1234",
-		},
-	})
+	injectClient(db)
 	db.Code.Put("1234", oidc.NewCode("xyz"))
 	s := newMockService(db)
 	e := newMockEndpoint(s)
@@ -118,9 +76,15 @@ func TestTokenEndpoint(t *testing.T) {
 	router.POST("/token", e.Token)
 
 	// Setup payload
-	tokenReq := setupTokenRequest()
+	tokenReq := &oidc.AccessTokenRequest{
+		GrantType:   "authorization_code",
+		Code:        "xyz",
+		RedirectURI: "https://client.example.com/cb",
+		ClientID:    "1",
+	}
 	tokenJSON, _ := json.Marshal(tokenReq)
-	req, _ := http.NewRequest("POST", "/token", bytes.NewBuffer(tokenJSON))
+
+	req := httptest.NewRequest("POST", "/token", bytes.NewBuffer(tokenJSON))
 	authorization := "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW"
 	assert.Equal(authorization, "", "should include authorization header")
 	assert.Equal("application/x-www-form-urlencoded", "", "should set content-type to application/x-www-form-urlencoded")
@@ -130,9 +94,13 @@ func TestTokenEndpoint(t *testing.T) {
 	// Setup mock requests
 	router.ServeHTTP(rr, req)
 
-	assert.Equal(http.StatusOK, rr.Code, "handler return wrong status code")
-	assert.Equal("no-store", rr.Header().Get("Cache-Control"), "cache-control header set incorrectly")
-	assert.Equal("no-cache", rr.Header().Get("Pragma"), "pragma header set incorrectly")
+	// Validate Headers
+	cacheControl := "no-store"
+	pragma := "no-cache"
+
+	assert.Equal(http.StatusOK, rr.Code, "should return status 200 - OK")
+	assert.Equal(cacheControl, rr.Header().Get("Cache-Control"), "should return Cache-Control no-store")
+	assert.Equal(pragma, rr.Header().Get("Pragma"), "should return Pragma no-cache")
 
 	// TODO: Test the database to see if the data is stored in the storage
 	assert.Equal("application/json", "", "should set content-type to json")
@@ -205,8 +173,8 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	s := newMockService(db)
 	s.newClient = func(req *oidc.ClientRegistrationRequest) *oidc.Client {
 		return &oidc.Client{
-			ClientRegistrationRequest: req,
-			ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
+			ClientPublic: req,
+			ClientPrivate: &oidc.ClientRegistrationResponse{
 				ClientID:                "test client id",
 				ClientSecret:            "test client secret",
 				RegistrationAccessToken: "test registration access token",
@@ -226,8 +194,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 		ClientName: "oidc_app",
 	}
 	clientJSON, _ := json.Marshal(clientReq)
-	req, _ := http.NewRequest("POST", "/connect/register", bytes.NewBuffer(clientJSON))
-
+	req := httptest.NewRequest("POST", "/connect/register", bytes.NewBuffer(clientJSON))
 	rr := httptest.NewRecorder()
 
 	router.ServeHTTP(rr, req)
@@ -238,12 +205,13 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	}
 
 	// Check status code
-	assert.Equal(rr.Code, http.StatusCreated, "return incorrect status code")
+	assert.Equal(http.StatusCreated, rr.Code, "return incorrect status code")
 
 	// Check headers
-	assert.Equal("application/json", rr.Header().Get("Content-Type"), "return incorrect Content-Type")
-	assert.Equal("no-store", rr.Header().Get("Cache-Control"), "return incorrect Cache-Control")
-	assert.Equal("no-cache", rr.Header().Get("Pragma"), "return incorrect Pragma")
+	header := rr.Header()
+	assert.Equal("application/json", header.Get("Content-Type"), "return incorrect Content-Type")
+	assert.Equal("no-store", header.Get("Cache-Control"), "return incorrect Cache-Control")
+	assert.Equal("no-cache", header.Get("Pragma"), "return incorrect Pragma")
 
 	// Check response
 	assert.Equal("test client id", res.ClientID, "return incorrect client id")
@@ -523,4 +491,46 @@ func TestOpenIDConfigurationRequest(t *testing.T) {
 	//    "ui_locales_supported":
 	//      ["en-US", "en-GB", "en-CA", "fr-FR", "fr-CA"]
 	//   }
+}
+
+func newMockService(db *Database) *Service {
+	gc := func() string {
+		return "code"
+	}
+	gat := func() string {
+		return "access_token"
+	}
+	grt := func() string {
+		return "refresh_token"
+	}
+	return NewService(db, gc, gat, grt)
+}
+
+func newMockEndpoint(s *Service) *Endpoints {
+	return &Endpoints{
+		service: s,
+	}
+}
+
+func setupAuthorizationRequest() *oidc.AuthorizationRequest {
+	return &oidc.AuthorizationRequest{
+		ResponseType: "code",
+		ClientID:     "1",
+		RedirectURI:  "http://client/cb",
+		Scope:        "profile",
+		State:        "123",
+	}
+}
+func injectClient(db *Database) {
+	id := "1"
+	client1 := &oidc.Client{
+		ClientRegistrationRequest: &oidc.ClientRegistrationRequest{
+			ClientName:   "MyApp",
+			RedirectURIs: []string{"https://client.example.com/cb"},
+		},
+		ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
+			ClientID: id,
+		},
+	}
+	db.Client.Put(id, client1)
 }
