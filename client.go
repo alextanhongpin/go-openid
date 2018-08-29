@@ -27,8 +27,8 @@ func NewClient(req *ClientRegistrationRequest) *Client {
 
 type RedirectURIs []string
 
-func (r *RedirectURIs) Contains(uri string) bool {
-	for _, u := range uris {
+func (r RedirectURIs) Contains(uri string) bool {
+	for _, u := range r {
 		if strings.Compare(u, uri) == 0 {
 			return true
 		}

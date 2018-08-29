@@ -27,7 +27,6 @@ func (r *AuthorizationRequest) Validate() error {
 	if strings.TrimSpace(r.Scope) == "" {
 		return ErrInvalidScope
 	}
-	// if r.State == "" { }
 	return nil
 }
 
