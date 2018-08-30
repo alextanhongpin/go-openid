@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
@@ -15,37 +17,38 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
-func TestAuthorizeEndpoint(t *testing.T) {
-	assert := assert.New(t)
-
-	// Setup mock endpoint
-	db := NewDatabase()
-	injectClient(db)
-	s := newMockService(db)
-	e := newMockEndpoint(s)
-
-	// Setup router
+func testAuthzEndpoint(e *Endpoints, r *oidc.AuthorizationRequest) *httptest.ResponseRecorder {
 	router := httprouter.New()
 	router.GET("/authorize", e.Authorize)
 
+	q := querystring.Encode(r)
+
+	req := httptest.NewRequest("GET", "http://client.example.com/authorize", nil)
+	log.Println("getting the querystring", q.Encode())
+	req.URL.RawQuery = q.Encode()
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	return rr
+}
+
+func TestAuthorizeEndpoint(t *testing.T) {
+	assert := assert.New(t)
+
+	db := newMockDatabase()
+	s := newMockService(db)
+	e := newMockEndpoint(s)
+
 	// Setup payload
-	authzReq := &oidc.AuthorizationRequest{
+	req := &oidc.AuthorizationRequest{
 		ResponseType: "code",
 		ClientID:     "1",
 		RedirectURI:  "http://client/cb",
 		Scope:        "profile",
 		State:        "123",
 	}
-	q := querystring.Encode(authzReq)
 
-	// Setup request
-	req := httptest.NewRequest("GET", "/authorize", nil)
-	req.URL.RawQuery = q.Encode()
-
-	rr := httptest.NewRecorder()
-
-	// Serve mock requests
-	router.ServeHTTP(rr, req)
+	rr := testAuthzEndpoint(e, req)
 
 	// Check status code
 	assert.Equal(http.StatusFound, rr.Code, "handler return wrong status code")
@@ -57,58 +60,83 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	err := querystring.Decode(&res, u.Query())
 	assert.Nil(err)
 
-	assert.Equal("code", res.Code, "should return an authorization code")
-	assert.Equal(authzReq.State, res.State, "should return the given state")
-	code, exist := db.Code.Get(authzReq.ClientID)
+	var (
+		code  = "code"
+		state = req.State
+	)
+
+	assert.Equal(code, res.Code, "should return an authorization code")
+	assert.Equal(state, res.State, "should return the given state")
+
+	codedb, exist := db.Code.Get(req.ClientID)
 	assert.True(exist, "should have the client id in the db")
-	assert.Equal(res.Code, code, "should match the code in the db")
+	assert.Equal(res.Code, codedb.Code, "should match the code in the db")
+}
+
+func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest) *httptest.ResponseRecorder {
+	router := httprouter.New()
+	router.POST("/token", e.Token)
+
+	form := querystring.Encode(r)
+
+	req := httptest.NewRequest("POST", "/token", strings.NewReader(form.Encode()))
+	req.Header.Set("Authorization", "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	return rr
 }
 
 func TestTokenEndpoint(t *testing.T) {
 	assert := assert.New(t)
-	db := NewDatabase()
-	injectClient(db)
-	db.Code.Put("1234", oidc.NewCode("xyz"))
+
+	db := newMockDatabase()
 	s := newMockService(db)
 	e := newMockEndpoint(s)
 
-	router := httprouter.New()
-	router.POST("/token", e.Token)
-
 	// Setup payload
-	tokenReq := &oidc.AccessTokenRequest{
+	req := &oidc.AccessTokenRequest{
 		GrantType:   "authorization_code",
 		Code:        "xyz",
 		RedirectURI: "https://client.example.com/cb",
 		ClientID:    "1",
 	}
-	tokenJSON, _ := json.Marshal(tokenReq)
 
-	req := httptest.NewRequest("POST", "/token", bytes.NewBuffer(tokenJSON))
-	authorization := "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW"
-	assert.Equal(authorization, "", "should include authorization header")
-	assert.Equal("application/x-www-form-urlencoded", "", "should set content-type to application/x-www-form-urlencoded")
+	rr := testTokenEndpoint(e, req)
 
-	rr := httptest.NewRecorder()
+	// Test response headers
+	var (
+		cacheControl = "no-store"
+		contentType  = "application/json"
+		pragma       = "no-cache"
+		statusCode   = http.StatusOK
+	)
 
-	// Setup mock requests
-	router.ServeHTTP(rr, req)
-
-	// Validate Headers
-	cacheControl := "no-store"
-	pragma := "no-cache"
-
-	assert.Equal(http.StatusOK, rr.Code, "should return status 200 - OK")
+	assert.Equal(statusCode, rr.Code, "should return status 200 - OK")
+	assert.Equal(contentType, rr.Header().Get("content-type"), "should have Content-Type application/json")
 	assert.Equal(cacheControl, rr.Header().Get("Cache-Control"), "should return Cache-Control no-store")
 	assert.Equal(pragma, rr.Header().Get("Pragma"), "should return Pragma no-cache")
 
+	// Test response body
+	var (
+		accessToken  = "SlAV32hkKG"
+		tokenType    = "Bearer"
+		refreshToken = "8xLOxBtZp8"
+		expiresIn    = 3600
+		idToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."
+	)
+
+	var res oidc.AccessTokenResponse
+	err := json.NewDecoder(rr.Body).Decode(&res)
+	assert.Nil(err)
+
 	// TODO: Test the database to see if the data is stored in the storage
-	assert.Equal("application/json", "", "should set content-type to json")
-	assert.Equal("access_token", "SlAV32hkKG", "should return access token")
-	assert.Equal("token_type", "Bearer", "should return token type bearer")
-	assert.Equal("refresh_token", "8xLOxBtZp8", "should return refresh token")
-	assert.Equal("expires_in", 3600, "should return the correct expiry time")
-	assert.Equal("id_token", "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ.ewogImlzcyI6ICJodHRwOi8vc2VydmVyLmV4YW1wbGUuY29tIiwKICJzdWIiOiAiMjQ4Mjg5NzYxMDAxIiwKICJhdWQiOiAiczZCaGRSa3F0MyIsCiAibm9uY2UiOiAibi0wUzZfV3pBMk1qIiwKICJleHAiOiAxMzExMjgxOTcwLAogImlhdCI6IDEzMTEyODA5NzAKfQ.ggW8hZ1EuVLuxNuuIJKX_V8a_OMXzR0EHR9R6jgdqrOOF4daGU96Sr_P6qJp6IcmD3HP99Obi1PRs-cwh3LO-p146waJ8IhehcwL7F09JdijmBqkvPeB2T9CJNqeGpe-gccMg4vfKjkM8FcGvnzZUN4_KSP0aAp1tOJ1zZwgjxqGByKHiOtX7TpdQyHE5lcMiKPXfEIK5hoDalrcvRYLSrQAZZKflyuVCyixEoV9GfNQC3_osjzw2PAithfubEEBLuVVk4XUVrWOLrLl0nx7RkKU8NXNHq-rvKMzqg", "should return id token")
+	assert.Equal(accessToken, res.AccessToken, "should return access token")
+	assert.Equal(tokenType, res.TokenType, "should return token type bearer")
+	assert.Equal(refreshToken, res.RefreshToken, "should return refresh token")
+	assert.Equal(expiresIn, res.ExpiresIn, "should return the correct expiry time")
+	assert.Equal(idToken, res.IDToken, "should return the id token")
 }
 
 func TestTokenErrorResponse(t *testing.T) {
@@ -171,10 +199,10 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	assert := assert.New(t)
 	db := NewDatabase()
 	s := newMockService(db)
-	s.newClient = func(req *oidc.ClientRegistrationRequest) *oidc.Client {
+	s.newClient = func(req *oidc.ClientPublic) *oidc.Client {
 		return &oidc.Client{
 			ClientPublic: req,
-			ClientPrivate: &oidc.ClientRegistrationResponse{
+			ClientPrivate: &oidc.ClientPrivate{
 				ClientID:                "test client id",
 				ClientSecret:            "test client secret",
 				RegistrationAccessToken: "test registration access token",
@@ -190,7 +218,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	router.POST("/connect/register", e.RegisterClient)
 
 	// Setup payload
-	clientReq := &oidc.ClientRegistrationRequest{
+	clientReq := &oidc.ClientPublic{
 		ClientName: "oidc_app",
 	}
 	clientJSON, _ := json.Marshal(clientReq)
@@ -199,7 +227,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 
 	router.ServeHTTP(rr, req)
 
-	var res oidc.ClientRegistrationResponse
+	var res oidc.ClientPrivate
 	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +252,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	// Check the database to see if the client has been stored successfully
 	clientdb, exist := db.Client.Get(clientReq.ClientName)
 	assert.Equal(true, exist, "client does not exist in the storage")
-	assert.Equal(res, *clientdb.ClientRegistrationResponse, "should point to the same object")
+	assert.Equal(res, *clientdb.ClientPrivate, "should point to the same object")
 }
 
 func TestClientRegistrationError(t *testing.T) {
@@ -270,7 +298,7 @@ func TestClientRead(t *testing.T) {
 
 	// Response body
 	client := &oidc.Client{
-		ClientRegistrationRequest: &oidc.ClientRegistrationRequest{
+		ClientPublic: &oidc.ClientPublic{
 			TokenEndpointAuthMethod: "token_endpoint_auth_method",
 			ApplicationType:         "web",
 			RedirectURIs: []string{"https://client.example.org/callback",
@@ -285,7 +313,7 @@ func TestClientRead(t *testing.T) {
 			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
 			RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
 		},
-		ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
+		ClientPrivate: &oidc.ClientPrivate{
 			ClientID:     "s6BhdRkqt3",
 			ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
 
@@ -493,7 +521,7 @@ func TestOpenIDConfigurationRequest(t *testing.T) {
 	//   }
 }
 
-func newMockService(db *Database) *Service {
+func newMockService(db *Database) *ServiceImpl {
 	gc := func() string {
 		return "code"
 	}
@@ -506,31 +534,28 @@ func newMockService(db *Database) *Service {
 	return NewService(db, gc, gat, grt)
 }
 
-func newMockEndpoint(s *Service) *Endpoints {
+func newMockEndpoint(s Service) *Endpoints {
 	return &Endpoints{
 		service: s,
 	}
 }
 
-func setupAuthorizationRequest() *oidc.AuthorizationRequest {
-	return &oidc.AuthorizationRequest{
-		ResponseType: "code",
-		ClientID:     "1",
-		RedirectURI:  "http://client/cb",
-		Scope:        "profile",
-		State:        "123",
-	}
-}
-func injectClient(db *Database) {
-	id := "1"
-	client1 := &oidc.Client{
-		ClientRegistrationRequest: &oidc.ClientRegistrationRequest{
-			ClientName:   "MyApp",
-			RedirectURIs: []string{"https://client.example.com/cb"},
+func newClient(id, name, redirectURI string) *oidc.Client {
+	return &oidc.Client{
+		ClientPublic: &oidc.ClientPublic{
+			ClientName:   name,
+			RedirectURIs: []string{redirectURI},
 		},
-		ClientRegistrationResponse: &oidc.ClientRegistrationResponse{
+		ClientPrivate: &oidc.ClientPrivate{
 			ClientID: id,
 		},
 	}
-	db.Client.Put(id, client1)
+}
+
+func newMockDatabase() *Database {
+	client := newClient("1", "MyApp", "https://example.client.com/cb")
+	db := NewDatabase()
+	db.Client.Put(client.ClientID, client)
+	db.Code.Put(client.ClientID, oidc.NewCode("xyz"))
+	return db
 }

@@ -7,8 +7,8 @@ import (
 	oidc "github.com/alextanhongpin/go-openid"
 )
 
-// OIDService represents the interface for the services available for OpenID Connect Protocol.
-type OIDService interface {
+// Service represents the interface for the services available for OpenID Connect Protocol.
+type Service interface {
 	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
@@ -23,8 +23,8 @@ type Client interface {
 	New(*oidc.ClientRegistrationRequest) *oidc.Client
 }
 
-// Service fulfils the OIDService interface.
-type Service struct {
+// ServiceImpl fulfils the OIDService interface.
+type ServiceImpl struct {
 	db                   *Database
 	generateCode         tokenGenerator
 	generateAccessToken  tokenGenerator
@@ -33,11 +33,11 @@ type Service struct {
 }
 
 // NewService returns a pointer to a new service.
-func NewService(db *Database, gc tokenGenerator, gat tokenGenerator, grt tokenGenerator) *Service {
+func NewService(db *Database, gc tokenGenerator, gat tokenGenerator, grt tokenGenerator) *ServiceImpl {
 	if db == nil {
 		db = NewDatabase()
 	}
-	return &Service{
+	return &ServiceImpl{
 		db:                   db,
 		generateCode:         gc,
 		generateAccessToken:  gat,
@@ -47,17 +47,23 @@ func NewService(db *Database, gc tokenGenerator, gat tokenGenerator, grt tokenGe
 		},
 	}
 }
-func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError) {
+
+func (s *ServiceImpl) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError) {
 	if err := req.Validate(); err != nil {
-		return nil, err
+		return nil, &oidc.AuthorizationError{
+			Error:            oidc.ErrForbidden.Error(),
+			ErrorDescription: "",
+			ErrorURI:         "",
+			State:            req.State,
+		}
 	}
 	cid := req.ClientID
 
 	// Check if client exist
 	client := s.db.Client.GetByID(cid)
 	if client == nil {
-		return nil, &AuthorizationError{
-			Error:            oidc.ErrForbidden,
+		return nil, &oidc.AuthorizationError{
+			Error:            oidc.ErrForbidden.Error(),
 			ErrorDescription: "",
 			ErrorURI:         "",
 			State:            req.State,
@@ -67,8 +73,8 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	// Check if redirect uri is correct
 	if match := client.RedirectURIs.Contains(req.RedirectURI); !match {
 		// TODO: Return the error query string in the redirect uri
-		return nil, &AuthorizationError{
-			Error:            oidc.ErrForbidden,
+		return nil, &oidc.AuthorizationError{
+			Error:            oidc.ErrForbidden.Error(),
 			ErrorDescription: "one or more redirect uris are incorrect",
 			ErrorURI:         "",
 			State:            req.State,
@@ -92,7 +98,7 @@ func (s *Service) Authorize(ctx context.Context, req *oidc.AuthorizationRequest)
 	}, nil
 }
 
-func (s *Service) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error) {
+func (s *ServiceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -133,7 +139,7 @@ func (s *Service) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oid
 }
 
 // RegisterClient represents the dynamic client registration at the connect/register endpoint
-func (s *Service) RegisterClient(ctx context.Context, req *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error) {
+func (s *ServiceImpl) RegisterClient(ctx context.Context, req *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
@@ -149,5 +155,5 @@ func (s *Service) RegisterClient(ctx context.Context, req *oidc.ClientRegistrati
 	// Save the client to the storage
 	s.db.Client.Put(req.ClientName, client)
 
-	return client.ClientRegistrationResponse, nil
+	return client.ClientPrivate, nil
 }

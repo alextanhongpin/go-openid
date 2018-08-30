@@ -11,10 +11,12 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// Endpoints represent the endpoints for the OpenIDConnect.
 type Endpoints struct {
-	service OIDService
+	service Service
 }
 
+// Authorize performs the authorization logic.
 func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// Check if authorization header exists, and is valid
 	// Can be extracted as a middleware
@@ -32,10 +34,11 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
+
 	// Call service
-	res, err := e.service.Authorize(r.Context(), req)
-	if err != nil {
-		q := querystring.Encode(err)
+	res, authErr := e.service.Authorize(r.Context(), &req)
+	if authErr != nil {
+		q := querystring.Encode(authErr)
 		u.RawQuery = q.Encode()
 		http.Redirect(w, r, u.String(), http.StatusFound)
 		return

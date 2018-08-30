@@ -2,6 +2,7 @@ package oidc
 
 import "strings"
 
+// ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
 
 // Client represents both private and public metadata of the client.
@@ -25,8 +26,10 @@ func NewClient(req *ClientRegistrationRequest) *Client {
 	}
 }
 
+// RedirectURIs represents a slice of valid redirect uris.
 type RedirectURIs []string
 
+// Contains checks if the redirect uri is present in the slice.
 func (r RedirectURIs) Contains(uri string) bool {
 	for _, u := range r {
 		if strings.Compare(u, uri) == 0 {
@@ -38,6 +41,8 @@ func (r RedirectURIs) Contains(uri string) bool {
 
 // ClientRegistrationRequest represents the client registration request.
 type ClientRegistrationRequest = ClientPublic
+
+// ClientPublic represents fields that are public
 type ClientPublic struct {
 	RedirectURIs                 RedirectURIs `json:"redirect_uris"`
 	ResponseTypes                []string     `json:"response_types"`
@@ -83,6 +88,8 @@ func (c *ClientRegistrationRequest) Validate() error {
 
 // ClientRegistrationResponse represents the response payload of the client.
 type ClientRegistrationResponse = ClientPrivate
+
+// ClientPrivate represents fields that are private.
 type ClientPrivate struct {
 	ClientID                string `json:"client_id"`
 	ClientSecret            string `json:"client_secret"`

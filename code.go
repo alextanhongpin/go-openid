@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// CodeTTL represents the time-to-live for the code.
 const CodeTTL = 10 * time.Minute
 
 // Code represents the authorization code.

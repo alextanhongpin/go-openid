@@ -1,7 +1,8 @@
 package main
 
+// Database represents the data storage access layer.
 type Database struct {
-	Client *ClientKV
+	Client ClientRepository
 	Code   *CodeKV
 	User   *UserKV
 }

@@ -5,7 +5,9 @@ import (
 	"strings"
 )
 
-// IDToken is a security token that contains Claims about the Authentication of an End-User by and Authorization Server when using Client, and potentially other requested Claims.
+// IDToken is a security token that contains Claims about the Authentication of
+// an End-User by and Authorization Server when using Client, and potentially
+// other requested Claims.
 type IDToken struct {
 	Issuer          string   `json:"iss"`
 	Subject         string   `json:"sub"`

@@ -26,59 +26,89 @@ func TestEncodeAuthorizationRequest(t *testing.T) {
 func TestDecodeAuthorizationRequest(t *testing.T) {
 	assert := assert.New(t)
 	u, err := url.Parse("http://server.example.com?client_id=abc&redirect_uri=http%3A%2F%2Fclient.example.com%2Fcb&response_type=code&scope=email&state=xyz")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(err)
+
 	var req AuthorizationRequest
 	err = querystring.Decode(&req, u.Query())
 	assert.Nil(err)
-	assert.Equal("code", req.ResponseType, "should have field code")
-	assert.Equal("abc", req.ClientID, "should have field client id")
-	assert.Equal("http://client.example.com/cb", req.RedirectURI, "should have field redirect uri")
-	assert.Equal("email", req.Scope, "should have field scope")
-	assert.Equal("xyz", req.State, "should have field state")
+
+	var (
+		responseType = "code"
+		clientID     = "abc"
+		redirectURI  = "http://client.example.com/cb"
+		scope        = "email"
+		state        = "xyz"
+	)
+
+	assert.Equal(responseType, req.ResponseType, "should have field code")
+	assert.Equal(clientID, req.ClientID, "should have field client id")
+	assert.Equal(redirectURI, req.RedirectURI, "should have field redirect uri")
+	assert.Equal(scope, req.Scope, "should have field scope")
+	assert.Equal(state, req.State, "should have field state")
 }
 
 func TestAuthorizationFlow(t *testing.T) {
 	assert := assert.New(t)
-	redirectURI := "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=xyz"
+
+	var (
+		redirectURI = "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=xyz"
+		statusCode  = http.StatusFound
+	)
+
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, redirectURI, http.StatusFound)
+		http.Redirect(w, r, redirectURI, statusCode)
 	}
+
 	req := httptest.NewRequest("GET", "http://server.example.com/authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb", nil)
+
 	w := httptest.NewRecorder()
+
 	handler(w, req)
 
 	res := w.Result()
-	assert.Equal(http.StatusFound, res.StatusCode, "should return 302 - Status Found")
+
+	assert.Equal(statusCode, res.StatusCode, "should return 302 - Status Found")
 	assert.Equal(redirectURI, res.Header.Get("Location"), "should return the redirect uri in Location header")
 }
+
 func TestEncodeAuthorizationError(t *testing.T) {
 	assert := assert.New(t)
+
 	res := &AuthorizationError{
 		Error: "access_denied",
 		State: "xyz",
 	}
+
 	u, err := url.Parse("https://client.example.com/cb")
 	assert.Nil(err)
+
 	q := querystring.Encode(res)
 	u.RawQuery = q.Encode()
-	assert.Equal("https://client.example.com/cb?error=access_denied&state=xyz", u.String(), "should encode the correct authorization error")
 
+	assert.Equal("https://client.example.com/cb?error=access_denied&state=xyz", u.String(), "should encode the correct authorization error")
 }
+
 func TestAuthorizationErrorFlow(t *testing.T) {
 	assert := assert.New(t)
-	redirectURI := "https://client.example.com/cb?error=access_denied&state=xyz"
+
+	var (
+		statusCode  = http.StatusFound
+		redirectURI = "https://client.example.com/cb?error=access_denied&state=xyz"
+	)
+
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, redirectURI, http.StatusFound)
+		http.Redirect(w, r, redirectURI, statusCode)
 	}
 
 	req := httptest.NewRequest("GET", "http://server.example.com/authorize?response_type=code&client_id=s6BhdRkqt3&state=xyz&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb", nil)
+
 	w := httptest.NewRecorder()
+
 	handler(w, req)
+
 	res := w.Result()
 
 	// Test header
-	assert.Equal(http.StatusFound, res.StatusCode, "should return 302 - Status Found")
+	assert.Equal(statusCode, res.StatusCode, "should return 302 - Status Found")
 	assert.Equal(redirectURI, res.Header.Get("Location"), "should return the redirect uri in Location header")
 }
