@@ -50,24 +50,34 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 }
 
 func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	r.ParseForm()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+
 	var req oidc.AccessTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := querystring.Decode(&req, r.Form); err != nil {
+		errRes := oidc.ErrorJSON{
+			Error: err.Error(),
+		}
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(errRes)
 		return
 	}
 
 	res, err := e.service.Token(r.Context(), &req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+		errRes := oidc.ErrorJSON{
+			Error: err.Error(),
+		}
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(errRes)
 		return
 	}
 
 	// TODO: What status type to return here?
 	w.WriteHeader(http.StatusOK)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Pragma", "no-cache")
 
 	json.NewEncoder(w).Encode(res)
 }

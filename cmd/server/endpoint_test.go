@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -17,6 +16,28 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
+var (
+	defaultResponseType = "code"
+	defaultClientID     = "123456"
+	defaultRedirectURI  = "https://client.example.com/cb"
+	defaultScope        = "profile email"
+	defaultState        = "xyz"
+
+	defaultClientName   = "MyApp"
+	defaultCode         = "x2y9aS"
+	defaultAccessToken  = "SlAV32hkKG"
+	defaultRefreshToken = "8xLOxBtZp8"
+	defaultIDToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ"
+
+	defaultAuthorizationRequest = &oidc.AuthorizationRequest{
+		ResponseType: defaultResponseType,
+		ClientID:     defaultClientID,
+		RedirectURI:  defaultRedirectURI,
+		Scope:        defaultScope,
+		State:        defaultState,
+	}
+)
+
 func testAuthzEndpoint(e *Endpoints, r *oidc.AuthorizationRequest) *httptest.ResponseRecorder {
 	router := httprouter.New()
 	router.GET("/authorize", e.Authorize)
@@ -24,7 +45,6 @@ func testAuthzEndpoint(e *Endpoints, r *oidc.AuthorizationRequest) *httptest.Res
 	q := querystring.Encode(r)
 
 	req := httptest.NewRequest("GET", "http://client.example.com/authorize", nil)
-	log.Println("getting the querystring", q.Encode())
 	req.URL.RawQuery = q.Encode()
 
 	rr := httptest.NewRecorder()
@@ -42,10 +62,10 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	// Setup payload
 	req := &oidc.AuthorizationRequest{
 		ResponseType: "code",
-		ClientID:     "1",
-		RedirectURI:  "http://client/cb",
-		Scope:        "profile",
-		State:        "123",
+		ClientID:     "123456",
+		RedirectURI:  "https://client.example.com/cb",
+		Scope:        "profile email",
+		State:        "xyz",
 	}
 
 	rr := testAuthzEndpoint(e, req)
@@ -61,7 +81,7 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	assert.Nil(err)
 
 	var (
-		code  = "code"
+		code  = defaultCode
 		state = req.State
 	)
 
@@ -70,7 +90,7 @@ func TestAuthorizeEndpoint(t *testing.T) {
 
 	codedb, exist := db.Code.Get(req.ClientID)
 	assert.True(exist, "should have the client id in the db")
-	assert.Equal(res.Code, codedb.Code, "should match the code in the db")
+	assert.Equal(code, codedb.Code, "should match the code in the db")
 }
 
 func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest) *httptest.ResponseRecorder {
@@ -98,9 +118,9 @@ func TestTokenEndpoint(t *testing.T) {
 	// Setup payload
 	req := &oidc.AccessTokenRequest{
 		GrantType:   "authorization_code",
-		Code:        "xyz",
-		RedirectURI: "https://client.example.com/cb",
-		ClientID:    "1",
+		Code:        defaultCode,
+		RedirectURI: defaultRedirectURI,
+		ClientID:    defaultClientID,
 	}
 
 	rr := testTokenEndpoint(e, req)
@@ -123,7 +143,7 @@ func TestTokenEndpoint(t *testing.T) {
 		accessToken  = "SlAV32hkKG"
 		tokenType    = "Bearer"
 		refreshToken = "8xLOxBtZp8"
-		expiresIn    = 3600
+		expiresIn    = int64(3600)
 		idToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."
 	)
 
@@ -140,20 +160,39 @@ func TestTokenEndpoint(t *testing.T) {
 }
 
 func TestTokenErrorResponse(t *testing.T) {
-	statusCode := 400
-	contentType := "application/json"
-	cacheControl := "no-store"
-	pragma := "no-cache"
-
-	// 	{
-	//    "error": "invalid_request"
-	//   }
-	t.Skip("testing test token error")
 	assert := assert.New(t)
-	assert.True(statusCode == statusCode)
-	assert.True(contentType == contentType)
-	assert.True(cacheControl == cacheControl)
-	assert.True(pragma == pragma)
+
+	db := newMockDatabase()
+	s := newMockService(db)
+	e := newMockEndpoint(s)
+
+	// Setup payload
+	req := &oidc.AccessTokenRequest{}
+
+	rr := testTokenEndpoint(e, req)
+
+	// Validate headers
+	var (
+		statusCode   = http.StatusForbidden
+		contentType  = "application/json"
+		cacheControl = "no-store"
+		pragma       = "no-cache"
+
+		header = rr.Header()
+	)
+
+	assert.Equal(statusCode, rr.Code, "should return status 403 - Forbidden")
+	assert.Equal(contentType, header.Get("Content-Type"), "should return Content-Type application/json")
+	assert.Equal(cacheControl, header.Get("Cache-Control"), "should return Cache-Control no-store")
+	assert.Equal(pragma, header.Get("Pragma"), "should return Pragma no-cache")
+
+	// Validate body
+	var res oidc.ErrorJSON
+	err := json.NewDecoder(rr.Body).Decode(&res)
+	assert.Nil(err)
+
+	assert.True(res.Error != "", "should return field error")
+	assert.True(res.ErrorDescription != "", "should return field error description")
 }
 
 func TestAuthentication(t *testing.T) {
@@ -523,13 +562,13 @@ func TestOpenIDConfigurationRequest(t *testing.T) {
 
 func newMockService(db *Database) *ServiceImpl {
 	gc := func() string {
-		return "code"
+		return defaultCode
 	}
 	gat := func() string {
-		return "access_token"
+		return defaultAccessToken
 	}
 	grt := func() string {
-		return "refresh_token"
+		return defaultRefreshToken
 	}
 	return NewService(db, gc, gat, grt)
 }
@@ -553,9 +592,9 @@ func newClient(id, name, redirectURI string) *oidc.Client {
 }
 
 func newMockDatabase() *Database {
-	client := newClient("1", "MyApp", "https://example.client.com/cb")
+	client := newClient(defaultClientID, defaultClientName, defaultRedirectURI)
 	db := NewDatabase()
 	db.Client.Put(client.ClientID, client)
-	db.Code.Put(client.ClientID, oidc.NewCode("xyz"))
+	db.Code.Put(client.ClientID, oidc.NewCode(defaultCode))
 	return db
 }

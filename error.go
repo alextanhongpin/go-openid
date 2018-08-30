@@ -33,3 +33,8 @@ var (
 )
 
 var ErrForbidden = errors.New("forbidden request")
+
+type ErrorJSON struct {
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description"`
+}
