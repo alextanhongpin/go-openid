@@ -121,8 +121,17 @@ type Address struct {
 	Country       string
 }
 
-type StandardClaims struct {
-	// Scope: Profile
+type Email struct {
+	Email         string `json:"email,omitempty"`
+	EmailVerified bool   `json:"email_verified,omitempty"`
+}
+
+type Phone struct {
+	PhoneNumber         string `json:"phone_number,omitempty"`
+	PhoneNumberVerified bool   `json:"phone_number_verified,omitempty"`
+}
+
+type Profile struct {
 	Sub               string
 	Name              string
 	GivenName         string
@@ -138,14 +147,13 @@ type StandardClaims struct {
 	ZoneInfo          string
 	Locale            string
 	UpdatedAt         int64
-	// Scope: Email
-	Email         string
-	EmailVerified bool
-	// Scope: Address
-	Address Address
-	// Scope: Phone
-	PhoneNumber         string
-	PhoneNumberVerified bool
+}
+
+type StandardClaims struct {
+	Profile *Profile
+	Email   *Email
+	Address *Address
+	Phone   *Phone
 }
 
 type UserInfoRequest struct{}
@@ -154,10 +162,10 @@ type UserInfoResponse struct{}
 type Scope int
 
 const (
-	Profile Scope = iota
-	Email
-	Addr
-	Phone
+	ProfileScope Scope = iota
+	EmailScope
+	AddrScope
+	PhoneScope
 )
 
 func (s Scope) String() string {

@@ -1,8 +1,19 @@
 package main
 
 import "sync"
+import "github.com/alextanhongpin/go-openid"
 
-type User struct{}
+type User struct {
+	ID string `json:"id"`
+	*oidc.StandardClaims
+}
+
+func NewUser(id string, sc *oidc.StandardClaims) *User {
+	return &User{
+		ID:             id,
+		StandardClaims: sc,
+	}
+}
 
 // UserKV represents the in-memory store for user.
 type UserKV struct {

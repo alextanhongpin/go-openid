@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -123,6 +124,37 @@ func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRe
 }
 func (e *Endpoints) RefreshToken() {}
 
-func (e *Endpoints) UserInfo() {
+func validateTokenHeader(token string) (string, error) {
+	return "1", nil
+}
 
+func (e *Endpoints) UserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	auth := r.Header.Get("Authorization")
+	if auth[0:6] != "Bearer" {
+		// Error
+		err := oidc.ErrUnauthorizedClient
+		msg := fmt.Sprintf(`error="%s" error_description="%s"`, err.Error(), "The access token expired")
+		w.Header().Set("WWW-Authenticate", msg)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	token := auth[7:]
+	id, err := validateTokenHeader(token)
+	if err != nil {
+		err := oidc.ErrUnauthorizedClient
+		msg := fmt.Sprintf(`error="%s" error_description="%s"`, err.Error(), "The access token expired")
+		w.Header().Set("WWW-Authenticate", msg)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	res, err := e.service.UserInfo(r.Context(), id)
+	if err != nil {
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	json.NewEncoder(w).Encode(res)
 }

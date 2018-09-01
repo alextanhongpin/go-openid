@@ -111,9 +111,7 @@ func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest) *httptest.Respo
 func TestTokenEndpoint(t *testing.T) {
 	assert := assert.New(t)
 
-	db := newMockDatabase()
-	s := newMockService(db)
-	e := newMockEndpoint(s)
+	e := defaultMockEndpoint()
 
 	// Setup payload
 	req := &oidc.AccessTokenRequest{
@@ -151,7 +149,6 @@ func TestTokenEndpoint(t *testing.T) {
 	err := json.NewDecoder(rr.Body).Decode(&res)
 	assert.Nil(err)
 
-	// TODO: Test the database to see if the data is stored in the storage
 	assert.Equal(accessToken, res.AccessToken, "should return access token")
 	assert.Equal(tokenType, res.TokenType, "should return token type bearer")
 	assert.Equal(refreshToken, res.RefreshToken, "should return refresh token")
@@ -162,10 +159,7 @@ func TestTokenEndpoint(t *testing.T) {
 func TestTokenErrorResponse(t *testing.T) {
 	assert := assert.New(t)
 
-	db := newMockDatabase()
-	s := newMockService(db)
-	e := newMockEndpoint(s)
-
+	e := defaultMockEndpoint()
 	// Setup payload
 	req := &oidc.AccessTokenRequest{}
 
@@ -212,31 +206,90 @@ func TestAuthentication(t *testing.T) {
 	//    &state=af0ifjsldkj
 }
 
-func TestUserInfo(t *testing.T) {
-	//	 GET /userinfo HTTP/1.1
-	//  Host: server.example.com
-	//  Authorization: Bearer SlAV32hkKG
-	//
-	//   HTTP/1.1 200 OK
-	//  Content-Type: application/json
-	//
-	//  {
-	//   "sub": "248289761001",
-	//   "name": "Jane Doe",
-	//   "given_name": "Jane",
-	//   "family_name": "Doe",
-	//   "preferred_username": "j.doe",
-	//   "email": "janedoe@example.com",
-	//   "picture": "http://example.com/janedoe/me.jpg"
-	//  }
-	//
-	//  HTTP/1.1 401 Unauthorized
-	//   WWW-Authenticate: error="invalid_token",
-	//     error_description="The Access Token expired"
+func testUserInfo(e *Endpoints, id string) *httptest.ResponseRecorder {
+	router := httprouter.New()
+	router.GET("/userinfo", e.UserInfo)
+
+	req := httptest.NewRequest("GET", "/userinfo", nil)
+	req.Header.Set("Authorization", "Bearer slav32hkkg")
+
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	return rr
 }
+
+func TestUserInfo(t *testing.T) {
+	assert := assert.New(t)
+
+	e := defaultMockEndpoint()
+
+	rr := testUserInfo(e, "1")
+
+	var (
+		statusCode = 200
+	)
+
+	assert.Equal(statusCode, rr.Code, "should return status 200 - OK")
+
+	var u User
+	err := json.NewDecoder(rr.Body).Decode(&u)
+	assert.Nil(err)
+
+	var (
+		sub               = "248289761001"
+		name              = "Jane Doe"
+		givenName         = "Jane"
+		familyName        = "Doe"
+		preferredUsername = "j.doe"
+		email             = "janedoe@example.com"
+		picture           = "http://example.com/janedoe/me.jpg"
+	)
+
+	assert.Equal(sub, u.Profile.Sub, "should match the subject")
+	assert.Equal(name, u.Profile.Name, "should match the name")
+	assert.Equal(givenName, u.Profile.GivenName, "should match the given name")
+	assert.Equal(familyName, u.Profile.FamilyName, "should match the family name")
+	assert.Equal(preferredUsername, u.Profile.PreferredUsername, "should match the preferred username")
+	assert.Equal(email, u.Email.Email, "should match the email")
+	assert.Equal(picture, u.Profile.Picture, "should match the picture")
+}
+
+func TestUserInfoError(t *testing.T) {
+	assert := assert.New(t)
+
+	e := defaultMockEndpoint()
+
+	rr := testUserInfo(e, "0")
+
+	var (
+		statusCode = 401
+		header     = `WWW-Authenticate: error="invalid_token" error_description="The access token expired"`
+	)
+
+	assert.Equal(statusCode, rr.Code, "should return status 401 - Unauthorized")
+	assert.Equal(header, rr.Header().Get("WWW-Authenticate"), "should return WWW-Authenticate response header with error message")
+}
+
+func testClientRegistration(e *Endpoints, r *oidc.ClientRegistrationRequest) *httptest.ResponseRecorder {
+	router := httprouter.New()
+	router.POST("/connect/register", e.RegisterClient)
+
+	reqJSON, _ := json.Marshal(r)
+	req := httptest.NewRequest("POST", "/connect/register", bytes.NewBuffer(reqJSON))
+	// TODO: Attach authorization header here
+
+	rr := httptest.NewRecorder()
+
+	router.ServeHTTP(rr, req)
+
+	return rr
+}
+
 func TestClientRegistrationEndpoint(t *testing.T) {
 	assert := assert.New(t)
-	db := NewDatabase()
+
+	db := newMockDatabase()
 	s := newMockService(db)
 	s.newClient = func(req *oidc.ClientPublic) *oidc.Client {
 		return &oidc.Client{
@@ -253,43 +306,55 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	}
 	e := newMockEndpoint(s)
 
-	router := httprouter.New()
-	router.POST("/connect/register", e.RegisterClient)
-
 	// Setup payload
-	clientReq := &oidc.ClientPublic{
+	req := &oidc.ClientPublic{
 		ClientName: "oidc_app",
 	}
-	clientJSON, _ := json.Marshal(clientReq)
-	req := httptest.NewRequest("POST", "/connect/register", bytes.NewBuffer(clientJSON))
-	rr := httptest.NewRecorder()
 
-	router.ServeHTTP(rr, req)
+	rr := testClientRegistration(e, req)
+
+	var (
+		statusCode = http.StatusCreated
+
+		contentType  = "application/json"
+		cacheControl = "no-store"
+		pragma       = "no-cache"
+
+		header = rr.Header()
+	)
+
+	// Check status code
+	assert.Equal(statusCode, rr.Code, "should return status code 201 - Created")
+
+	// Check headers
+	assert.Equal(contentType, header.Get("Content-Type"), "return incorrect Content-Type")
+	assert.Equal(cacheControl, header.Get("Cache-Control"), "return incorrect Cache-Control")
+	assert.Equal(pragma, header.Get("Pragma"), "return incorrect Pragma")
 
 	var res oidc.ClientPrivate
 	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 		t.Fatal(err)
 	}
 
-	// Check status code
-	assert.Equal(http.StatusCreated, rr.Code, "return incorrect status code")
-
-	// Check headers
-	header := rr.Header()
-	assert.Equal("application/json", header.Get("Content-Type"), "return incorrect Content-Type")
-	assert.Equal("no-store", header.Get("Cache-Control"), "return incorrect Cache-Control")
-	assert.Equal("no-cache", header.Get("Pragma"), "return incorrect Pragma")
+	var (
+		clientID                = "test client id"
+		clientSecret            = "test client secret"
+		registrationAccessToken = "test registration access token"
+		registrationClientURI   = "test registration client uri"
+		clientIDIssuedAt        = int64(1000)
+		clientSecretExpiresAt   = int64(1000)
+	)
 
 	// Check response
-	assert.Equal("test client id", res.ClientID, "return incorrect client id")
-	assert.Equal("test client secret", res.ClientSecret, "return incorrect client secret")
-	assert.Equal("test registration access token", res.RegistrationAccessToken, "return incorrect registration access token")
-	assert.Equal("test registration client uri", res.RegistrationClientURI, "return wrong registration client uri")
-	assert.Equal(int64(1000), res.ClientIDIssuedAt, "return wrong issued date")
-	assert.Equal(int64(1000), res.ClientSecretExpiresAt, "return wrong client secret expired at date")
+	assert.Equal(clientID, res.ClientID, "return incorrect client id")
+	assert.Equal(clientSecret, res.ClientSecret, "return incorrect client secret")
+	assert.Equal(registrationAccessToken, res.RegistrationAccessToken, "return incorrect registration access token")
+	assert.Equal(registrationClientURI, res.RegistrationClientURI, "return wrong registration client uri")
+	assert.Equal(clientIDIssuedAt, res.ClientIDIssuedAt, "return wrong issued date")
+	assert.Equal(clientSecretExpiresAt, res.ClientSecretExpiresAt, "return wrong client secret expired at date")
 
 	// Check the database to see if the client has been stored successfully
-	clientdb, exist := db.Client.Get(clientReq.ClientName)
+	clientdb, exist := db.Client.Get(req.ClientName)
 	assert.Equal(true, exist, "client does not exist in the storage")
 	assert.Equal(res, *clientdb.ClientPrivate, "should point to the same object")
 }
@@ -592,9 +657,36 @@ func newClient(id, name, redirectURI string) *oidc.Client {
 }
 
 func newMockDatabase() *Database {
+	prof := oidc.Profile{
+		Sub:               "248289761001",
+		Name:              "Jane Doe",
+		GivenName:         "Jane",
+		FamilyName:        "Doe",
+		PreferredUsername: "j.doe",
+		Picture:           "http://example.com/janedoe/me.jpg",
+	}
+	email := oidc.Email{
+		Email: "janedoe@example.com",
+	}
+	claims := &oidc.StandardClaims{
+		Profile: &prof,
+		Email:   &email,
+	}
+	user := &User{
+		ID:             "1",
+		StandardClaims: claims,
+	}
 	client := newClient(defaultClientID, defaultClientName, defaultRedirectURI)
 	db := NewDatabase()
 	db.Client.Put(client.ClientID, client)
 	db.Code.Put(client.ClientID, oidc.NewCode(defaultCode))
+	db.User.Put("1", user)
 	return db
+}
+
+func defaultMockEndpoint() *Endpoints {
+	db := newMockDatabase()
+	s := newMockService(db)
+	e := newMockEndpoint(s)
+	return e
 }

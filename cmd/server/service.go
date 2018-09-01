@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
 // Service represents the interface for the services available for OpenID Connect Protocol.
@@ -12,8 +13,11 @@ type Service interface {
 	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
+	UserInfo(context.Context, string) (*User, error)
 	// RegisterUser
 	// Authenticate
+	GenerateCode() string
+	NewJWT(aud, iss, sub string) (string, error)
 }
 
 // tokenGenerator represents the function to generate token.
@@ -25,6 +29,7 @@ type Client interface {
 
 // ServiceImpl fulfils the OIDService interface.
 type ServiceImpl struct {
+	crypto               crypto.Crypto
 	db                   *Database
 	generateCode         tokenGenerator
 	generateAccessToken  tokenGenerator
@@ -129,6 +134,8 @@ func (s *ServiceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (
 	// If code matches, then delete the code from the storage
 	s.db.Code.Delete(cid)
 
+	// accessToken := s.NewJWT(client.ClientName, s.Config.issuer, client.ClientID)
+
 	// Finalize the response and return the access token
 	return &oidc.AccessTokenResponse{
 		AccessToken:  s.generateAccessToken(),
@@ -156,4 +163,12 @@ func (s *ServiceImpl) RegisterClient(ctx context.Context, req *oidc.ClientRegist
 	s.db.Client.Put(req.ClientName, client)
 
 	return client.ClientPrivate, nil
+}
+
+func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*User, error) {
+	user, exist := s.db.User.Get(id)
+	if !exist || user == nil {
+		return nil, errors.New("forbidden access")
+	}
+	return user, nil
 }
