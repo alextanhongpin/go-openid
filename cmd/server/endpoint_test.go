@@ -8,34 +8,42 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
 var (
+	// Crypto defaults
+	defaultXIDToken = "x2y9aS"
+	defaultJWTToken = "SlAV32hkKG"
+	defaultUUID     = "0000-0000-0000-0000"
+
+	// Request defaults
 	defaultResponseType = "code"
-	defaultClientID     = "123456"
+	defaultClientID     = defaultXIDToken
 	defaultRedirectURI  = "https://client.example.com/cb"
 	defaultScope        = "profile email"
 	defaultState        = "xyz"
 
+	// Client defaults
 	defaultClientName   = "MyApp"
-	defaultCode         = "x2y9aS"
-	defaultAccessToken  = "SlAV32hkKG"
-	defaultRefreshToken = "8xLOxBtZp8"
+	defaultClientSecret = defaultUUID
+
+	// Token defaults
+	defaultCode         = defaultXIDToken
+	defaultAccessToken  = defaultJWTToken
+	defaultRefreshToken = defaultJWTToken
 	defaultIDToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ"
 
-	defaultAuthorizationRequest = &oidc.AuthorizationRequest{
-		ResponseType: defaultResponseType,
-		ClientID:     defaultClientID,
-		RedirectURI:  defaultRedirectURI,
-		Scope:        defaultScope,
-		State:        defaultState,
-	}
+	// User defaults
+	defaultUserID = "1"
 )
 
 func testAuthzEndpoint(e *Endpoints, r *oidc.AuthorizationRequest) *httptest.ResponseRecorder {
@@ -62,7 +70,7 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	// Setup payload
 	req := &oidc.AuthorizationRequest{
 		ResponseType: "code",
-		ClientID:     "123456",
+		ClientID:     defaultClientID,
 		RedirectURI:  "https://client.example.com/cb",
 		Scope:        "profile email",
 		State:        "xyz",
@@ -128,7 +136,7 @@ func TestTokenEndpoint(t *testing.T) {
 		cacheControl = "no-store"
 		contentType  = "application/json"
 		pragma       = "no-cache"
-		statusCode   = http.StatusOK
+		statusCode   = 200
 	)
 
 	assert.Equal(statusCode, rr.Code, "should return status 200 - OK")
@@ -138,9 +146,9 @@ func TestTokenEndpoint(t *testing.T) {
 
 	// Test response body
 	var (
-		accessToken  = "SlAV32hkKG"
+		accessToken  = defaultAccessToken
 		tokenType    = "Bearer"
-		refreshToken = "8xLOxBtZp8"
+		refreshToken = defaultRefreshToken
 		expiresIn    = int64(3600)
 		idToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."
 	)
@@ -167,7 +175,7 @@ func TestTokenErrorResponse(t *testing.T) {
 
 	// Validate headers
 	var (
-		statusCode   = http.StatusForbidden
+		statusCode   = 403
 		contentType  = "application/json"
 		cacheControl = "no-store"
 		pragma       = "no-cache"
@@ -232,10 +240,6 @@ func TestUserInfo(t *testing.T) {
 
 	assert.Equal(statusCode, rr.Code, "should return status 200 - OK")
 
-	var u User
-	err := json.NewDecoder(rr.Body).Decode(&u)
-	assert.Nil(err)
-
 	var (
 		sub               = "248289761001"
 		name              = "Jane Doe"
@@ -245,6 +249,10 @@ func TestUserInfo(t *testing.T) {
 		email             = "janedoe@example.com"
 		picture           = "http://example.com/janedoe/me.jpg"
 	)
+
+	var u User
+	err := json.NewDecoder(rr.Body).Decode(&u)
+	assert.Nil(err)
 
 	assert.Equal(sub, u.Profile.Sub, "should match the subject")
 	assert.Equal(name, u.Profile.Name, "should match the name")
@@ -291,19 +299,6 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 
 	db := newMockDatabase()
 	s := newMockService(db)
-	s.newClient = func(req *oidc.ClientPublic) *oidc.Client {
-		return &oidc.Client{
-			ClientPublic: req,
-			ClientPrivate: &oidc.ClientPrivate{
-				ClientID:                "test client id",
-				ClientSecret:            "test client secret",
-				RegistrationAccessToken: "test registration access token",
-				RegistrationClientURI:   "test registration client uri",
-				ClientIDIssuedAt:        1000,
-				ClientSecretExpiresAt:   1000,
-			},
-		}
-	}
 	e := newMockEndpoint(s)
 
 	// Setup payload
@@ -331,27 +326,30 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 	assert.Equal(cacheControl, header.Get("Cache-Control"), "return incorrect Cache-Control")
 	assert.Equal(pragma, header.Get("Pragma"), "return incorrect Pragma")
 
+	var (
+		clientID                = defaultClientID
+		clientSecret            = defaultClientSecret
+		registrationAccessToken = defaultAccessToken
+		registrationClientURI   = ""
+	)
+
 	var res oidc.ClientPrivate
 	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 		t.Fatal(err)
 	}
-
-	var (
-		clientID                = "test client id"
-		clientSecret            = "test client secret"
-		registrationAccessToken = "test registration access token"
-		registrationClientURI   = "test registration client uri"
-		clientIDIssuedAt        = int64(1000)
-		clientSecretExpiresAt   = int64(1000)
-	)
 
 	// Check response
 	assert.Equal(clientID, res.ClientID, "return incorrect client id")
 	assert.Equal(clientSecret, res.ClientSecret, "return incorrect client secret")
 	assert.Equal(registrationAccessToken, res.RegistrationAccessToken, "return incorrect registration access token")
 	assert.Equal(registrationClientURI, res.RegistrationClientURI, "return wrong registration client uri")
-	assert.Equal(clientIDIssuedAt, res.ClientIDIssuedAt, "return wrong issued date")
-	assert.Equal(clientSecretExpiresAt, res.ClientSecretExpiresAt, "return wrong client secret expired at date")
+
+	var (
+		expireAt = time.Unix(res.ClientSecretExpiresAt, 0)
+		issuedAt = time.Unix(res.ClientIDIssuedAt, 0)
+		duration = time.Hour * 24 * 30
+	)
+	assert.True(expireAt.Sub(issuedAt) == duration, "return wrong issued date")
 
 	// Check the database to see if the client has been stored successfully
 	clientdb, exist := db.Client.Get(req.ClientName)
@@ -363,21 +361,41 @@ func TestClientRegistrationError(t *testing.T) {
 
 	assert := assert.New(t)
 
-	statusCode := 400
-	contentType := "application/json"
-	cacheControl := "no-store"
-	pragma := "no-cache"
-	res := oidc.ClientErrorResponse{
-		Error:            "invalid_redirect_uri",
-		ErrorDescription: "One or more redirect_uri values are invalid",
-	}
-	assert.Equal(400, statusCode, "should return bad request")
-	assert.Equal("application/json", contentType, "should return json")
-	assert.Equal("no-store", cacheControl, "should set cache-control to no-store")
-	assert.Equal("no-cache", pragma, "should set pragma to no-cache")
-	assert.Equal("invalid_redirect_uri", res.Error, "should return the correct error type")
-	assert.True(res.ErrorDescription != "", "should return error description")
+	e := defaultMockEndpoint()
 
+	// Setup payload
+	req := &oidc.ClientPublic{
+		ClientName:   "oidc_app",
+		RedirectURIs: []string{"not_valid_url"},
+	}
+
+	rr := testClientRegistration(e, req)
+
+	var (
+		statusCode   = 400
+		contentType  = "application/json"
+		cacheControl = "no-store"
+		pragma       = "no-cache"
+
+		header = rr.Header()
+	)
+
+	assert.Equal(statusCode, rr.Code, "should return status 400 - Bad Request")
+	assert.Equal(contentType, header.Get("Content-Type"), "should return json")
+	assert.Equal(cacheControl, header.Get("Cache-Control"), "should set cache-control to no-store")
+	assert.Equal(pragma, header.Get("Pragma"), "should set pragma to no-cache")
+
+	var (
+		msg  = "invalid_redirect_uri"
+		desc = "One or more redirect_uri values are incorrect"
+	)
+
+	var res oidc.ClientErrorResponse
+	err := json.NewDecoder(rr.Body).Decode(&res)
+	assert.Nil(err)
+
+	assert.Equal(msg, res.Error, "should return the matching error")
+	assert.Equal(desc, res.ErrorDescription, "should return the matching error description")
 }
 
 func TestClientRead(t *testing.T) {
@@ -625,17 +643,31 @@ func TestOpenIDConfigurationRequest(t *testing.T) {
 	//   }
 }
 
+type cry struct{}
+
+func (c *cry) Code() string {
+	return defaultXIDToken
+}
+
+func (c *cry) NewJWT(aud, sub, iss string, dur time.Duration) (string, error) {
+	return defaultJWTToken, nil
+}
+
+func (c *cry) ParseJWT(token string) (*jwt.Token, error) {
+	return nil, nil
+}
+
+func (c *cry) UUID() string {
+	return defaultUUID
+}
+
+func newMockCrypto() crypto.Crypto {
+	return &cry{}
+}
+
 func newMockService(db *Database) *ServiceImpl {
-	gc := func() string {
-		return defaultCode
-	}
-	gat := func() string {
-		return defaultAccessToken
-	}
-	grt := func() string {
-		return defaultRefreshToken
-	}
-	return NewService(db, gc, gat, grt)
+	c := newMockCrypto()
+	return NewService(db, c)
 }
 
 func newMockEndpoint(s Service) *Endpoints {
@@ -644,39 +676,36 @@ func newMockEndpoint(s Service) *Endpoints {
 	}
 }
 
-func newClient(id, name, redirectURI string) *oidc.Client {
-	return &oidc.Client{
-		ClientPublic: &oidc.ClientPublic{
-			ClientName:   name,
-			RedirectURIs: []string{redirectURI},
-		},
-		ClientPrivate: &oidc.ClientPrivate{
-			ClientID: id,
-		},
-	}
-}
-
 func newMockDatabase() *Database {
-	prof := oidc.Profile{
-		Sub:               "248289761001",
-		Name:              "Jane Doe",
-		GivenName:         "Jane",
-		FamilyName:        "Doe",
-		PreferredUsername: "j.doe",
-		Picture:           "http://example.com/janedoe/me.jpg",
-	}
-	email := oidc.Email{
-		Email: "janedoe@example.com",
-	}
 	claims := &oidc.StandardClaims{
-		Profile: &prof,
-		Email:   &email,
+		Profile: &oidc.Profile{
+			Sub:               "248289761001",
+			Name:              "Jane Doe",
+			GivenName:         "Jane",
+			FamilyName:        "Doe",
+			PreferredUsername: "j.doe",
+			Picture:           "http://example.com/janedoe/me.jpg",
+		},
+		Email: &oidc.Email{
+			Email: "janedoe@example.com",
+		},
 	}
+
 	user := &User{
 		ID:             "1",
 		StandardClaims: claims,
 	}
-	client := newClient(defaultClientID, defaultClientName, defaultRedirectURI)
+
+	client := &oidc.Client{
+		ClientPublic: &oidc.ClientPublic{
+			ClientName:   defaultClientName,
+			RedirectURIs: []string{defaultRedirectURI},
+		},
+		ClientPrivate: &oidc.ClientPrivate{
+			ClientID: defaultClientID,
+		},
+	}
+
 	db := NewDatabase()
 	db.Client.Put(client.ClientID, client)
 	db.Code.Put(client.ClientID, oidc.NewCode(defaultCode))

@@ -6,14 +6,16 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/google/uuid"
 	"github.com/rs/xid"
 )
 
 // Crypto represents the encryption/decryption methods for OIDC
 type Crypto interface {
 	Code() string
-	NewJWT() (string, error)
-	ParseJWT() (*jwt.Token, error)
+	UUID() string
+	NewJWT(aud, sub, iss string, dur time.Duration) (string, error)
+	ParseJWT(token string) (*jwt.Token, error)
 }
 
 type Impl struct {
@@ -30,10 +32,14 @@ func (c *Impl) Code() string {
 	return xid.New().String()
 }
 
-func (c *Impl) NewJWT(aud, sub, iss string, duration time.Duration) (string, error) {
+func (c *Impl) UUID() string {
+	return uuid.New().String()
+}
+
+func (c *Impl) NewJWT(aud, sub, iss string, dur time.Duration) (string, error) {
 	claims := &jwt.StandardClaims{
 		Audience:  aud,
-		ExpiresAt: time.Now().Add(duration).Unix(),
+		ExpiresAt: time.Now().Add(dur).Unix(),
 		IssuedAt:  time.Now().Unix(),
 		Issuer:    iss,
 		Subject:   sub,

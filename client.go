@@ -1,6 +1,10 @@
 package oidc
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/asaskevich/govalidator"
+)
 
 // ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
@@ -78,6 +82,11 @@ type ClientPublic struct {
 
 // Validate performs a simple validation on the client payload request.
 func (c *ClientRegistrationRequest) Validate() error {
+	for _, u := range c.RedirectURIs {
+		if !govalidator.IsURL(u) {
+			return ErrInvalidRedirectURI
+		}
+	}
 	// Check the redirect uri
 	// return ErrInvalidRedirectURI
 
