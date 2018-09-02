@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	oidc "github.com/alextanhongpin/go-openid"
@@ -229,6 +230,10 @@ func (s *ServiceImpl) RegisterClient(ctx context.Context, req *oidc.ClientRegist
 
 // Client returns the client from the given client id.
 func (s *ServiceImpl) Client(ctx context.Context, id string) (*oidc.Client, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, oidc.UnauthorizedClient.JSON()
+	}
 	if c := s.db.Client.GetByID(id); c != nil {
 		return c, nil
 	}

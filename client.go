@@ -73,22 +73,22 @@ type ClientRegistrationRequest = ClientPublic
 
 // ClientPublic represents fields that are public
 type ClientPublic struct {
-	RedirectURIs                 RedirectURIs `json:"redirect_uris"`
-	ResponseTypes                []string     `json:"response_types"`
-	GrantTypes                   []string     `json:"grant_types"`
-	ApplicationType              string       `json:"application_type"`
-	Contacts                     []string     `json:"contacts"`
-	ClientName                   string       `json:"client_name"`
-	LogoURI                      string       `json:"logo_uri"`
-	ClientURI                    string       `json:"client_uri"`
-	PolicyURI                    string       `json:"policy_uri"`
-	TosURI                       string       `json:"tos_uri"`
-	JwksURI                      string       `json:"jwks_uri"`
-	Jwks                         string       `json:"jwks"`
-	SectorIdentifierURI          string       `json:"sector_identifier_uri"`
-	SubjectType                  string       `json:"subject_type"`
-	IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg"`
-	IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg"`
+	RedirectURIs                 RedirectURIs `json:"redirect_uris,omitempty"`
+	ResponseTypes                []string     `json:"response_types,omitempty"`
+	GrantTypes                   []string     `json:"grant_types,omitempty"`
+	ApplicationType              string       `json:"application_type,omitempty"`
+	Contacts                     []string     `json:"contacts,omitempty"`
+	ClientName                   string       `json:"client_name,omitempty"`
+	LogoURI                      string       `json:"logo_uri,omitempty"`
+	ClientURI                    string       `json:"client_uri,omitempty"`
+	PolicyURI                    string       `json:"policy_uri,omitempty"`
+	TosURI                       string       `json:"tos_uri,omitempty"`
+	JwksURI                      string       `json:"jwks_uri,omitempty"`
+	Jwks                         string       `json:"jwks,omitempty"`
+	SectorIdentifierURI          string       `json:"sector_identifier_uri,omitempty"`
+	SubjectType                  string       `json:"subject_type,omitempty"`
+	IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg,omitempty"`
+	IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg,omitempty"`
 	IDTokenEncryptedResponseEnc  string
 	UserinfoSignedResponseAlg    string
 	UserinfoEncryptedResponseAlg string

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
@@ -16,6 +15,12 @@ import (
 // Endpoints represent the endpoints for the OpenIDConnect.
 type Endpoints struct {
 	service Service
+}
+
+func NewEndpoints(s Service) *Endpoints {
+	return &Endpoints{
+		service: s,
+	}
 }
 
 // Authorize performs the authorization logic.
@@ -122,11 +127,6 @@ func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.
 
 	// TODO: Check authorization header to ensure the client has the right credentials.
 	id := r.URL.Query().Get("client_id")
-	if strings.TrimSpace(id) == "" {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
-		return
-	}
 	client, err := e.service.Client(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
