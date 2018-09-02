@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
@@ -60,7 +61,7 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	var req oidc.AccessTokenRequest
 	if err := querystring.Decode(&req, r.Form); err != nil {
 		errRes := oidc.ErrorJSON{
-			Error: err.Error(),
+			Code: err.Error(),
 		}
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(errRes)
@@ -69,11 +70,8 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 
 	res, err := e.service.Token(r.Context(), &req)
 	if err != nil {
-		errRes := oidc.ErrorJSON{
-			Error: err.Error(),
-		}
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(errRes)
+		json.NewEncoder(w).Encode(err)
 		return
 	}
 
@@ -116,7 +114,26 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 	json.NewEncoder(w).Encode(res)
 }
 
-func (e *Endpoints) Client() {
+func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+
+	// TODO: Check authorization header to ensure the client has the right credentials.
+	id := r.URL.Query().Get("client_id")
+	if strings.TrimSpace(id) == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		return
+	}
+	client, err := e.service.Client(r.Context(), id)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+	json.NewEncoder(w).Encode(client)
 	// GET /connect/register?client_id=
 	// Authorization: Bearer this.is.an.access.token.value
 	// return 200, cache-control: no-store, pragma: no-cache

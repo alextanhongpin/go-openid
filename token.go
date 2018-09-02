@@ -3,9 +3,8 @@ package oidc
 import "strings"
 
 const (
-	Bearer                       = "Bearer"
-	Basic                        = "Basic"
-	DefaultAccessTokenExpiration = 3600
+	Bearer = "Bearer"
+	Basic  = "Basic"
 )
 
 // AccessTokenRequest represents the access token request payload.
@@ -19,16 +18,16 @@ type AccessTokenRequest struct {
 // Validate performs an initial validation on the required field.
 func (r *AccessTokenRequest) Validate() error {
 	if r.GrantType != "authorization_code" {
-		return ErrInvalidRequest
+		return InvalidRequest.JSON()
 	}
 	if strings.TrimSpace(r.Code) == "" {
-		return ErrForbidden
+		return AccessDenied.JSON()
 	}
 	if strings.TrimSpace(r.RedirectURI) == "" {
-		return ErrForbidden
+		return InvalidRequest.JSON()
 	}
 	if strings.TrimSpace(r.ClientID) == "" {
-		return ErrForbidden
+		return AccessDenied.JSON()
 	}
 	return nil
 }

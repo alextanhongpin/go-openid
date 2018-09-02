@@ -74,8 +74,8 @@ func TestAuthorizationFlow(t *testing.T) {
 func TestEncodeAuthorizationError(t *testing.T) {
 	assert := assert.New(t)
 
-	res := &AuthorizationError{
-		Error: "access_denied",
+	res := &ErrorJSON{
+		Code:  "access_denied",
 		State: "xyz",
 	}
 

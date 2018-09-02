@@ -1,6 +1,9 @@
 package oidc
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // Authentication Error Response
 var (
@@ -26,15 +29,18 @@ var (
 	ErrTemporarilyUnavailable  = errors.New("temporarily unavailable")
 )
 
-// Client Registration errors
-var (
-	ErrInvalidRedirectURI    = errors.New("invalid redirect uri")
-	ErrInvalidClientMetadata = errors.New("invalid client metadata")
-)
-
-var ErrForbidden = errors.New("forbidden request")
-
+// ErrorJSON represents the json error.
 type ErrorJSON struct {
-	Error            string `json:"error,omitempty"`
-	ErrorDescription string `json:"error_description"`
+	Code        string `json:"error,omitempty"`
+	Description string `json:"error_description,omitempty"`
+	URI         string `json:"error_uri,omitempty"`
+	State       string `json:"state,omitempty"`
+}
+
+func (e *ErrorJSON) Error() string {
+	return fmt.Sprintf("%s: %s", e.Code, e.Description)
+}
+
+func (e *ErrorJSON) SetState(s string) {
+	e.State = s
 }

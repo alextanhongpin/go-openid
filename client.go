@@ -9,6 +9,31 @@ import (
 // ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
 
+type ClientErrorCode int
+
+const (
+	InvalidRedirectURI ClientErrorCode = iota
+	InvalidClientMetadata
+)
+
+var clientErrorDescriptions = map[ClientErrorCode]string{
+	InvalidRedirectURI:    "the value of one or more redirect uris is invalid",
+	InvalidClientMetadata: "the value of one of the client metadata fields is invalid and the server has rejected this request",
+}
+
+func (c ClientErrorCode) String() string {
+	return [...]string{"invalid_redirect_uri", "invalid_client_metadata"}[c]
+}
+
+func (c ClientErrorCode) JSON() *ErrorJSON {
+	return &ErrorJSON{
+		Code:        c.String(),
+		Description: clientErrorDescriptions[c],
+		URI:         "",
+		State:       "",
+	}
+}
+
 // Client represents both private and public metadata of the client.
 type Client struct {
 	*ClientPublic
@@ -84,7 +109,7 @@ type ClientPublic struct {
 func (c *ClientRegistrationRequest) Validate() error {
 	for _, u := range c.RedirectURIs {
 		if !govalidator.IsURL(u) {
-			return ErrInvalidRedirectURI
+			return InvalidRedirectURI.JSON()
 		}
 	}
 	// Check the redirect uri

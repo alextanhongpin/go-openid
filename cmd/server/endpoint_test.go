@@ -188,13 +188,17 @@ func TestTokenErrorResponse(t *testing.T) {
 	assert.Equal(cacheControl, header.Get("Cache-Control"), "should return Cache-Control no-store")
 	assert.Equal(pragma, header.Get("Pragma"), "should return Pragma no-cache")
 
+	var (
+		errorCode = "invalid_request"
+	)
+
 	// Validate body
 	var res oidc.ErrorJSON
 	err := json.NewDecoder(rr.Body).Decode(&res)
 	assert.Nil(err)
 
-	assert.True(res.Error != "", "should return field error")
-	assert.True(res.ErrorDescription != "", "should return field error description")
+	assert.Equal(errorCode, res.Code, "should return field error")
+	assert.True(res.Description != "", "should return field error description")
 }
 
 func TestAuthentication(t *testing.T) {
@@ -398,65 +402,104 @@ func TestClientRegistrationError(t *testing.T) {
 	assert.Equal(desc, res.ErrorDescription, "should return the matching error description")
 }
 
+func testClientRead(e *Endpoints, id string) *httptest.ResponseRecorder {
+	router := httprouter.New()
+	router.GET("/connect/register", e.Client)
+
+	req := httptest.NewRequest("GET", "/connect/register?client_id="+id, nil)
+	req.Header.Set("Authorization", "Bearer abc")
+	rr := httptest.NewRecorder()
+
+	router.ServeHTTP(rr, req)
+
+	return rr
+}
+
 func TestClientRead(t *testing.T) {
 
 	assert := assert.New(t)
-	// Request
-	clientID := "s6BhdRkqt3"
-	authorization := "Bearer this.is.an.access.token.value.ffx83"
-	assert.True(len(clientID) > 0, "should have client id")
-	assert.True(len(authorization) > 0, "should have authorization header")
+
+	e := defaultMockEndpoint()
+
+	cid := "s6BhdRkqt3"
+
+	rr := testClientRead(e, cid)
 
 	// Response Headers
-	statusCode := 200
-	contentType := "application/json"
-	cacheControl := "no-store"
-	pragma := "no-cache"
+	var (
+		statusCode   = 200
+		contentType  = "application/json"
+		cacheControl = "no-store"
+		pragma       = "no-cache"
 
-	assert.Equal(200, statusCode, "should return ok")
-	assert.Equal("application/json", contentType, "should return json")
-	assert.Equal("no-store", cacheControl, "should set cache-control to no-store")
-	assert.Equal("no-cache", pragma, "should set pragma to no-cache")
+		header = rr.Header()
+	)
 
+	assert.Equal(statusCode, rr.Code, "should return status 200 - OK")
+	assert.Equal(contentType, header.Get("Content-Type"), "should return Content-Type application/json")
+	assert.Equal(cacheControl, header.Get("Cache-Control"), "should return Cache-Control no-store")
+	assert.Equal(pragma, header.Get("Pragma"), "should return Pragma no-cache")
+
+	var (
+		clientID     = "s6BhdRkqt3"
+		clientSecret = "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q"
+	)
+
+	var client oidc.Client
+	err := json.NewDecoder(rr.Body).Decode(&client)
+	assert.Nil(err)
+
+	assert.Equal(clientID, client.ClientPrivate.ClientID)
+	assert.Equal(clientSecret, client.ClientPrivate.ClientSecret)
 	// Response body
-	client := &oidc.Client{
-		ClientPublic: &oidc.ClientPublic{
-			TokenEndpointAuthMethod: "token_endpoint_auth_method",
-			ApplicationType:         "web",
-			RedirectURIs: []string{"https://client.example.org/callback",
-				"https://client.example.org/callback2"},
-			ClientName:          "My Example",
-			LogoURI:             "https://client.example.org/logo.png",
-			SubjectType:         "pairwise",
-			SectorIdentifierURI: "https://other.example.net/file_of_redirect_uris.json",
-			JwksURI:             "https://client.example.org/my_public_keys.jwks",
-			UserinfoEncryptedResponseAlg: "RSA1_5",
-			UserinfoEncryptedResponseEnc: "A128CBC-HS256",
-			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
-			RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
-		},
-		ClientPrivate: &oidc.ClientPrivate{
-			ClientID:     "s6BhdRkqt3",
-			ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
-
-			RegistrationAccessToken: "",
-			RegistrationClientURI:   "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
-			ClientIDIssuedAt:        0,
-			ClientSecretExpiresAt:   17514165600,
-		},
-	}
-	assert.True(client != nil, "should return client")
+	//	client := &oidc.Client{
+	//		ClientPublic: &oidc.ClientPublic{
+	//			TokenEndpointAuthMethod: "token_endpoint_auth_method",
+	//			ApplicationType:         "web",
+	//			RedirectURIs: []string{"https://client.example.org/callback",
+	//				"https://client.example.org/callback2"},
+	//			ClientName:          "My Example",
+	//			LogoURI:             "https://client.example.org/logo.png",
+	//			SubjectType:         "pairwise",
+	//			SectorIdentifierURI: "https://other.example.net/file_of_redirect_uris.json",
+	//			JwksURI:             "https://client.example.org/my_public_keys.jwks",
+	//			UserinfoEncryptedResponseAlg: "RSA1_5",
+	//			UserinfoEncryptedResponseEnc: "A128CBC-HS256",
+	//			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
+	//			RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
+	//		},
+	//		ClientPrivate: &oidc.ClientPrivate{
+	//			ClientID:     "s6BhdRkqt3",
+	//			ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
+	//
+	//			RegistrationAccessToken: "",
+	//			RegistrationClientURI:   "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
+	//			ClientIDIssuedAt:        0,
+	//			ClientSecretExpiresAt:   17514165600,
+	//		},
+	//	}
 }
 
 func TestClientReadError(t *testing.T) {
 	assert := assert.New(t)
-	statusCode := 401
-	cacheControl := "no-store"
-	pragma := "no-cache"
 
-	assert.Equal(http.StatusUnauthorized, statusCode, "should return status 401 - Unauthorized")
-	assert.Equal("no-store", cacheControl, "should set cache-control to no-store")
-	assert.Equal("no-cache", pragma, "should set pragma to no-cache")
+	e := defaultMockEndpoint()
+
+	cid := "unknown_client_id"
+
+	rr := testClientRead(e, cid)
+
+	var (
+		statusCode   = 401
+		cacheControl = "no-store"
+		pragma       = "no-cache"
+
+		header = rr.Header()
+	)
+
+	assert.Equal(statusCode, rr.Code, "should return status 401 - Unauthorized")
+	assert.Equal(cacheControl, header.Get("Cache-Control"), "should set cache-control to no-store")
+	assert.Equal(pragma, header.Get("Pragma"), "should set pragma to no-cache")
 }
 
 func TestOIDProviderIssuerDiscoveryEmail(t *testing.T) {
@@ -706,9 +749,39 @@ func newMockDatabase() *Database {
 		},
 	}
 
+	client2 := &oidc.Client{
+		ClientPublic: &oidc.ClientPublic{
+			TokenEndpointAuthMethod: "token_endpoint_auth_method",
+			ApplicationType:         "web",
+			RedirectURIs: []string{"https://client.example.org/callback",
+				"https://client.example.org/callback2"},
+			ClientName:          "My Example",
+			LogoURI:             "https://client.example.org/logo.png",
+			SubjectType:         "pairwise",
+			SectorIdentifierURI: "https://other.example.net/file_of_redirect_uris.json",
+			JwksURI:             "https://client.example.org/my_public_keys.jwks",
+			UserinfoEncryptedResponseAlg: "RSA1_5",
+			UserinfoEncryptedResponseEnc: "A128CBC-HS256",
+			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
+			RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
+		},
+		ClientPrivate: &oidc.ClientPrivate{
+			ClientID:     "s6BhdRkqt3",
+			ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
+
+			RegistrationAccessToken: "",
+			RegistrationClientURI:   "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
+			ClientIDIssuedAt:        0,
+			ClientSecretExpiresAt:   17514165600,
+		},
+	}
+
 	db := NewDatabase()
+
 	db.Client.Put(client.ClientID, client)
 	db.Code.Put(client.ClientID, oidc.NewCode(defaultCode))
+	db.Client.Put(client2.ClientPrivate.ClientID, client2)
+
 	db.User.Put("1", user)
 	return db
 }

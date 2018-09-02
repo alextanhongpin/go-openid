@@ -11,15 +11,16 @@ import (
 
 var (
 	defaultIssuer        = "go-openid"
-	defaultDuration      = time.Hour
 	defaultJWTSigningKey = "secret"
+	defaultDuration      = time.Hour
 )
 
 // Service represents the interface for the services available for OpenID Connect Protocol.
 type Service interface {
-	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError)
+	Authorize(context.Context, *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error)
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
+	Client(context.Context, string) (*oidc.Client, error)
 	UserInfo(context.Context, string) (*User, error)
 	// RegisterUser
 	// Authenticate
@@ -51,13 +52,15 @@ func (s *ServiceImpl) newClient(req *oidc.ClientPublic) (*oidc.Client, error) {
 		aud = req.ClientName
 		iss = defaultIssuer
 		sub = req.ClientName
+
+		now = time.Now()
 	)
 
 	token, err := s.crypto.NewJWT(aud, iss, sub, dur)
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now()
+
 	clientPrivate := &oidc.ClientPrivate{
 		ClientID:                s.crypto.Code(),
 		ClientSecret:            s.crypto.UUID(),
@@ -80,18 +83,22 @@ func (s *ServiceImpl) validateClient(cid, ruri string) (*oidc.Client, error) {
 
 	client := s.db.Client.GetByID(cid)
 	if client == nil {
-		return nil, errors.New("client is not authorized")
+		return nil, oidc.InvalidClientMetadata.JSON()
 	}
 	if match := client.RedirectURIs.Contains(ruri); !match {
-		return nil, errors.New("one or more redirect uris are incorrect")
+		return nil, oidc.InvalidRedirectURI.JSON()
 	}
+
 	return client, nil
 }
 
 func (s *ServiceImpl) newCode(cid string) *oidc.Code {
+	// Delete existing code.
 	if _, exist := s.db.Code.Get(cid); exist {
 		s.db.Code.Delete(cid)
 	}
+
+	// Create new code and store it.
 	code := oidc.NewCode(s.crypto.Code())
 	s.db.Code.Put(cid, code)
 	return code
@@ -101,13 +108,13 @@ func (s *ServiceImpl) validateCode(cid, code string) error {
 	// Check if the code exists, and it matches the code provided
 	c, exist := s.db.Code.Get(cid)
 	if !exist || c == nil || c.Code != code {
-		return oidc.ErrForbidden
+		return oidc.AccessDenied.JSON()
 	}
 
 	// If the code is valid, but expired, delete them
 	if c.Expired() {
 		s.db.Code.Delete(cid)
-		return errors.New("expired code")
+		return oidc.AccessDenied.JSON()
 	}
 
 	// If code matches, then delete the code from the storage
@@ -115,15 +122,17 @@ func (s *ServiceImpl) validateCode(cid, code string) error {
 	return nil
 }
 
-func (s *ServiceImpl) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, *oidc.AuthorizationError) {
+func (s *ServiceImpl) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error) {
 	if err := req.Validate(); err != nil {
-		return nil, &oidc.AuthorizationError{
-			Error:            oidc.ErrForbidden.Error(),
-			ErrorDescription: "",
-			ErrorURI:         "",
-			State:            req.State,
+		if req.State != "" {
+			if e, ok := err.(*oidc.ErrorJSON); ok {
+				e.SetState(req.State)
+				return nil, e
+			}
 		}
+		return nil, err
 	}
+
 	var (
 		cid   = req.ClientID
 		ruri  = req.RedirectURI
@@ -132,12 +141,11 @@ func (s *ServiceImpl) Authorize(ctx context.Context, req *oidc.AuthorizationRequ
 
 	_, err := s.validateClient(cid, ruri)
 	if err != nil {
-		return nil, &oidc.AuthorizationError{
-			Error:            err.Error(),
-			ErrorDescription: "",
-			ErrorURI:         "",
-			State:            state,
+		if e, ok := err.(*oidc.ErrorJSON); ok {
+			e.SetState(state)
+			return nil, e
 		}
+		return nil, err
 	}
 
 	code := s.newCode(cid)
@@ -219,10 +227,20 @@ func (s *ServiceImpl) RegisterClient(ctx context.Context, req *oidc.ClientRegist
 	return client.ClientPrivate, nil
 }
 
+// Client returns the client from the given client id.
+func (s *ServiceImpl) Client(ctx context.Context, id string) (*oidc.Client, error) {
+	if c := s.db.Client.GetByID(id); c != nil {
+		return c, nil
+	}
+	return nil, oidc.UnauthorizedClient.JSON()
+}
+
+// UserInfo returns the user info from the given id.
 func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*User, error) {
 	user, exist := s.db.User.Get(id)
 	if !exist || user == nil {
-		return nil, errors.New("forbidden access")
+		return nil, oidc.AccessDenied.JSON()
 	}
+
 	return user, nil
 }
