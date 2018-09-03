@@ -3,7 +3,14 @@ package oidc
 import (
 	"errors"
 	"strings"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
+
+type Claims struct {
+	*jwt.StandardClaims
+	UserID string `json:"user_id,omitempty"`
+}
 
 // IDToken is a security token that contains Claims about the Authentication of
 // an End-User by and Authorization Server when using Client, and potentially

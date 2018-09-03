@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
 
@@ -101,14 +100,14 @@ func TestAuthorizeEndpoint(t *testing.T) {
 	assert.Equal(code, codedb.Code, "should match the code in the db")
 }
 
-func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest) *httptest.ResponseRecorder {
+func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest, bearer string) *httptest.ResponseRecorder {
 	router := httprouter.New()
 	router.POST("/token", e.Token)
 
 	form := querystring.Encode(r)
 
 	req := httptest.NewRequest("POST", "/token", strings.NewReader(form.Encode()))
-	req.Header.Set("Authorization", "Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW")
+	req.Header.Set("Authorization", "Basic "+bearer)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	rr := httptest.NewRecorder()
@@ -129,7 +128,10 @@ func TestTokenEndpoint(t *testing.T) {
 		ClientID:    defaultClientID,
 	}
 
-	rr := testTokenEndpoint(e, req)
+	var (
+		bearer = oidc.EncodeBasicAuth(defaultClientID, defaultClientSecret)
+	)
+	rr := testTokenEndpoint(e, req, bearer)
 
 	// Test response headers
 	var (
@@ -171,7 +173,7 @@ func TestTokenErrorResponse(t *testing.T) {
 	// Setup payload
 	req := &oidc.AccessTokenRequest{}
 
-	rr := testTokenEndpoint(e, req)
+	rr := testTokenEndpoint(e, req, "")
 
 	// Validate headers
 	var (
@@ -283,12 +285,13 @@ func TestUserInfoError(t *testing.T) {
 	assert.Equal(header, rr.Header().Get("WWW-Authenticate"), "should return WWW-Authenticate response header with error message")
 }
 
-func testClientRegistration(e *Endpoints, r *oidc.ClientRegistrationRequest) *httptest.ResponseRecorder {
+func testClientRegistration(e *Endpoints, r *oidc.ClientRegistrationRequest, bearer string) *httptest.ResponseRecorder {
 	router := httprouter.New()
 	router.POST("/connect/register", e.RegisterClient)
 
 	reqJSON, _ := json.Marshal(r)
 	req := httptest.NewRequest("POST", "/connect/register", bytes.NewBuffer(reqJSON))
+	req.Header.Add("Authorization", "Bearer "+bearer)
 	// TODO: Attach authorization header here
 
 	rr := httptest.NewRecorder()
@@ -310,7 +313,18 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 		ClientName: "oidc_app",
 	}
 
-	rr := testClientRegistration(e, req)
+	var (
+		aud = "audience"
+		sub = "subject"
+		iss = "go-openid"
+		dur = time.Minute
+		rc  = crypto.New("secret")
+	)
+
+	bearer, err := rc.NewJWT(aud, sub, iss, dur)
+	assert.Nil(err)
+
+	rr := testClientRegistration(e, req, bearer)
 
 	var (
 		statusCode = http.StatusCreated
@@ -373,7 +387,7 @@ func TestClientRegistrationError(t *testing.T) {
 		RedirectURIs: []string{"not_valid_url"},
 	}
 
-	rr := testClientRegistration(e, req)
+	rr := testClientRegistration(e, req, "")
 
 	var (
 		statusCode   = 400
@@ -402,12 +416,12 @@ func TestClientRegistrationError(t *testing.T) {
 	assert.Equal(desc, res.ErrorDescription, "should return the matching error description")
 }
 
-func testClientRead(e *Endpoints, id string) *httptest.ResponseRecorder {
+func testClientRead(e *Endpoints, id string, bearer string) *httptest.ResponseRecorder {
 	router := httprouter.New()
 	router.GET("/connect/register", e.Client)
 
 	req := httptest.NewRequest("GET", "/connect/register?client_id="+id, nil)
-	req.Header.Set("Authorization", "Bearer abc")
+	req.Header.Set("Authorization", "Bearer "+bearer)
 	rr := httptest.NewRecorder()
 
 	router.ServeHTTP(rr, req)
@@ -421,9 +435,19 @@ func TestClientRead(t *testing.T) {
 
 	e := defaultMockEndpoint()
 
-	cid := "s6BhdRkqt3"
+	var (
+		cid = "s6BhdRkqt3"
 
-	rr := testClientRead(e, cid)
+		aud = "audience"
+		sub = "subject"
+		iss = "go-openid"
+		dur = time.Minute
+		rc  = crypto.New("secret")
+	)
+
+	bearer, err := rc.NewJWT(aud, sub, iss, dur)
+	assert.Nil(err)
+	rr := testClientRead(e, cid, bearer)
 
 	// Response Headers
 	var (
@@ -446,7 +470,7 @@ func TestClientRead(t *testing.T) {
 	)
 
 	var client oidc.Client
-	err := json.NewDecoder(rr.Body).Decode(&client)
+	err = json.NewDecoder(rr.Body).Decode(&client)
 	assert.Nil(err)
 
 	assert.Equal(clientID, client.ClientPrivate.ClientID)
@@ -487,7 +511,7 @@ func TestClientReadError(t *testing.T) {
 
 	cid := "unknown_client_id"
 
-	rr := testClientRead(e, cid)
+	rr := testClientRead(e, cid, "")
 
 	var (
 		statusCode   = 401
@@ -686,7 +710,9 @@ func TestOpenIDConfigurationRequest(t *testing.T) {
 	//   }
 }
 
-type cry struct{}
+type cry struct {
+	*crypto.Impl
+}
 
 func (c *cry) Code() string {
 	return defaultXIDToken
@@ -696,16 +722,13 @@ func (c *cry) NewJWT(aud, sub, iss string, dur time.Duration) (string, error) {
 	return defaultJWTToken, nil
 }
 
-func (c *cry) ParseJWT(token string) (*jwt.Token, error) {
-	return nil, nil
-}
-
 func (c *cry) UUID() string {
 	return defaultUUID
 }
 
 func newMockCrypto() crypto.Crypto {
-	return &cry{}
+	c := crypto.New("secret")
+	return &cry{c}
 }
 
 func newMockService(db *Database) *ServiceImpl {
@@ -745,7 +768,8 @@ func newMockDatabase() *Database {
 			RedirectURIs: []string{defaultRedirectURI},
 		},
 		ClientPrivate: &oidc.ClientPrivate{
-			ClientID: defaultClientID,
+			ClientID:     defaultClientID,
+			ClientSecret: defaultClientSecret,
 		},
 	}
 

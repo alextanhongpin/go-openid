@@ -13,6 +13,17 @@ func EncodeBasicAuth(username, password string) string {
 func DecodeBasicAuth(data string) (username, password string) {
 	dec, _ := base64.URLEncoding.DecodeString(data)
 	cred := string(dec)
-	idx := strings.Index(cred, ":")
-	return cred[0:idx], cred[idx+1:]
+	if idx := strings.Index(cred, ":"); idx > 0 {
+		return cred[0:idx], cred[idx+1:]
+	}
+	return "", ""
+}
+
+func DecodeClientAuth(data string) (clientID, clientSecret string) {
+	dec, _ := base64.URLEncoding.DecodeString(data)
+	cred := string(dec)
+	if idx := strings.Index(cred, ":"); idx > 0 {
+		return cred[0:idx], cred[idx+1:]
+	}
+	return "", ""
 }

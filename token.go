@@ -1,6 +1,9 @@
 package oidc
 
-import "strings"
+import (
+	"errors"
+	"strings"
+)
 
 const (
 	Bearer = "Bearer"
@@ -39,4 +42,32 @@ type AccessTokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	IDToken      string `json:"id_token,omitempty"`
+}
+
+// RefreshTokenRequest represents the refresh token request.
+type RefreshTokenRequest struct {
+	ClientID     string `json:"client_id,omitempty"`
+	ClientSecret string `json:"client_secret,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	GrantType    string `json:"grant_type,omitempty"`
+	Scope        string `json:"scope,omitempty"`
+}
+
+// Validate checks for required fields.
+func (r *RefreshTokenRequest) Validate() error {
+	if r.GrantType != "refresh_token" {
+		return errors.New("invalid_grant_type")
+	}
+	if r.RefreshToken == "" {
+		return errors.New("invalid_request")
+	}
+	if r.Scope == "" {
+		// TODO: Handle validation for scope.
+	}
+	return nil
+}
+
+// RefreshTokenResponse returns the access token.
+type RefreshTokenResponse struct {
+	AccessToken string `json:"access_token,omitempty"`
 }

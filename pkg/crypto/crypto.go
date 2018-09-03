@@ -8,6 +8,8 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/rs/xid"
+
+	"github.com/alextanhongpin/go-openid"
 )
 
 // Crypto represents the encryption/decryption methods for OIDC
@@ -15,7 +17,7 @@ type Crypto interface {
 	Code() string
 	UUID() string
 	NewJWT(aud, sub, iss string, dur time.Duration) (string, error)
-	ParseJWT(token string) (*jwt.Token, error)
+	ParseJWT(token string) (*oidc.Claims, error)
 }
 
 type Impl struct {
@@ -48,13 +50,15 @@ func (c *Impl) NewJWT(aud, sub, iss string, dur time.Duration) (string, error) {
 	return token.SignedString(c.key)
 }
 
-func (c *Impl) ParseJWT(token string) (*jwt.Token, error) {
-	t, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+func (c *Impl) ParseJWT(token string) (*oidc.Claims, error) {
+	t, err := jwt.ParseWithClaims(token, &oidc.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return c.key, nil
 	})
 
 	if t.Valid {
-		return t, nil
+		if claims, ok := t.Claims.(*oidc.Claims); ok && t.Valid {
+			return claims, nil
+		}
 	} else if ve, ok := err.(*jwt.ValidationError); ok {
 		switch {
 		case ve.Errors&jwt.ValidationErrorMalformed != 0:

@@ -23,6 +23,8 @@ type Service interface {
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
 	Client(context.Context, string) (*oidc.Client, error)
 	UserInfo(context.Context, string) (*User, error)
+	ValidateClient(clientID, clientSecret string) error
+	ParseJWT(token string) (*oidc.Claims, error)
 	// RegisterUser
 	// Authenticate
 }
@@ -248,4 +250,46 @@ func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*User, error) {
 	}
 
 	return user, nil
+}
+
+func (s *ServiceImpl) RefreshToken(ctx context.Context, req *oidc.RefreshTokenRequest) (*oidc.RefreshTokenResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+	client := s.db.Client.GetByID(req.ClientID)
+	if client == nil {
+		return nil, oidc.UnauthorizedClient.JSON()
+	}
+
+	if client.ClientPrivate.ClientSecret != req.ClientSecret {
+		return nil, oidc.UnauthorizedClient.JSON()
+	}
+
+	var (
+		aud = client.ClientName
+		sub = client.ClientID
+		iss = defaultIssuer
+		dur = defaultDuration
+	)
+
+	accessToken, err := s.crypto.NewJWT(aud, sub, iss, dur)
+	if err != nil {
+		return nil, err
+	}
+
+	return &oidc.RefreshTokenResponse{
+		AccessToken: accessToken,
+	}, nil
+}
+
+func (s *ServiceImpl) ValidateClient(clientID, clientSecret string) error {
+	client := s.db.Client.GetByIDAndSecret(clientID, clientSecret)
+	if client == nil {
+		return oidc.UnauthorizedClient.JSON()
+	}
+	return nil
+}
+
+func (s *ServiceImpl) ParseJWT(token string) (*oidc.Claims, error) {
+	return s.crypto.ParseJWT(token)
 }

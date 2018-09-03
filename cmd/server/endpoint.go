@@ -17,6 +17,7 @@ type Endpoints struct {
 	service Service
 }
 
+// NewEndpoints returns a pointer to new endpoints.
 func NewEndpoints(s Service) *Endpoints {
 	return &Endpoints{
 		service: s,
@@ -56,6 +57,7 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
+// Token represents the token service.
 func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	r.ParseForm()
 
@@ -63,13 +65,24 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
+	auth := r.Header.Get("Authorization")
+	if len(auth) < 7 || auth[0:5] != "Basic" {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		return
+	}
+
+	clientID, clientSecret := oidc.DecodeClientAuth(auth[6:])
+	if err := e.service.ValidateClient(clientID, clientSecret); err != nil {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
 	var req oidc.AccessTokenRequest
 	if err := querystring.Decode(&req, r.Form); err != nil {
-		errRes := oidc.ErrorJSON{
-			Code: err.Error(),
-		}
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(errRes)
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
 		return
 	}
 
@@ -80,9 +93,7 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 		return
 	}
 
-	// TODO: What status type to return here?
 	w.WriteHeader(http.StatusOK)
-
 	json.NewEncoder(w).Encode(res)
 }
 
@@ -92,24 +103,31 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
+	auth := r.Header.Get("Authorization")
+	if len(auth) < 8 || auth[0:6] != "Bearer" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		return
+	}
+
+	_, err := e.service.ParseJWT(auth[7:])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(err)
+		return
+	}
 	// Check for authorization headers to see if the client can register
 	var req oidc.ClientRegistrationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&oidc.ClientErrorResponse{
-			Error:            err.Error(),
-			ErrorDescription: "",
-		})
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
 		return
 	}
 
 	res, err := e.service.RegisterClient(r.Context(), &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(&oidc.ClientErrorResponse{
-			Error:            err.Error(),
-			ErrorDescription: "",
-		})
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
 		return
 	}
 
