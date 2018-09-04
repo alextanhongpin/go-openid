@@ -9,6 +9,7 @@ import (
 
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
+
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -26,9 +27,6 @@ func NewEndpoints(s Service) *Endpoints {
 
 // Authorize performs the authorization logic.
 func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	// Check if authorization header exists, and is valid
-	// Can be extracted as a middleware
-
 	// Construct request parameters
 	var req oidc.AuthorizationRequest
 	if err := querystring.Decode(&req, r.URL.Query()); err != nil {
@@ -144,6 +142,21 @@ func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.
 	w.Header().Set("Pragma", "no-cache")
 
 	// TODO: Check authorization header to ensure the client has the right credentials.
+	auth := r.Header.Get("Authorization")
+	if len(auth) < 8 || auth[0:6] != "Bearer" {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		return
+	}
+
+	// TODO: Check the user status from cache.
+	_, err := e.service.ParseJWT(auth[7:])
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(err)
+		return
+	}
+
 	id := r.URL.Query().Get("client_id")
 	client, err := e.service.Client(r.Context(), id)
 	if err != nil {
@@ -161,6 +174,9 @@ func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.
 }
 
 // .well-known/webfinger
+func (e *Endpoints) Webfinger()     {}
+func (e *Endpoints) Configuration() {}
+
 // .well-known/openid-configuration
 func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
 
