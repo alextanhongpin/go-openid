@@ -9,6 +9,7 @@ import (
 // ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
 
+// ClientErrorCode represents the error code returned by client.
 type ClientErrorCode int
 
 const (
@@ -21,14 +22,21 @@ var clientErrorDescriptions = map[ClientErrorCode]string{
 	InvalidClientMetadata: "the value of one of the client metadata fields is invalid and the server has rejected this request",
 }
 
+// String fulfills the Stringer method.
 func (c ClientErrorCode) String() string {
 	return [...]string{"invalid_redirect_uri", "invalid_client_metadata"}[c]
 }
 
+// Description returns the general client error description.
+func (c ClientErrorCode) Description() string {
+	return clientErrorDescriptions[c]
+}
+
+// JSON returns the error json.
 func (c ClientErrorCode) JSON() *ErrorJSON {
 	return &ErrorJSON{
 		Code:        c.String(),
-		Description: clientErrorDescriptions[c],
+		Description: c.Description(),
 		URI:         "",
 		State:       "",
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+
 // Authentication Error Response
 var (
 	ErrInteractionRequired      = errors.New("interaction required")

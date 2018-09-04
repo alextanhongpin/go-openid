@@ -7,6 +7,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
+// Claims represents the OpenIDConnect claims.
 type Claims struct {
 	*jwt.StandardClaims
 	UserID string `json:"user_id,omitempty"`
@@ -48,6 +49,7 @@ func (i *IDToken) Validate() error {
 	return nil
 }
 
+// Display represents the authentication display options.
 type Display int
 
 const (
@@ -57,6 +59,7 @@ const (
 	Wap
 )
 
+// String fulfils the Stringer interface for Display.
 func (d Display) String() string {
 	return [...]string{"page", "popup", "touch", "wap"}[d]
 }
@@ -173,15 +176,23 @@ const (
 	EmailScope
 	AddrScope
 	PhoneScope
+	OpenIDScope
 )
 
+var scopes =  [...]string{"profile", "email", "address", "phone", "openid"}
 func (s Scope) String() string {
-	return [...]string{"profile", "email", "address", "phone"}[s]
+	return scopes[s] 
 }
 
-type RefreshRequest struct {
+func (s Scope) Contains (scope string) bool {
+	for _, ss := range scopes {
+		if ss == scope {
+			return true
+		}
+	} 
+	return false
 }
-type RefreshResponse struct{}
+
 
 // func makeAccessTokenRequest () {
 // 	t := &http.Transport{

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
+
 	"github.com/stretchr/testify/assert"
 )
 

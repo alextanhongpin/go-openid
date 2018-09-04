@@ -95,6 +95,7 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	json.NewEncoder(w).Encode(res)
 }
 
+// RegisterClient represents the endpoint for client registration.
 func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	w.Header().Set("Content-Type", "application/json")

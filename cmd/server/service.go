@@ -252,10 +252,12 @@ func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*User, error) {
 	return user, nil
 }
 
+// RefreshToken represents the refresh token flow.
 func (s *ServiceImpl) RefreshToken(ctx context.Context, req *oidc.RefreshTokenRequest) (*oidc.RefreshTokenResponse, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
+
 	client := s.db.Client.GetByID(req.ClientID)
 	if client == nil {
 		return nil, oidc.UnauthorizedClient.JSON()
@@ -279,9 +281,12 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, req *oidc.RefreshTokenRe
 
 	return &oidc.RefreshTokenResponse{
 		AccessToken: accessToken,
+		// TODO: Return the expire time and also ID token.
 	}, nil
 }
 
+// ValidateClient attempts to validate the provided client id and client secret
+// by checking the database.
 func (s *ServiceImpl) ValidateClient(clientID, clientSecret string) error {
 	client := s.db.Client.GetByIDAndSecret(clientID, clientSecret)
 	if client == nil {
@@ -290,6 +295,7 @@ func (s *ServiceImpl) ValidateClient(clientID, clientSecret string) error {
 	return nil
 }
 
+// ParseJWT takes a jwt token and return the decoded claims.
 func (s *ServiceImpl) ParseJWT(token string) (*oidc.Claims, error) {
 	return s.crypto.ParseJWT(token)
 }

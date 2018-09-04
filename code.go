@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// CodeTTL represents the time-to-live for the code.
-const CodeTTL = 10 * time.Minute
+// TTL represents the time-to-live for the code.
+const TTL = 10 * time.Minute
 
 // Code represents the authorization code.
 type Code struct {
@@ -19,7 +19,7 @@ func NewCode(code string) *Code {
 	return &Code{
 		Code:      code,
 		CreatedAt: time.Now(),
-		TTL:       CodeTTL,
+		TTL:       TTL,
 	}
 }
 

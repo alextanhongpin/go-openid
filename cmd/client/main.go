@@ -32,11 +32,11 @@ type clientService struct {
 func (c *clientService) Get(id string) (*Client, error) {
 	c.RLock()
 	defer c.RUnlock()
-	if c, ok := c.db[id]; !ok {
+	client, ok := c.db[id]
+	if !ok {
 		return nil, ErrForbidden
-	} else {
-		return &c, nil
 	}
+	return &client, nil
 }
 
 func (c *clientService) Register(req Client) error {
@@ -81,7 +81,10 @@ func main() {
 	log.Fatal(srv.ListenAndServe())
 }
 
+// Endpoint represent the endpoint available.
 type Endpoint = http.HandlerFunc
+
+// Endpoints represents a list of endpoints.
 type Endpoints struct {
 	GetClient          Endpoint
 	PostClientRegister Endpoint

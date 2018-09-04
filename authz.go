@@ -2,6 +2,7 @@ package oidc
 
 import "strings"
 
+// ErrorCode represents the ErrorCode.
 type ErrorCode int
 
 const (
@@ -14,7 +15,7 @@ const (
 	TemporarilyUnavailable
 )
 
-var codeErrors = map[ErrorCode]string{
+var errorCodeDescriptions = map[ErrorCode]string{
 	InvalidRequest:          "the request is missing a required parameter, includes an invalid parameter value more than once, or is otherwise malformed",
 	UnauthorizedClient:      "the client is not authorized to request an authorization code using this method",
 	AccessDenied:            "the resource owner or authorization server denied the request",
@@ -24,6 +25,7 @@ var codeErrors = map[ErrorCode]string{
 	TemporarilyUnavailable:  "the authorization server is unable to handle the request due to a temporary overloading or maintenance of the server",
 }
 
+// String fulfills the stringer method.
 func (e ErrorCode) String() string {
 	return [...]string{
 		"invalid_request",
@@ -36,10 +38,16 @@ func (e ErrorCode) String() string {
 	}[e]
 }
 
+// Description return the general description based on the error code.
+func (e ErrorCode) Description() string {
+	return errorCodeDescriptions[e]
+}
+
+// JSON returns the error as json struct.
 func (e ErrorCode) JSON() *ErrorJSON {
 	return &ErrorJSON{
 		Code:        e.String(),
-		Description: codeErrors[e],
+		Description: e.Description(),
 		URI:         "",
 		State:       "",
 	}

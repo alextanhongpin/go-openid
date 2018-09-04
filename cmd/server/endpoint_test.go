@@ -292,7 +292,6 @@ func testClientRegistration(e *Endpoints, r *oidc.ClientRegistrationRequest, bea
 	reqJSON, _ := json.Marshal(r)
 	req := httptest.NewRequest("POST", "/connect/register", bytes.NewBuffer(reqJSON))
 	req.Header.Add("Authorization", "Bearer "+bearer)
-	// TODO: Attach authorization header here
 
 	rr := httptest.NewRecorder()
 
@@ -310,7 +309,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 
 	// Setup payload
 	req := &oidc.ClientPublic{
-		ClientName: "oidc_app",
+		ClientName: defaultClientName, 
 	}
 
 	var (
