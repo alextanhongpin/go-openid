@@ -17,16 +17,16 @@ type Claims struct {
 // an End-User by and Authorization Server when using Client, and potentially
 // other requested Claims.
 type IDToken struct {
-	Issuer          string   `json:"iss"`
-	Subject         string   `json:"sub"`
-	Audience        string   `json:"aud"`
-	ExpiresIn       int64    `json:"exp"`
-	IssuedAt        int64    `json:"iat"`
-	AuthTime        int64    `json:"auth_time"`
-	Nonce           string   `json:"nonce"`
-	AuthCtxClassRef string   `json:"acr"`
-	AuthMethodRefs  []string `json:"amr"`
-	AuthorizedParty string   `json:"azp"`
+	Audience        string   `json:"aud,omitempty"`
+	AuthCtxClassRef string   `json:"acr,omitempty"`
+	AuthMethodRefs  []string `json:"amr,omitempty"`
+	AuthTime        int64    `json:"auth_time,omitempty"`
+	AuthorizedParty string   `json:"azp,omitempty"`
+	ExpiresIn       int64    `json:"exp,omitempty"`
+	IssuedAt        int64    `json:"iat,omitempty"`
+	Issuer          string   `json:"iss,omitempty"`
+	Nonce           string   `json:"nonce,omitempty"`
+	Subject         string   `json:"sub,omitempty"`
 }
 
 // Validate performs validation on required fields.
@@ -79,20 +79,20 @@ func (p Prompt) String() string {
 
 // AuthenticationRequest is an OAuth 2.0 Authorization Request that requests that the End User be authenticated by the Authorization Server.
 type AuthenticationRequest struct {
-	Scope        string
-	ResponseType string
+	AcrValues    string
 	ClientID     string
-	RedirectURI  string
-	State        string
-	ResponseMode string
-	Nonce        string
 	Display      Display
-	Prompt       Prompt
-	MaxAge       int64
-	UILocales    string
 	IDTokenHint  string
 	LoginHint    string
-	AcrValues    string
+	MaxAge       int64
+	Nonce        string
+	Prompt       Prompt
+	RedirectURI  string
+	ResponseMode string
+	ResponseType string
+	Scope        string
+	State        string
+	UILocales    string
 }
 
 func (a *AuthenticationRequest) Validate() error {
@@ -109,10 +109,10 @@ func (a *AuthenticationRequest) Validate() error {
 // AuthenticationResponse is an OAuth 2.0 Authorization Response message returned from the OP's Authorization Endpoint in response to the Authorization Request message sent by the RP.
 type AuthenticationResponse struct {
 	AccessToken string
-	TokenType   string
+	ExpiresIn   int64
 	IDToken     IDToken
 	State       string
-	ExpiresIn   int64
+	TokenType   string
 }
 
 // ErrorResponse represents the error response parameters
@@ -123,12 +123,12 @@ type ErrorResponse struct {
 	State            string `json:"state"`
 }
 type Address struct {
-	Formatted     string
-	StreetAddress string
-	Locality      string
-	Region        string
-	PostalCode    string
 	Country       string
+	Formatted     string
+	Locality      string
+	PostalCode    string
+	Region        string
+	StreetAddress string
 }
 
 type Email struct {
@@ -142,28 +142,28 @@ type Phone struct {
 }
 
 type Profile struct {
-	Sub               string
-	Name              string
-	GivenName         string
+	Birthdate         string
 	FamilyName        string
+	Gender            string
+	GivenName         string
+	Locale            string
 	MiddleName        string
+	Name              string
 	Nickname          string
+	Picture           string
 	PreferredUsername string
 	Profile           string
-	Picture           string
-	Website           string
-	Gender            string
-	Birthdate         string
-	ZoneInfo          string
-	Locale            string
+	Sub               string
 	UpdatedAt         int64
+	Website           string
+	ZoneInfo          string
 }
 
 type StandardClaims struct {
-	Profile *Profile
-	Email   *Email
 	Address *Address
+	Email   *Email
 	Phone   *Phone
+	Profile *Profile
 }
 
 type UserInfoRequest struct{}
@@ -179,20 +179,20 @@ const (
 	OpenIDScope
 )
 
-var scopes =  [...]string{"profile", "email", "address", "phone", "openid"}
+var scopes = [...]string{"profile", "email", "address", "phone", "openid"}
+
 func (s Scope) String() string {
-	return scopes[s] 
+	return scopes[s]
 }
 
-func (s Scope) Contains (scope string) bool {
+func (s Scope) Contains(scope string) bool {
 	for _, ss := range scopes {
 		if ss == scope {
 			return true
 		}
-	} 
+	}
 	return false
 }
-
 
 // func makeAccessTokenRequest () {
 // 	t := &http.Transport{

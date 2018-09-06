@@ -13,9 +13,9 @@ import (
 func TestEncodeAuthorizationRequest(t *testing.T) {
 	assert := assert.New(t)
 	req := &AuthorizationRequest{
-		ResponseType: "code",
 		ClientID:     "abc",
 		RedirectURI:  "http://client.example.com/cb",
+		ResponseType: "code",
 		Scope:        "email",
 		State:        "xyz",
 	}
@@ -33,9 +33,9 @@ func TestDecodeAuthorizationRequest(t *testing.T) {
 	assert.Nil(err)
 
 	var (
-		responseType = "code"
 		clientID     = "abc"
 		redirectURI  = "http://client.example.com/cb"
+		responseType = "code"
 		scope        = "email"
 		state        = "xyz"
 	)
@@ -92,8 +92,8 @@ func TestAuthorizationErrorFlow(t *testing.T) {
 	assert := assert.New(t)
 
 	var (
-		statusCode  = http.StatusFound
 		redirectURI = "https://client.example.com/cb?error=access_denied&state=xyz"
+		statusCode  = http.StatusFound
 	)
 
 	handler := func(w http.ResponseWriter, r *http.Request) {

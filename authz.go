@@ -6,36 +6,37 @@ import "strings"
 type ErrorCode int
 
 const (
-	InvalidRequest ErrorCode = iota
-	UnauthorizedClient
-	AccessDenied
-	UnsupportedResponseType
+	AccessDenied ErrorCode = iota
+	InvalidRequest
 	InvalidScope
 	ServerError
 	TemporarilyUnavailable
+	UnauthorizedClient
+	UnsupportedResponseType
 )
 
 var errorCodeDescriptions = map[ErrorCode]string{
-	InvalidRequest:          "the request is missing a required parameter, includes an invalid parameter value more than once, or is otherwise malformed",
-	UnauthorizedClient:      "the client is not authorized to request an authorization code using this method",
 	AccessDenied:            "the resource owner or authorization server denied the request",
-	UnsupportedResponseType: "the authorization server does not support obtaining an authorization code using this method",
+	InvalidRequest:          "the request is missing a required parameter, includes an invalid parameter value more than once, or is otherwise malformed",
 	InvalidScope:            "the requested scope is invalid, unknown or malformed",
 	ServerError:             "the authorization server encoutered an unexpected condition that prevented it from fulfilling the request",
 	TemporarilyUnavailable:  "the authorization server is unable to handle the request due to a temporary overloading or maintenance of the server",
+	UnauthorizedClient:      "the client is not authorized to request an authorization code using this method",
+	UnsupportedResponseType: "the authorization server does not support obtaining an authorization code using this method",
+}
+
+var errorCodes = map[ErrorCode]string{
+	AccessDenied:           "access_denied",
+	InvalidRequest:         "invalid_request",
+	InvalidScope:           "invalid_scope",
+	ServerError:            "server_error",
+	TemporarilyUnavailable: "temporarily_unavailable",
+	UnauthorizedClient:     "unauthorized_client",
 }
 
 // String fulfills the stringer method.
 func (e ErrorCode) String() string {
-	return [...]string{
-		"invalid_request",
-		"unauthorized_client",
-		"access_denied",
-		"unsupported_response_type",
-		"invalid_scope",
-		"server_error",
-		"temporarily_unavailable",
-	}[e]
+	return errorCodes[e]
 }
 
 // Description return the general description based on the error code.
@@ -55,9 +56,9 @@ func (e ErrorCode) JSON() *ErrorJSON {
 
 // AuthorizationRequest represents the request payload for authorization.
 type AuthorizationRequest struct {
-	ResponseType string `json:"response_type,omitempty"`
 	ClientID     string `json:"client_id,omitempty"`
 	RedirectURI  string `json:"redirect_uri,omitempty"`
+	ResponseType string `json:"response_type,omitempty"`
 	Scope        string `json:"scope,omitempty"`
 	State        string `json:"state,omitempty"`
 }

@@ -5,37 +5,36 @@ import (
 	"fmt"
 )
 
-
 // Authentication Error Response
 var (
-	ErrInteractionRequired      = errors.New("interaction required")
-	ErrLoginRequired            = errors.New("login required")
 	ErrAccountSelectionRequired = errors.New("account selection required")
 	ErrConsentRequired          = errors.New("consent required")
-	ErrInvalidRequestURI        = errors.New("invalid request uri")
+	ErrInteractionRequired      = errors.New("interaction required")
 	ErrInvalidRequestObject     = errors.New("invalid request object")
+	ErrInvalidRequestURI        = errors.New("invalid request uri")
+	ErrLoginRequired            = errors.New("login required")
+	ErrRegistrationNotSupported = errors.New("registration not supported")
 	ErrRequestNotSupported      = errors.New("request not supported")
 	ErrRequestURINotSupported   = errors.New("request uri not supported")
-	ErrRegistrationNotSupported = errors.New("registration not supported")
 )
 
 // Authorization errors
 var (
-	ErrInvalidRequest          = errors.New("invalid request")
-	ErrUnauthorizedClient      = errors.New("unauthorized client")
 	ErrAccessDenied            = errors.New("access denied")
-	ErrUnsupportedResponseType = errors.New("unsupported response type")
+	ErrInvalidRequest          = errors.New("invalid request")
 	ErrInvalidScope            = errors.New("invalid scope")
 	ErrServerError             = errors.New("server error")
 	ErrTemporarilyUnavailable  = errors.New("temporarily unavailable")
+	ErrUnauthorizedClient      = errors.New("unauthorized client")
+	ErrUnsupportedResponseType = errors.New("unsupported response type")
 )
 
 // ErrorJSON represents the json error.
 type ErrorJSON struct {
 	Code        string `json:"error,omitempty"`
 	Description string `json:"error_description,omitempty"`
-	URI         string `json:"error_uri,omitempty"`
 	State       string `json:"state,omitempty"`
+	URI         string `json:"error_uri,omitempty"`
 }
 
 func (e *ErrorJSON) Error() string {

@@ -13,8 +13,8 @@ const ClientRegistrationEndpoint = "/connect/register"
 type ClientErrorCode int
 
 const (
-	InvalidRedirectURI ClientErrorCode = iota
-	InvalidClientMetadata
+	InvalidClientMetadata ClientErrorCode = iota
+	InvalidRedirectURI
 )
 
 var clientErrorDescriptions = map[ClientErrorCode]string{
@@ -22,9 +22,14 @@ var clientErrorDescriptions = map[ClientErrorCode]string{
 	InvalidClientMetadata: "the value of one of the client metadata fields is invalid and the server has rejected this request",
 }
 
+var clientErrorCodes = map[ClientErrorCode]string{
+	InvalidClientMetadata: "invalid_client_metadata",
+	InvalidRedirectURI:    "invalid_redirect_uri",
+}
+
 // String fulfills the Stringer method.
 func (c ClientErrorCode) String() string {
-	return [...]string{"invalid_redirect_uri", "invalid_client_metadata"}[c]
+	return clientErrorCodes[c]
 }
 
 // Description returns the general client error description.
