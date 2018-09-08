@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+
+	"github.com/alextanhongpin/go-openid/internal/database"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
 func main() {
@@ -19,9 +22,16 @@ func main() {
 
 	idle := make(chan struct{})
 
-	db := NewDatabase()
-	svc := NewService(db, nil)
-	e := NewEndpoints(svc)
+	var e *Endpoints
+	{
+		// Factory setup
+		db := database.NewInMem()
+		c := crypto.New(defaultJWTSigningKey)
+
+		svc := NewService(db, c)
+
+		e = NewEndpoints(svc)
+	}
 
 	r := httprouter.New()
 

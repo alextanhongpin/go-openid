@@ -1,6 +1,10 @@
 package oidc
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/asaskevich/govalidator"
+)
 
 // ErrorCode represents the ErrorCode.
 type ErrorCode int
@@ -26,12 +30,13 @@ var errorCodeDescriptions = map[ErrorCode]string{
 }
 
 var errorCodes = map[ErrorCode]string{
-	AccessDenied:           "access_denied",
-	InvalidRequest:         "invalid_request",
-	InvalidScope:           "invalid_scope",
-	ServerError:            "server_error",
-	TemporarilyUnavailable: "temporarily_unavailable",
-	UnauthorizedClient:     "unauthorized_client",
+	AccessDenied:            "access_denied",
+	InvalidRequest:          "invalid_request",
+	InvalidScope:            "invalid_scope",
+	ServerError:             "server_error",
+	TemporarilyUnavailable:  "temporarily_unavailable",
+	UnauthorizedClient:      "unauthorized_client",
+	UnsupportedResponseType: "unsupported_response_type",
 }
 
 // String fulfills the stringer method.
@@ -74,7 +79,10 @@ func (r *AuthorizationRequest) Validate() error {
 	}
 	// Optional fields
 	if strings.TrimSpace(r.RedirectURI) == "" {
-		return InvalidRequest.JSON()
+		return InvalidRedirectURI.JSON()
+	}
+	if !govalidator.IsURL(r.RedirectURI) {
+		return InvalidRedirectURI.JSON()
 	}
 	if strings.TrimSpace(r.Scope) == "" {
 		return InvalidScope.JSON()

@@ -9,6 +9,7 @@ import (
 
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
+	"github.com/asaskevich/govalidator"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -31,6 +32,11 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 	var req oidc.AuthorizationRequest
 	if err := querystring.Decode(&req, r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
+	if !govalidator.IsURL(req.RedirectURI) {
+		http.Error(w, oidc.InvalidRedirectURI.String(), http.StatusForbidden)
 		return
 	}
 

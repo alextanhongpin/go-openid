@@ -1,10 +1,17 @@
 package database
 
-// ClientRepository represents the interface for the client repository.
-type ClientRepository interface {
-	Get(name string) (*oidc.Client, bool)
-	GetByID(id string) *oidc.Client
-	GetByIDAndSecret(id, secret string) *oidc.Client
-	Put(id string, client *oidc.Client)
-	Delete(name string)
+// InMemImpl represents the data storage access layer.
+type Database struct {
+	Client ClientRepo
+	Code   CodeRepo
+	User   UserRepo
+}
+
+// NewInMem returns an in-memory database.
+func NewInMem() *Database {
+	return &Database{
+		Client: NewClientKV(),
+		Code:   NewCodeKV(),
+		User:   NewUserKV(),
+	}
 }

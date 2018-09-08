@@ -7,13 +7,8 @@ import (
 	"time"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
-)
-
-var (
-	defaultIssuer        = "go-openid"
-	defaultJWTSigningKey = "secret"
-	defaultDuration      = time.Hour
 )
 
 // Service represents the interface for the services available for OpenID Connect Protocol.
@@ -22,7 +17,7 @@ type Service interface {
 	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 	RegisterClient(context.Context, *oidc.ClientRegistrationRequest) (*oidc.ClientRegistrationResponse, error)
 	Client(context.Context, string) (*oidc.Client, error)
-	UserInfo(context.Context, string) (*User, error)
+	UserInfo(context.Context, string) (*oidc.StandardClaims, error)
 	ValidateClient(clientID, clientSecret string) error
 	ParseJWT(token string) (*oidc.Claims, error)
 	// RegisterUser
@@ -32,13 +27,13 @@ type Service interface {
 // ServiceImpl fulfils the OIDService interface.
 type ServiceImpl struct {
 	crypto crypto.Crypto
-	db     *Database
+	db     *database.Database
 }
 
 // NewService returns a pointer to a new service.
-func NewService(db *Database, c crypto.Crypto) *ServiceImpl {
+func NewService(db *database.Database, c crypto.Crypto) *ServiceImpl {
 	if db == nil {
-		db = NewDatabase()
+		db = database.NewInMem()
 	}
 	if c == nil {
 		c = crypto.New(defaultJWTSigningKey)
@@ -243,7 +238,7 @@ func (s *ServiceImpl) Client(ctx context.Context, id string) (*oidc.Client, erro
 }
 
 // UserInfo returns the user info from the given id.
-func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*User, error) {
+func (s *ServiceImpl) UserInfo(ctx context.Context, id string) (*oidc.StandardClaims, error) {
 	user, exist := s.db.User.Get(id)
 	if !exist || user == nil {
 		return nil, oidc.AccessDenied.JSON()
