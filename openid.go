@@ -79,20 +79,20 @@ func (p Prompt) String() string {
 
 // AuthenticationRequest is an OAuth 2.0 Authorization Request that requests that the End User be authenticated by the Authorization Server.
 type AuthenticationRequest struct {
-	AcrValues    string
-	ClientID     string
-	Display      Display
-	IDTokenHint  string
-	LoginHint    string
-	MaxAge       int64
-	Nonce        string
-	Prompt       Prompt
-	RedirectURI  string
-	ResponseMode string
-	ResponseType string
-	Scope        string
-	State        string
-	UILocales    string
+	AcrValues    string  `json:"acr_values,omitempty"`
+	ClientID     string  `json:"client_id,omitempty"`
+	Display      Display `json:"display,omitempty"`
+	IDTokenHint  string  `json:"id_token_hint,omitempty"`
+	LoginHint    string  `json:"login_hint,omitempty"`
+	MaxAge       int64   `json:"max_age,omitempty"`
+	Nonce        string  `json:"nonce,omitempty"`
+	Prompt       Prompt  `json:"prompt,omitempty"`
+	RedirectURI  string  `json:"redirect_uri,omitempty"`
+	ResponseMode string  `json:"response_mode,omitempty"`
+	ResponseType string  `json:"response_type,omitempty"`
+	Scope        string  `json:"scope,omitempty"`
+	State        string  `json:"state,omitempty"`
+	UILocales    string  `json:"ui_locales,omitempty"`
 }
 
 func (a *AuthenticationRequest) Validate() error {
@@ -108,27 +108,27 @@ func (a *AuthenticationRequest) Validate() error {
 
 // AuthenticationResponse is an OAuth 2.0 Authorization Response message returned from the OP's Authorization Endpoint in response to the Authorization Request message sent by the RP.
 type AuthenticationResponse struct {
-	AccessToken string
-	ExpiresIn   int64
-	IDToken     IDToken
-	State       string
-	TokenType   string
+	AccessToken string  `json:"access_token,omitempty"`
+	ExpiresIn   int64   `json:"expires_in,omitempty"`
+	IDToken     IDToken `json:"id_token,omitempty"`
+	State       string  `json:"state,omitempty"`
+	TokenType   string  `json:"token_type,omitempty"`
 }
 
 // ErrorResponse represents the error response parameters
 type ErrorResponse struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-	ErrorURI         string `json:"error_uri"`
-	State            string `json:"state"`
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
+	ErrorURI         string `json:"error_uri,omitempty"`
+	State            string `json:"state,omitempty"`
 }
 type Address struct {
-	Country       string
-	Formatted     string
-	Locality      string
-	PostalCode    string
-	Region        string
-	StreetAddress string
+	Country       string `json:"country,omitempty"`
+	Formatted     string `json:"formatted,omitempty"`
+	Locality      string `json:"locality,omitempty"`
+	PostalCode    string `json:"postal_code,omitempty"`
+	Region        string `json:"region,omitempty"`
+	StreetAddress string `json:"street_address,omitempty"`
 }
 
 type Email struct {
@@ -142,21 +142,21 @@ type Phone struct {
 }
 
 type Profile struct {
-	Birthdate         string
-	FamilyName        string
-	Gender            string
-	GivenName         string
-	Locale            string
-	MiddleName        string
-	Name              string
-	Nickname          string
-	Picture           string
-	PreferredUsername string
-	Profile           string
-	Sub               string
-	UpdatedAt         int64
-	Website           string
-	ZoneInfo          string
+	Birthdate         string `json:"birth_date,omitempty"`
+	FamilyName        string `json:"family_name,omitempty"`
+	Gender            string `json:"gender,omitempty"`
+	GivenName         string `json:"given_name,omitempty"`
+	Locale            string `json:"locale,omitempty"`
+	MiddleName        string `json:"middle_name,omitempty"`
+	Name              string `json:"name,omitempty"`
+	Nickname          string `json:"nickname,omitempty"`
+	Picture           string `json:"picture,omitempty"`
+	PreferredUsername string `json:"preferred_username,omitempty"`
+	Profile           string `json:"profile,omitempty"`
+	Sub               string `json:"sub,omitempty"`
+	UpdatedAt         int64  `json:"updated_at,omitempty"`
+	Website           string `json:"website,omitempty"`
+	ZoneInfo          string `json:"zone_info,omitempty"`
 }
 
 type StandardClaims struct {

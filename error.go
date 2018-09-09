@@ -37,10 +37,12 @@ type ErrorJSON struct {
 	URI         string `json:"error_uri,omitempty"`
 }
 
+// Error fulfils the error interface methods.
 func (e *ErrorJSON) Error() string {
 	return fmt.Sprintf("%s: %s", e.Code, e.Description)
 }
 
+// SetState set the state of the error.
 func (e *ErrorJSON) SetState(s string) {
 	e.State = s
 }

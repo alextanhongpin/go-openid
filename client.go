@@ -18,8 +18,8 @@ const (
 )
 
 var clientErrorDescriptions = map[ClientErrorCode]string{
-	InvalidRedirectURI:    "the value of one or more redirect uris is invalid",
 	InvalidClientMetadata: "the value of one of the client metadata fields is invalid and the server has rejected this request",
+	InvalidRedirectURI:    "the value of one or more redirect uris is invalid",
 }
 
 var clientErrorCodes = map[ClientErrorCode]string{
@@ -42,15 +42,15 @@ func (c ClientErrorCode) JSON() *ErrorJSON {
 	return &ErrorJSON{
 		Code:        c.String(),
 		Description: c.Description(),
-		URI:         "",
 		State:       "",
+		URI:         "",
 	}
 }
 
 // Client represents both private and public metadata of the client.
 type Client struct {
-	*ClientPublic
 	*ClientPrivate
+	*ClientPublic
 }
 
 // NewClient returns a client metadata given the public client metadata
@@ -59,11 +59,11 @@ func NewClient(req *ClientRegistrationRequest) *Client {
 		ClientPublic: req,
 		ClientPrivate: &ClientRegistrationResponse{
 			ClientID:                "fake client id",
+			ClientIDIssuedAt:        0,
 			ClientSecret:            "fake client secret",
+			ClientSecretExpiresAt:   0,
 			RegistrationAccessToken: "",
 			RegistrationClientURI:   "",
-			ClientIDIssuedAt:        0,
-			ClientSecretExpiresAt:   0,
 		},
 	}
 }
@@ -86,36 +86,36 @@ type ClientRegistrationRequest = ClientPublic
 
 // ClientPublic represents fields that are public
 type ClientPublic struct {
-	RedirectURIs                 RedirectURIs `json:"redirect_uris,omitempty"`
-	ResponseTypes                []string     `json:"response_types,omitempty"`
-	GrantTypes                   []string     `json:"grant_types,omitempty"`
 	ApplicationType              string       `json:"application_type,omitempty"`
-	Contacts                     []string     `json:"contacts,omitempty"`
 	ClientName                   string       `json:"client_name,omitempty"`
-	LogoURI                      string       `json:"logo_uri,omitempty"`
 	ClientURI                    string       `json:"client_uri,omitempty"`
-	PolicyURI                    string       `json:"policy_uri,omitempty"`
-	TosURI                       string       `json:"tos_uri,omitempty"`
-	JwksURI                      string       `json:"jwks_uri,omitempty"`
+	Contacts                     []string     `json:"contacts,omitempty"`
+	DefaultAcrValues             string       `json:"default_acr_values,omitempty"`
+	DefaultMaxAge                int64        `json:"default_maxa_age,omitempty"`
+	GrantTypes                   []string     `json:"grant_types,omitempty"`
+	IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg,omitempty"`
+	IDTokenEncryptedResponseEnc  string       `json:"id_token_encryption_response_enc,omitempty"`
+	IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg,omitempty"`
+	InitiateLoginURI             string       `json:"initiate_login_uri,omitempty"`
 	Jwks                         string       `json:"jwks,omitempty"`
+	JwksURI                      string       `json:"jwks_uri,omitempty"`
+	LogoURI                      string       `json:"logo_uri,omitempty"`
+	PolicyURI                    string       `json:"policy_uri,omitempty"`
+	RedirectURIs                 RedirectURIs `json:"redirect_uris,omitempty"`
+	RequestObjectEncryptionAlg   string       `json:"request_object_encryption_alg,omitempty"`
+	RequestObjectEncryptionEnc   string       `json:"request_object_encryption_enc,omitempty"`
+	RequestObjectSigningAlg      string       `json:"request_object_signing_alg,omitempty"`
+	RequestURIs                  []string     `json:"request_uris,omitempty"`
+	RequireAuthTime              int64        `json:"require_auth_time,omitempty"`
+	ResponseTypes                []string     `json:"response_types,omitempty"`
 	SectorIdentifierURI          string       `json:"sector_identifier_uri,omitempty"`
 	SubjectType                  string       `json:"subject_type,omitempty"`
-	IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg,omitempty"`
-	IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg,omitempty"`
-	IDTokenEncryptedResponseEnc  string
-	UserinfoSignedResponseAlg    string
-	UserinfoEncryptedResponseAlg string
-	UserinfoEncryptedResponseEnc string
-	RequestObjectSigningAlg      string
-	RequestObjectEncryptionAlg   string
-	RequestObjectEncryptionEnc   string
-	TokenEndpointAuthMethod      string
-	TokenEndpointAuthSigningAlg  string
-	DefaultMaxAge                int64
-	RequireAuthTime              int64
-	DefaultAcrValues             string
-	InitiateLoginURI             string
-	RequestURIs                  []string
+	TokenEndpointAuthMethod      string       `json:"token_endpoint_auth_method,omitempty"`
+	TokenEndpointAuthSigningAlg  string       `json:"token_endpoint_auth_signing_alg,omitempty"`
+	TosURI                       string       `json:"tos_uri,omitempty"`
+	UserinfoEncryptedResponseAlg string       `json:"userinfo_encrypted_response_alg,omitempty"`
+	UserinfoEncryptedResponseEnc string       `json:"userinfo_encrypted_response_enc,omitempty"`
+	UserinfoSignedResponseAlg    string       `json:"userinfo_signed_response_alg,omitempty"`
 }
 
 // Validate performs a simple validation on the client payload request.
@@ -138,16 +138,10 @@ type ClientRegistrationResponse = ClientPrivate
 
 // ClientPrivate represents fields that are private.
 type ClientPrivate struct {
-	ClientID                string `json:"client_id"`
-	ClientSecret            string `json:"client_secret"`
-	RegistrationAccessToken string `json:"registration_access_token"`
-	RegistrationClientURI   string `json:"registration_client_uri"`
-	ClientIDIssuedAt        int64  `json:"client_id_issued_at"`
-	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at"`
-}
-
-// ClientErrorResponse represents the error response of the client.
-type ClientErrorResponse struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
+	ClientID                string `json:"client_id,omitempty"`
+	ClientIDIssuedAt        int64  `json:"client_id_issued_at,omitempty"`
+	ClientSecret            string `json:"client_secret,omitempty"`
+	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at,omitempty"`
+	RegistrationAccessToken string `json:"registration_access_token,omitempty"`
+	RegistrationClientURI   string `json:"registration_client_uri,omitempty"`
 }

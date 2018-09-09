@@ -3,6 +3,8 @@ package oidc
 import (
 	"errors"
 	"strings"
+
+	"github.com/asaskevich/govalidator"
 )
 
 const (
@@ -28,6 +30,9 @@ func (r *AccessTokenRequest) Validate() error {
 	}
 	if strings.TrimSpace(r.RedirectURI) == "" {
 		return InvalidRequest.JSON()
+	}
+	if !govalidator.IsURL(r.RedirectURI) {
+		return InvalidRedirectURI.JSON()
 	}
 	if strings.TrimSpace(r.ClientID) == "" {
 		return AccessDenied.JSON()
@@ -70,4 +75,5 @@ func (r *RefreshTokenRequest) Validate() error {
 // RefreshTokenResponse returns the access token.
 type RefreshTokenResponse struct {
 	AccessToken string `json:"access_token,omitempty"`
+	IDTokens    string `json:"id_token,omitempty"`
 }

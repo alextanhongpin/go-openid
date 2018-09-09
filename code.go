@@ -18,7 +18,7 @@ type Code struct {
 func NewCode(code string) *Code {
 	return &Code{
 		Code:      code,
-		CreatedAt: time.Now(),
+		CreatedAt: time.Now().UTC(),
 		TTL:       TTL,
 	}
 }
