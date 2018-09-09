@@ -142,6 +142,7 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 	json.NewEncoder(w).Encode(res)
 }
 
+// Client returns the authorized client information.
 func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -189,6 +190,8 @@ func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRe
 
 	return nil, nil
 }
+
+// RefreshToken returns a new refresh token alongside with the id token.
 func (e *Endpoints) RefreshToken() {}
 
 func validateTokenHeader(token string) (string, error) {
