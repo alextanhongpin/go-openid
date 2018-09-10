@@ -1,4 +1,4 @@
-package main
+package main_test
 
 import (
 	"bytes"
@@ -309,7 +309,7 @@ func TestClientRegistrationEndpoint(t *testing.T) {
 
 	// Setup payload
 	req := &oidc.ClientPublic{
-		ClientName: defaultClientName, 
+		ClientName: defaultClientName,
 	}
 
 	var (
@@ -525,7 +525,6 @@ func TestClientReadError(t *testing.T) {
 	assert.Equal(pragma, header.Get("Pragma"), "should set pragma to no-cache")
 }
 
-
 func TestOpenIDConfigurationRequest(t *testing.T) {
 	url := "/.well-known/openid-configuration"
 	assert := assert.New(t)
@@ -663,11 +662,11 @@ func newMockDatabase() *Database {
 			ApplicationType:         "web",
 			RedirectURIs: []string{"https://client.example.org/callback",
 				"https://client.example.org/callback2"},
-			ClientName:          "My Example",
-			LogoURI:             "https://client.example.org/logo.png",
-			SubjectType:         "pairwise",
-			SectorIdentifierURI: "https://other.example.net/file_of_redirect_uris.json",
-			JwksURI:             "https://client.example.org/my_public_keys.jwks",
+			ClientName:                   "My Example",
+			LogoURI:                      "https://client.example.org/logo.png",
+			SubjectType:                  "pairwise",
+			SectorIdentifierURI:          "https://other.example.net/file_of_redirect_uris.json",
+			JwksURI:                      "https://client.example.org/my_public_keys.jwks",
 			UserinfoEncryptedResponseAlg: "RSA1_5",
 			UserinfoEncryptedResponseEnc: "A128CBC-HS256",
 			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},

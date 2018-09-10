@@ -13,6 +13,7 @@ func TestEncodeDecodeBasicAuth(t *testing.T) {
 		username = "john"
 		password = "password"
 	)
+
 	enc := EncodeBasicAuth(username, password)
 	u, p := DecodeBasicAuth(enc)
 	assert.Equal(username, u, "should match the given username")

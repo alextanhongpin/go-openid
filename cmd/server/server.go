@@ -4,10 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
@@ -15,6 +17,27 @@ import (
 	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
+
+var (
+	templates map[string]*template.Template
+	once      sync.Once
+	files     = []string{"login"}
+)
+
+func init() {
+	once.Do(func() {
+		load := func(f string) string {
+			return fmt.Sprintf("templates/%s.tmpl", f)
+		}
+
+		templates = make(map[string]*template.Template)
+		layout := template.Must(template.New("base").ParseFiles(load("base")))
+		for _, f := range files {
+			clone := template.Must(layout.Clone())
+			templates[f] = template.Must(clone.ParseFiles(load(f)))
+		}
+	})
+}
 
 func main() {
 	port := flag.Int("port", 8080, "the port of the application")
@@ -27,16 +50,14 @@ func main() {
 		// Factory setup
 		db := database.NewInMem()
 		c := crypto.New(defaultJWTSigningKey)
-
 		svc := NewService(db, c)
-
 		e = NewEndpoints(svc)
 	}
 
 	r := httprouter.New()
 
 	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		w.Write([]byte("hello world"))
+		renderTemplate(w, "login", nil)
 	})
 	r.GET("/authorize", e.Authorize)
 	r.POST("/token", e.Token)
@@ -68,4 +89,15 @@ func main() {
 		log.Printf("HTTP server ListenAndServe: %v", err)
 	}
 	<-idle
+}
+
+func renderTemplate(w http.ResponseWriter, name string, data interface{}) {
+	if t, ok := templates[name]; !ok {
+		err := fmt.Sprintf("template with the name %s does not exist", name)
+		http.Error(w, err, http.StatusInternalServerError)
+		return
+	} else {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		t.Execute(w, data)
+	}
 }
