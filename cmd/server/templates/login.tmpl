@@ -1,15 +1,31 @@
 {{define "title"}}Login{{end}}
+{{define "style"}}
+<style>
+body {
+}
+</style>
+{{end}}
 {{define "content"}}
 <div>
 	<h1>Login</h1>	
 
-	<label>Email</label>
-	<input type="text" placeholder="Enter email"/>
+	<form action='/login' method='post'>
+		<label for="email">Email</label>
+		<input 
+			id="email" 
+			type="email" 
+			placeholder="Enter email" 
+			required/>
 
-	<label>Password</label>
-	<input type="text" placeholder="Enter password"/>
+		<label for="password">Password</label>
+		<input 
+			id="password" 
+			type="password" 
+			placeholder="Enter password (min 8 characters)" 
+			minlength='8' 
+			required/>
 
-
-	<button type="submit">Register</button>
+		<button type="submit">Login</button>
+	</form>
 </div>
 {{end}}

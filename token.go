@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	// Bearer represents the bearer type token.
 	Bearer = "Bearer"
 	Basic  = "Basic"
 )

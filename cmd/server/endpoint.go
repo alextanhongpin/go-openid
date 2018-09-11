@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/julienschmidt/httprouter"
+
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
-	"github.com/asaskevich/govalidator"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 // Endpoints represent the endpoints for the OpenIDConnect.
@@ -210,8 +210,11 @@ func (e *Endpoints) UserInfo(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 
 	token := auth[7:]
-	id, err := validateTokenHeader(token)
+
+	// TODO: Receive the correct token type.
+	claims, err := e.service.ParseJWT(token)
 	if err != nil {
+		// TODO: Return the correct error.
 		err := oidc.ErrUnauthorizedClient
 		msg := fmt.Sprintf(`error="%s" error_description="%s"`, err.Error(), "The access token expired")
 		w.Header().Set("WWW-Authenticate", msg)
@@ -219,7 +222,7 @@ func (e *Endpoints) UserInfo(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	res, err := e.service.UserInfo(r.Context(), id)
+	res, err := e.service.UserInfo(r.Context(), claims.UserID)
 	if err != nil {
 		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		http.Error(w, err.Error(), http.StatusForbidden)
