@@ -13,30 +13,19 @@ import (
 	"time"
 
 	"github.com/julienschmidt/httprouter"
-
-	"github.com/alextanhongpin/go-openid/internal/database"
-	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
+// HTMLs represent the html templates stored as dictionary.
+type HTMLs map[string]*template.Template
+
 var (
-	templates map[string]*template.Template
-	once      sync.Once
-	files     = []string{"login"}
+	htmls HTMLs
+	once  sync.Once
 )
 
 func init() {
-	once.Do(func() {
-		load := func(f string) string {
-			return fmt.Sprintf("templates/%s.tmpl", f)
-		}
-
-		templates = make(map[string]*template.Template)
-		layout := template.Must(template.New("base").ParseFiles(load("base")))
-		for _, f := range files {
-			clone := template.Must(layout.Clone())
-			templates[f] = template.Must(clone.ParseFiles(load(f)))
-		}
-	})
+	htmls = make(HTMLs)
+	once.Do(initTemplates(htmls, "login"))
 }
 
 func main() {
@@ -45,19 +34,11 @@ func main() {
 
 	idle := make(chan struct{})
 
-	var e *Endpoints
-	{
-		// Factory setup
-		db := database.NewInMem()
-		c := crypto.New(defaultJWTSigningKey)
-		svc := NewService(db, c)
-		e = NewEndpoints(svc)
-	}
-
+	e := initEndpoints(defaultJWTSigningKey)
 	r := httprouter.New()
 
 	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		renderTemplate(w, "login", nil)
+		htmls.Render(w, "login", nil)
 	})
 	r.GET("/authorize", e.Authorize)
 	r.POST("/token", e.Token)
@@ -91,8 +72,9 @@ func main() {
 	<-idle
 }
 
-func renderTemplate(w http.ResponseWriter, name string, data interface{}) {
-	if t, ok := templates[name]; !ok {
+// Render renders the html output with the given data.
+func (h HTMLs) Render(w http.ResponseWriter, name string, data interface{}) {
+	if t, ok := h[name]; !ok {
 		err := fmt.Sprintf("template with the name %s does not exist", name)
 		http.Error(w, err, http.StatusInternalServerError)
 		return
