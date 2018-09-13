@@ -11,6 +11,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/authheader"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
@@ -70,13 +71,14 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	w.Header().Set("Pragma", "no-cache")
 
 	auth := r.Header.Get("Authorization")
-	if len(auth) < 7 || auth[0:5] != "Basic" {
+	token, err := authheader.Basic(auth)
+	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
 		return
 	}
 
-	clientID, clientSecret := oidc.DecodeClientAuth(auth[6:])
+	clientID, clientSecret := oidc.DecodeClientAuth(token)
 	if err := e.service.ValidateClient(clientID, clientSecret); err != nil {
 		w.WriteHeader(http.StatusForbidden)
 		json.NewEncoder(w).Encode(err)
@@ -109,13 +111,14 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 	w.Header().Set("Pragma", "no-cache")
 
 	auth := r.Header.Get("Authorization")
-	if len(auth) < 8 || auth[0:6] != "Bearer" {
+	token, err := authheader.Bearer(auth)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
 		return
 	}
 
-	_, err := e.service.ParseJWT(auth[7:])
+	_, err = e.service.ParseJWT(token)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(err)
@@ -138,7 +141,6 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 
 	// Set the appropriate headers
 	w.WriteHeader(http.StatusCreated)
-
 	json.NewEncoder(w).Encode(res)
 }
 

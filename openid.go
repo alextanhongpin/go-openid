@@ -3,30 +3,34 @@ package oidc
 import (
 	"errors"
 	"strings"
-
-	jwt "github.com/dgrijalva/jwt-go"
+	"time"
 )
-
-// Claims represents the OpenIDConnect claims.
-type Claims struct {
-	*jwt.StandardClaims
-	UserID string `json:"user_id,omitempty"`
-}
 
 // IDToken is a security token that contains Claims about the Authentication of
 // an End-User by and Authorization Server when using Client, and potentially
 // other requested Claims.
 type IDToken struct {
-	Audience        string   `json:"aud,omitempty"`
-	AuthCtxClassRef string   `json:"acr,omitempty"`
-	AuthMethodRefs  []string `json:"amr,omitempty"`
-	AuthTime        int64    `json:"auth_time,omitempty"`
-	AuthorizedParty string   `json:"azp,omitempty"`
-	ExpiresIn       int64    `json:"exp,omitempty"`
-	IssuedAt        int64    `json:"iat,omitempty"`
-	Issuer          string   `json:"iss,omitempty"`
-	Nonce           string   `json:"nonce,omitempty"`
-	Subject         string   `json:"sub,omitempty"`
+	Issuer                              string   `json:"iss,omitempty"` // The principal that issues the JWT.
+	Subject                             string   `json:"sub,omitempty"` // The principals that are the subject of the JWT.
+	Audience                            string   `json:"aud,omitempty"` // The recipient that the JWT is intended for.
+	ExpirationTime                      int64    `json:"exp,omitempty"`
+	NotBefore                           int64    `json:"nbf,omitempty"`
+	IssuedAt                            int64    `json:"iat,omitempty"`
+	JWTID                               string   `json:"jti,omitempty"`
+	AuthorizedParty                     string   `json:"azp,omitempty"`       // Authorized party - the party to which the ID Token was issued.
+	Nonce                               string   `json:"nonce,omitempty"`     // Value used to associate a Client session with an ID Token.
+	AuthTime                            int64    `json:"auth_time,omitempty"` // Time when the authentication occurred.
+	AtHash                              string   `json:"at_hash,omitempty"`   // Access Token hash value.
+	CodeHash                            string   `json:"c_hash,omitempty"`    // Code hash value.
+	AuthenticationContextClassReference string   `json:"acr,omitempty"`       // Authentication context class reference.
+	AuthenticationMethodReferences      []string `json:"amr,omitempty"`       // Authentication method references.
+	SessionID                           string   `json:"sid,omitempty"`       // Session ID.
+	SubJWK                              string   `json:"sub_jwk,omitempty"`   // Public key used to check the signature of an ID Token.
+
+	// Address *Address
+	// Email   *Email
+	// Phone   *Phone
+	// Profile *Profile
 }
 
 // Validate performs validation on required fields.
@@ -40,8 +44,12 @@ func (i *IDToken) Validate() error {
 	if strings.TrimSpace(i.Audience) == "" {
 		return errors.New("audience cannot be empty")
 	}
-	if i.ExpiresIn < 1 {
-		return errors.New("exp cannot be zero")
+	now := time.Now().UTC().Unix()
+	if i.ExpirationTime < now {
+		return errors.New("time cannot be less then now")
+	}
+	if i.NotBefore < now {
+		return errors.New("must be greater than now")
 	}
 	if i.IssuedAt < 1 {
 		return errors.New("issued at date cannot be zero")
@@ -115,14 +123,16 @@ type AuthenticationResponse struct {
 	TokenType   string  `json:"token_type,omitempty"`
 }
 
-// ErrorResponse represents the error response parameters
-type ErrorResponse struct {
-	Error            string `json:"error,omitempty"`
-	ErrorDescription string `json:"error_description,omitempty"`
-	ErrorURI         string `json:"error_uri,omitempty"`
-	State            string `json:"state,omitempty"`
-}
+// // ErrorResponse represents the error response parameters
+// type ErrorResponse struct {
+//         Error            string `json:"error,omitempty"`
+//         ErrorDescription string `json:"error_description,omitempty"`
+//         ErrorURI         string `json:"error_uri,omitempty"`
+//         State            string `json:"state,omitempty"`
+// }
+
 type Address struct {
+	// Address       string `json:"address,omitempty"` // Preferred postal address.
 	Country       string `json:"country,omitempty"`
 	Formatted     string `json:"formatted,omitempty"`
 	Locality      string `json:"locality,omitempty"`
@@ -132,42 +142,31 @@ type Address struct {
 }
 
 type Email struct {
-	Email         string `json:"email,omitempty"`
-	EmailVerified bool   `json:"email_verified,omitempty"`
+	Email         string `json:"email,omitempty"` // Preferred e-mail address.
+	EmailVerified bool   `json:"email_verified"`  // True if the e-mail address has been verified; otherwise false.
 }
 
 type Phone struct {
-	PhoneNumber         string `json:"phone_number,omitempty"`
-	PhoneNumberVerified bool   `json:"phone_number_verified,omitempty"`
+	PhoneNumber         string `json:"phone_number,omitempty"` // Preferred telephone number.
+	PhoneNumberVerified bool   `json:"phone_number_verified"`  // True if the phone number has been verified; otherwise false.
 }
 
 type Profile struct {
-	Birthdate         string `json:"birth_date,omitempty"`
-	FamilyName        string `json:"family_name,omitempty"`
-	Gender            string `json:"gender,omitempty"`
-	GivenName         string `json:"given_name,omitempty"`
-	Locale            string `json:"locale,omitempty"`
-	MiddleName        string `json:"middle_name,omitempty"`
-	Name              string `json:"name,omitempty"`
-	Nickname          string `json:"nickname,omitempty"`
-	Picture           string `json:"picture,omitempty"`
-	PreferredUsername string `json:"preferred_username,omitempty"`
-	Profile           string `json:"profile,omitempty"`
-	Sub               string `json:"sub,omitempty"`
-	UpdatedAt         int64  `json:"updated_at,omitempty"`
-	Website           string `json:"website,omitempty"`
-	ZoneInfo          string `json:"zone_info,omitempty"`
+	Birthdate         string `json:"birth_date,omitempty"`         // Birthday.
+	FamilyName        string `json:"family_name,omitempty"`        // Surname(s) or first name(s).
+	Gender            string `json:"gender,omitempty"`             // Gender.
+	GivenName         string `json:"given_name,omitempty"`         // Given name(s) or first name(s).
+	Locale            string `json:"locale,omitempty"`             // Locale.
+	MiddleName        string `json:"middle_name,omitempty"`        // Middle name(s).
+	Name              string `json:"name,omitempty"`               // Full name.
+	Nickname          string `json:"nickname,omitempty"`           // Casual name.
+	Picture           string `json:"picture,omitempty"`            // Profile picture URL.
+	PreferredUsername string `json:"preferred_username,omitempty"` // Shorthand name by which the End-User wishes to be referred to.
+	Profile           string `json:"profile,omitempty"`            // Profile page URL.
+	UpdatedAt         int64  `json:"updated_at,omitempty"`         // Time the information was last updated.
+	ZoneInfo          string `json:"zone_info,omitempty"`          // Time zone.
+	Website           string `json:"website,omitempty"`            // Web page or blog URL.
 }
-
-type StandardClaims struct {
-	Address *Address
-	Email   *Email
-	Phone   *Phone
-	Profile *Profile
-}
-
-type UserInfoRequest struct{}
-type UserInfoResponse struct{}
 
 type Scope int
 

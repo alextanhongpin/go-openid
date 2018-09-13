@@ -32,92 +32,10 @@ type ServiceImpl struct {
 
 // NewService returns a pointer to a new service.
 func NewService(db *database.Database, c crypto.Crypto) *ServiceImpl {
-	if db == nil {
-		db = database.NewInMem()
-	}
-	if c == nil {
-		c = crypto.New(defaultJWTSigningKey)
-	}
 	return &ServiceImpl{
 		crypto: c,
 		db:     db,
 	}
-}
-
-func (s *ServiceImpl) newClient(req *oidc.ClientPublic) (*oidc.Client, error) {
-	var (
-		dur = time.Hour * 24 * 30
-		aud = req.ClientName
-		iss = defaultIssuer
-		sub = req.ClientName
-
-		now = time.Now()
-	)
-
-	token, err := s.crypto.NewJWT(aud, iss, sub, dur)
-	if err != nil {
-		return nil, err
-	}
-
-	clientPrivate := &oidc.ClientPrivate{
-		ClientID:                s.crypto.Code(),
-		ClientSecret:            s.crypto.UUID(),
-		RegistrationAccessToken: token,
-		RegistrationClientURI:   "",
-		ClientIDIssuedAt:        now.Unix(),
-		ClientSecretExpiresAt:   now.Add(dur).Unix(),
-	}
-
-	return &oidc.Client{
-		ClientPublic:  req,
-		ClientPrivate: clientPrivate,
-	}, nil
-}
-
-func (s *ServiceImpl) validateClient(cid, ruri string) (*oidc.Client, error) {
-	if len(cid) == 0 || len(ruri) == 0 {
-		return nil, errors.New("forbidden request")
-	}
-
-	client := s.db.Client.GetByID(cid)
-	if client == nil {
-		return nil, oidc.InvalidClientMetadata.JSON()
-	}
-	if match := client.RedirectURIs.Contains(ruri); !match {
-		return nil, oidc.InvalidRedirectURI.JSON()
-	}
-
-	return client, nil
-}
-
-func (s *ServiceImpl) newCode(cid string) *oidc.Code {
-	// Delete existing code.
-	if _, exist := s.db.Code.Get(cid); exist {
-		s.db.Code.Delete(cid)
-	}
-
-	// Create new code and store it.
-	code := oidc.NewCode(s.crypto.Code())
-	s.db.Code.Put(cid, code)
-	return code
-}
-
-func (s *ServiceImpl) validateCode(cid, code string) error {
-	// Check if the code exists, and it matches the code provided
-	c, exist := s.db.Code.Get(cid)
-	if !exist || c == nil || c.Code != code {
-		return oidc.AccessDenied.JSON()
-	}
-
-	// If the code is valid, but expired, delete them
-	if c.Expired() {
-		s.db.Code.Delete(cid)
-		return oidc.AccessDenied.JSON()
-	}
-
-	// If code matches, then delete the code from the storage
-	s.db.Code.Delete(cid)
-	return nil
 }
 
 func (s *ServiceImpl) Authorize(ctx context.Context, req *oidc.AuthorizationRequest) (*oidc.AuthorizationResponse, error) {
@@ -187,17 +105,19 @@ func (s *ServiceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (
 		return nil, err
 	}
 
+	// Make refresh token last longer than the average token.
 	refreshToken, err := s.crypto.NewJWT(aud, sub, iss, dur*4)
 	if err != nil {
 		return nil, err
 	}
 
-	// Finalize the response and return the access token
+	// Finalize the response and return the access token.
 	return &oidc.AccessTokenResponse{
 		AccessToken:  accessToken,
-		TokenType:    "Bearer",
+		TokenType:    "bearer",
 		ExpiresIn:    int64(defaultDuration.Seconds()),
 		RefreshToken: refreshToken,
+		IDToken:      "",
 	}, nil
 }
 
@@ -264,9 +184,9 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, req *oidc.RefreshTokenRe
 
 	var (
 		aud = client.ClientName
-		sub = client.ClientID
-		iss = defaultIssuer
 		dur = defaultDuration
+		iss = defaultIssuer
+		sub = client.ClientID
 	)
 
 	accessToken, err := s.crypto.NewJWT(aud, sub, iss, dur)
@@ -293,4 +213,80 @@ func (s *ServiceImpl) ValidateClient(clientID, clientSecret string) error {
 // ParseJWT takes a jwt token and return the decoded claims.
 func (s *ServiceImpl) ParseJWT(token string) (*oidc.Claims, error) {
 	return s.crypto.ParseJWT(token)
+}
+
+func (s *ServiceImpl) newClient(req *oidc.ClientPublic) (*oidc.Client, error) {
+	var (
+		aud = req.ClientName
+		dur = time.Hour * 24 * 30 // 1 month.
+		iss = defaultIssuer
+		sub = req.ClientName
+
+		now = time.Now().UTC()
+	)
+
+	token, err := s.crypto.NewJWT(aud, iss, sub, dur)
+	if err != nil {
+		return nil, err
+	}
+
+	clientPrivate := &oidc.ClientPrivate{
+		ClientID:                s.crypto.Code(),
+		ClientSecret:            s.crypto.UUID(),
+		RegistrationAccessToken: token,
+		RegistrationClientURI:   "",
+		ClientIDIssuedAt:        now.Unix(),
+		ClientSecretExpiresAt:   now.Add(dur).Unix(),
+	}
+
+	return &oidc.Client{
+		ClientPublic:  req,
+		ClientPrivate: clientPrivate,
+	}, nil
+}
+
+func (s *ServiceImpl) validateClient(cid, ruri string) (*oidc.Client, error) {
+	if len(cid) == 0 || len(ruri) == 0 {
+		return nil, errors.New("forbidden request")
+	}
+
+	client := s.db.Client.GetByID(cid)
+	if client == nil {
+		return nil, oidc.InvalidClientMetadata.JSON()
+	}
+	if match := client.RedirectURIs.Contains(ruri); !match {
+		return nil, oidc.InvalidRedirectURI.JSON()
+	}
+
+	return client, nil
+}
+
+func (s *ServiceImpl) newCode(cid string) *oidc.Code {
+	// Delete existing code.
+	if _, exist := s.db.Code.Get(cid); exist {
+		s.db.Code.Delete(cid)
+	}
+
+	// Create new code and store it.
+	code := oidc.NewCode(s.crypto.Code())
+	s.db.Code.Put(cid, code)
+	return code
+}
+
+func (s *ServiceImpl) validateCode(cid, code string) error {
+	// Check if the code exists, and it matches the code provided
+	c, exist := s.db.Code.Get(cid)
+	if !exist || c == nil || c.Code != code {
+		return oidc.AccessDenied.JSON()
+	}
+
+	// If the code is valid, but expired, delete them
+	if c.Expired() {
+		s.db.Code.Delete(cid)
+		return oidc.AccessDenied.JSON()
+	}
+
+	// If code matches, then delete the code from the storage
+	s.db.Code.Delete(cid)
+	return nil
 }

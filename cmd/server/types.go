@@ -9,9 +9,9 @@ import (
 
 // HTMLs represent the html templates stored as dictionary.
 type HTMLs struct {
+	*sync.Once
 	datadir   string
 	templates map[string]*template.Template
-	sync.Once
 }
 
 // NewHTMLs returns a new HTMLs struct.
@@ -24,14 +24,14 @@ func NewHTMLs(datadir string) *HTMLs {
 
 // Render renders the html output with the given data.
 func (h HTMLs) Render(w http.ResponseWriter, name string, data interface{}) {
-	if t, ok := h.templates[name]; !ok {
-		err := fmt.Sprintf("template with the name %s does not exist", name)
-		http.Error(w, err, http.StatusInternalServerError)
+	t, ok := h.templates[name]
+	if !ok {
+		msg := fmt.Sprintf("renderError: template with the name %s does not exist", name)
+		http.Error(w, msg, http.StatusInternalServerError)
 		return
-	} else {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		t.Execute(w, data)
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	t.Execute(w, data)
 }
 
 func (h *HTMLs) path(f string) string {

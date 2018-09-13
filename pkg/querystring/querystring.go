@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// TODO: NewDecoder(u).Decode(interface{})
 func Decode(in interface{}, u url.Values) error {
 	t := reflect.TypeOf(in)
 	v := reflect.ValueOf(in)
@@ -49,9 +50,9 @@ func Decode(in interface{}, u url.Values) error {
 	default:
 		return fmt.Errorf("%v is not of type pointer", in)
 	}
-	return nil
 }
 
+// TODO: NewEncoder(url.Values).Encode(interface{})
 func Encode(in interface{}) url.Values {
 	u := url.Values{}
 	t := reflect.TypeOf(in)

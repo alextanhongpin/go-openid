@@ -13,23 +13,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-	htmls HTMLs
-)
-
-func init() {
-	htmls := NewHTMLs("templates")
-	htmls.Load("login")
-}
-
 func main() {
 	port := flag.Int("port", 8080, "the port of the application")
 	flag.Parse()
 
-	idle := make(chan struct{})
-
 	e := initEndpoints(defaultJWTSigningKey)
 	r := httprouter.New()
+
+	htmls := NewHTMLs("templates")
+	htmls.Load("login")
 
 	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		htmls.Render(w, "login", nil)
@@ -45,6 +37,7 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 	}
 
+	idle := make(chan struct{})
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
@@ -64,4 +57,5 @@ func main() {
 		log.Printf("HTTP server ListenAndServe: %v", err)
 	}
 	<-idle
+	log.Println("Gracefully shutdown HTTP server.")
 }
