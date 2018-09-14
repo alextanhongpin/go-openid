@@ -13,6 +13,8 @@ const (
 	Basic  = "Basic"
 )
 
+//go:generate gencodec -type AccessTokenRequest -out gen_token_json.go
+
 // AccessTokenRequest represents the access token request payload.
 type AccessTokenRequest struct {
 	GrantType   string `json:"grant_type,omitempty"`

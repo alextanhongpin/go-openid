@@ -24,10 +24,12 @@ func valid(header string, ofType string) (string, error) {
 	return header[t+1:], nil
 }
 
+// Basic returns the basic authorization token from the header.
 func Basic(header string) (string, error) {
 	return valid(header, basic)
 }
 
+// Bearer returns the bearer authorization token from the header.
 func Bearer(header string) (string, error) {
 	return valid(header, bearer)
 }

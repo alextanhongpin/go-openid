@@ -2,6 +2,7 @@ package authheader_test
 
 import (
 	"testing"
+	"testing/quick"
 
 	"github.com/alextanhongpin/go-openid/pkg/authheader"
 	"github.com/stretchr/testify/assert"
@@ -50,5 +51,16 @@ func TestBearer(t *testing.T) {
 		token, err := authheader.Bearer(tt.header)
 		assert.Equal(tt.err, err, "should match the error")
 		assert.Equal(tt.token, token, "should match the token")
+	}
+}
+
+func TestPanic(t *testing.T) {
+	f := func(s string) bool {
+		token, err := authheader.Bearer(s)
+		return (len(token) > 0 && err == nil) || (len(token) == 0 && err != nil)
+	}
+
+	if err := quick.Check(f, nil); err != nil {
+		t.Fatal(err)
 	}
 }
