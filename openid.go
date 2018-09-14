@@ -4,19 +4,15 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 // IDToken is a security token that contains Claims about the Authentication of
 // an End-User by and Authorization Server when using Client, and potentially
 // other requested Claims.
 type IDToken struct {
-	Issuer                              string   `json:"iss,omitempty"` // The principal that issues the JWT.
-	Subject                             string   `json:"sub,omitempty"` // The principals that are the subject of the JWT.
-	Audience                            string   `json:"aud,omitempty"` // The recipient that the JWT is intended for.
-	ExpirationTime                      int64    `json:"exp,omitempty"`
-	NotBefore                           int64    `json:"nbf,omitempty"`
-	IssuedAt                            int64    `json:"iat,omitempty"`
-	JWTID                               string   `json:"jti,omitempty"`
+	*jwt.StandardClaims
 	AuthorizedParty                     string   `json:"azp,omitempty"`       // Authorized party - the party to which the ID Token was issued.
 	Nonce                               string   `json:"nonce,omitempty"`     // Value used to associate a Client session with an ID Token.
 	AuthTime                            int64    `json:"auth_time,omitempty"` // Time when the authentication occurred.
@@ -26,13 +22,13 @@ type IDToken struct {
 	AuthenticationMethodReferences      []string `json:"amr,omitempty"`       // Authentication method references.
 	SessionID                           string   `json:"sid,omitempty"`       // Session ID.
 	SubJWK                              string   `json:"sub_jwk,omitempty"`   // Public key used to check the signature of an ID Token.
-
-	// Address *Address
-	// Email   *Email
-	// Phone   *Phone
-	// Profile *Profile
+	Address                             *Address
+	Email                               *Email
+	Phone                               *Phone
+	Profile                             *Profile
 }
 
+// TODO: Check other libraries to see their validation.
 // Validate performs validation on required fields.
 func (i *IDToken) Validate() error {
 	if strings.TrimSpace(i.Issuer) == "" {
@@ -45,7 +41,7 @@ func (i *IDToken) Validate() error {
 		return errors.New("audience cannot be empty")
 	}
 	now := time.Now().UTC().Unix()
-	if i.ExpirationTime < now {
+	if i.ExpiresAt < now {
 		return errors.New("time cannot be less then now")
 	}
 	if i.NotBefore < now {
@@ -123,16 +119,7 @@ type AuthenticationResponse struct {
 	TokenType   string  `json:"token_type,omitempty"`
 }
 
-// // ErrorResponse represents the error response parameters
-// type ErrorResponse struct {
-//         Error            string `json:"error,omitempty"`
-//         ErrorDescription string `json:"error_description,omitempty"`
-//         ErrorURI         string `json:"error_uri,omitempty"`
-//         State            string `json:"state,omitempty"`
-// }
-
 type Address struct {
-	// Address       string `json:"address,omitempty"` // Preferred postal address.
 	Country       string `json:"country,omitempty"`
 	Formatted     string `json:"formatted,omitempty"`
 	Locality      string `json:"locality,omitempty"`
