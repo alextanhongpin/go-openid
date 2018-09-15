@@ -2,9 +2,6 @@ package oidc
 
 import (
 	"errors"
-	"strings"
-
-	"github.com/asaskevich/govalidator"
 )
 
 const (
@@ -25,21 +22,21 @@ type AccessTokenRequest struct {
 
 // Validate performs an initial validation on the required field.
 func (r *AccessTokenRequest) Validate() error {
-	if r.GrantType != "authorization_code" {
-		return InvalidRequest.JSON()
-	}
-	if strings.TrimSpace(r.Code) == "" {
-		return AccessDenied.JSON()
-	}
-	if strings.TrimSpace(r.RedirectURI) == "" {
-		return InvalidRequest.JSON()
-	}
-	if !govalidator.IsURL(r.RedirectURI) {
-		return InvalidRedirectURI.JSON()
-	}
-	if strings.TrimSpace(r.ClientID) == "" {
-		return AccessDenied.JSON()
-	}
+	// if r.GrantType != "authorization_code" {
+	//         return InvalidRequest.JSON()
+	// }
+	// if strings.TrimSpace(r.Code) == "" {
+	//         return AccessDenied.JSON()
+	// }
+	// if strings.TrimSpace(r.RedirectURI) == "" {
+	//         return InvalidRequest.JSON()
+	// }
+	// if !govalidator.IsURL(r.RedirectURI) {
+	//         return InvalidRedirectURI.JSON()
+	// }
+	// if strings.TrimSpace(r.ClientID) == "" {
+	//         return AccessDenied.JSON()
+	// }
 	return nil
 }
 

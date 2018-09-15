@@ -59,15 +59,6 @@ func (r ResponseType) Has(rr ResponseType) bool {
 	return r&rr != 0
 }
 
-func (r ResponseType) OneOf(rr ...ResponseType) bool {
-	for _, rrr := range rr {
-		if r.Is(rrr) {
-			return true
-		}
-	}
-	return false
-}
-
 // Is returns true if the enum matches exactly one of the enum.
 func (r ResponseType) Is(rr ResponseType) bool {
 	return r&rr == r|rr
@@ -91,6 +82,8 @@ func parseResponseType(responseType string) (i ResponseType) {
 	}
 	return
 }
+
+// -- scopes
 
 // By using bits, we save on a lot of checking. For example, we would not face
 // the issue of duplicate scopes "email email". Also, it's possible to check if
@@ -146,4 +139,25 @@ var displaymap = map[string]struct{}{
 	"popup": struct{}{},
 	"touch": struct{}{},
 	"wap":   struct{}{},
+}
+
+// -- flow
+
+// CheckFlow returns the current OIDC registration flow.
+func CheckFlow(enum ResponseType) string {
+	var (
+		code    = ResponseTypeCode
+		token   = ResponseTypeToken
+		idToken = ResponseTypeIDToken
+	)
+	if enum.Is(code) {
+		return "authorization_code"
+	}
+	if enum.Is(idToken) || enum.Is(idToken|token) {
+		return "implicit"
+	}
+	if enum.Is(code|idToken) || enum.Is(code|idToken|token) {
+		return "hybrid"
+	}
+	return ""
 }

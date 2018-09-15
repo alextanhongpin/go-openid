@@ -8,6 +8,8 @@ import (
 const (
 	basic  = "basic"
 	bearer = "bearer"
+
+	sep = ":"
 )
 
 var (

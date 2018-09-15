@@ -28,6 +28,15 @@ var (
 	ErrUnsupportedResponseType = NewError("unsupported_response_type")
 )
 
+// Client errors.
+var (
+	// ErrInvalidClientMetadata occurs when the value of one of the client metadata fields is invalid and the server has rejected this request.
+	ErrInvalidClientMetadata = NewError("invalid_client_metadata")
+
+	// ErrInvalidRedirectURI occurs when the value of one or more redirect uris is invalid.
+	ErrInvalidRedirectURI = NewError("invalid_redirect_uri")
+)
+
 // NewError returns a new custom error.
 func NewError(code string) *ErrorJSON {
 	return &ErrorJSON{Code: code}

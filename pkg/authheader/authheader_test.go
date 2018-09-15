@@ -64,3 +64,17 @@ func TestPanic(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestEncodeDecodeBasicAuth(t *testing.T) {
+	assert := assert.New(t)
+
+	var (
+		username = "john"
+		password = "password"
+	)
+
+	enc := authheader.EncodeBase64(username, password)
+	u, p := authheader.DecodeBase64(enc)
+	assert.Equal(username, u, "should match the given username")
+	assert.Equal(password, p, "should match the given password")
+}

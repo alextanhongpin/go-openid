@@ -9,6 +9,7 @@ import (
 // TODO: Document the helpers difference
 // verify - perform comparison of value; returns true or false
 // validate - check for required fields or incorrect verification; returns error
+// https://www.easterbrook.ca/steve/2010/11/the-difference-between-verification-and-validation/
 
 // AuthenticationRequest is an OAuth 2.0 Authorization Request that requests
 // that the End User be authenticated by the Authorization Server.
@@ -134,7 +135,7 @@ func validateResponseType(responseType string) error {
 	)
 
 	parsed := parseResponseType(responseType)
-	if !parsed.OneOf(a, b, c) {
+	if !parsed.Has(a | b | c) {
 		return errors.New("invalid response_type")
 	}
 	return nil

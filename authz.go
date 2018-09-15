@@ -100,6 +100,8 @@ func validateAuthzResponseType(in string) error {
 }
 
 func validateAuthzClientID(id string) error {
+	// Is it necessary to check for empty string?
+	// Probably, it will save us from making a call to the db.
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return ErrAccessDenied.WithDescription("client_id cannot be empty")

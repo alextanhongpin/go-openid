@@ -1,91 +1,20 @@
 package oidc
 
 import (
-	"strings"
+	"errors"
+	"fmt"
 
 	"github.com/asaskevich/govalidator"
 )
 
+//go:generate gencodec -type Client -out gen_client.go
+
 // ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
 
-// ClientErrorCode represents the error code returned by client.
-type ClientErrorCode int
-
-const (
-	InvalidClientMetadata ClientErrorCode = iota
-	InvalidRedirectURI
-)
-
-var clientErrorDescriptions = map[ClientErrorCode]string{
-	InvalidClientMetadata: "the value of one of the client metadata fields is invalid and the server has rejected this request",
-	InvalidRedirectURI:    "the value of one or more redirect uris is invalid",
-}
-
-var clientErrorCodes = map[ClientErrorCode]string{
-	InvalidClientMetadata: "invalid_client_metadata",
-	InvalidRedirectURI:    "invalid_redirect_uri",
-}
-
-// String fulfills the Stringer method.
-func (c ClientErrorCode) String() string {
-	return clientErrorCodes[c]
-}
-
-// Description returns the general client error description.
-func (c ClientErrorCode) Description() string {
-	return clientErrorDescriptions[c]
-}
-
-// JSON returns the error json.
-func (c ClientErrorCode) JSON() *ErrorJSON {
-	return &ErrorJSON{
-		Code:        c.String(),
-		Description: c.Description(),
-		State:       "",
-		URI:         "",
-	}
-}
-
-// Client represents both private and public metadata of the client.
+// Client represents fields that are public.
 type Client struct {
-	*ClientPrivate
-	*ClientPublic
-}
-
-// NewClient returns a client metadata given the public client metadata
-func NewClient(req *ClientRegistrationRequest) *Client {
-	return &Client{
-		ClientPublic: req,
-		ClientPrivate: &ClientRegistrationResponse{
-			ClientID:                "fake client id",
-			ClientIDIssuedAt:        0,
-			ClientSecret:            "fake client secret",
-			ClientSecretExpiresAt:   0,
-			RegistrationAccessToken: "",
-			RegistrationClientURI:   "",
-		},
-	}
-}
-
-// RedirectURIs represents a slice of valid redirect uris.
-type RedirectURIs []string
-
-// Contains checks if the redirect uri is present in the slice.
-func (r RedirectURIs) Contains(uri string) bool {
-	for _, u := range r {
-		if strings.Compare(u, uri) == 0 {
-			return true
-		}
-	}
-	return false
-}
-
-// ClientRegistrationRequest represents the client registration request.
-type ClientRegistrationRequest = ClientPublic
-
-// ClientPublic represents fields that are public
-type ClientPublic struct {
+	// Public
 	ApplicationType              string       `json:"application_type,omitempty"`
 	ClientName                   string       `json:"client_name,omitempty"`
 	ClientURI                    string       `json:"client_uri,omitempty"`
@@ -116,32 +45,133 @@ type ClientPublic struct {
 	UserinfoEncryptedResponseAlg string       `json:"userinfo_encrypted_response_alg,omitempty"`
 	UserinfoEncryptedResponseEnc string       `json:"userinfo_encrypted_response_enc,omitempty"`
 	UserinfoSignedResponseAlg    string       `json:"userinfo_signed_response_alg,omitempty"`
+	// Private read-only fields.
+	ClientID                string `json:"-"`
+	ClientIDIssuedAt        int64  `json:"-"`
+	ClientSecret            string `json:"-"`
+	ClientSecretExpiresAt   int64  `json:"-"`
+	RegistrationAccessToken string `json:"-"`
 }
+
+type ClientRegistrationRequest = Client
 
 // Validate performs a simple validation on the client payload request.
 func (c *ClientRegistrationRequest) Validate() error {
-	for _, u := range c.RedirectURIs {
-		if !govalidator.IsURL(u) {
-			return InvalidRedirectURI.JSON()
-		}
+	if u, err := validateURIs(c.RedirectURIs...); err != nil {
+		desc := fmt.Sprintf(`%s is not a valid uri format`, u)
+		return ErrInvalidRedirectURI.WithDescription(desc)
 	}
-	// Check the redirect uri
-	// return ErrInvalidRedirectURI
+
+	// Validate Response type
+	// Validate grant types
+	// Validate application type
+	// Validate contacts
+	// Validate client name
+	// Validate subject type: pairwise and public
+	// Validase ...
 
 	// Check the client metadata
 	// return ErrInvalidClientMetadata
+
+	uris := []string{
+		c.ClientURI,
+		c.LogoURI,
+		c.PolicyURI,
+		c.TosURI,
+		c.JwksURI,
+		c.SectorIdentifierURI,
+		c.InitiateLoginURI,
+	}
+	uris = append(uris, c.RedirectURIs...)
+	if _, err := validateURIs(uris...); err != nil {
+		return err
+	}
 	return nil
 }
 
 // ClientRegistrationResponse represents the response payload of the client.
-type ClientRegistrationResponse = ClientPrivate
-
-// ClientPrivate represents fields that are private.
-type ClientPrivate struct {
+type ClientRegistrationResponse struct {
 	ClientID                string `json:"client_id,omitempty"`
 	ClientIDIssuedAt        int64  `json:"client_id_issued_at,omitempty"`
 	ClientSecret            string `json:"client_secret,omitempty"`
 	ClientSecretExpiresAt   int64  `json:"client_secret_expires_at,omitempty"`
 	RegistrationAccessToken string `json:"registration_access_token,omitempty"`
 	RegistrationClientURI   string `json:"registration_client_uri,omitempty"`
+}
+
+// -- redirect uris
+
+// RedirectURIs represents a slice of valid redirect uris.
+type RedirectURIs []string
+
+// Contains checks if the redirect uri is present in the slice.
+func (r RedirectURIs) Contains(uri string) bool {
+	for _, u := range r {
+		if u == uri {
+			return true
+		}
+	}
+	return false
+}
+
+type GrantTypes []string
+
+var grantypesmap = map[string]struct{}{
+	"authorization_code": struct{}{},
+	"implicit":           struct{}{},
+	"refresh_token":      struct{}{},
+}
+
+func (g GrantTypes) Validate() bool {
+	for _, v := range g {
+		if _, ok := grantypesmap[v]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func validateApplicationType(in string) error {
+	// OPTIONAL. Kind of the application. The default, if omitted, is
+	// web. The defined values are native or web. Web Clients using the
+	// OAuth Implicit Grant Type MUST only register URLs using the https
+	// scheme as redirect_uris; they MUST NOT use localhost as the
+	// hostname. Native Clients MUST only register redirect_uris using
+	// custom URI schemes or URLs using the http: scheme with localhost
+	// as the hostname. Authorization Servers MAY place additional
+	// constraints on Native Clients. Authorization Servers MAY reject
+	// Redirection URI values using the http scheme, other than the
+	// localhost case for Native Clients. The Authorization Server MUST
+	// verify that all the registered redirect_uris conform to these
+	// constraints. This prevents sharing a Client ID across different
+	// types of Clients.
+	// if in != "web" || in != "native" {
+	// }
+	return nil
+}
+
+func validateContacts(in []string) error {
+	for _, v := range in {
+		if !govalidator.IsEmail(v) {
+			return fmt.Errorf("invalid email format for %s", v)
+		}
+	}
+	return nil
+}
+
+func validateClientResponseType(in string) error {
+	return nil
+}
+
+func validateURIs(uris ...string) (string, error) {
+	for _, u := range uris {
+		if u == "" {
+			// Allow optional strings
+			continue
+		}
+		if !govalidator.IsURL(u) {
+			return u, errors.New("invalid url format")
+		}
+	}
+	return "", nil
 }
