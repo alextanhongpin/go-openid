@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Profile</title>
+        <link rel="stylesheet" type="text/css" href="/public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="/public/styles/components/header.css">
+        <style>
+            .userphoto {
+                height: 120px;
+                width: 120px;
+                background: #888888;
+                border-radius: 50%;
+                border: 3px solid white;
+            }
+            .userinfo {
+                position: relative;
+                z-index: 10;
+            }
+            .userinfo-column {
+                position: absolute;
+                top: -80px;
+                left: 0;
+                width: 100%;
+                display: flex;
+            }
+            .userinfo-column--left {
+                max-width: 160px;
+                width: 100%;
+                padding: 0 20px;
+            }
+            .userinfo-column--right {
+                max-width: calc(100% - 160px);
+                width: 100%;
+                align-self: center;
+            }
+
+            .username {
+                color: white;
+                text-shadow: 0 1px 3px rgba(0, 0, 0, .5);
+                height: 100%;
+                font-size: 20px;
+                line-height: 40px;
+            }
+            .email {
+                color: rgba(255, 255, 255, .6);
+            }
+            .col-12 {
+                margin: auto;
+                max-width: 1140px;
+                width: 100%;
+            }
+
+
+            .jumbotron-wrapper {
+                width: 100%;
+                height: 160px;
+                position: relative;
+                overflow: hidden;
+            }
+            .jumbotron {
+                background: url("../public/jumbotron.jpg") no-repeat center bottom / cover;
+                position: absolute;
+                top: -20px;
+                left: -20px;
+                width: calc(100% + 40px);
+                height: calc(100% + 40px);
+                animation: blurIn .5s ease-in forwards;
+                z-index: 1;
+            }
+
+            @keyframes blurIn {
+                from {
+                    filter: blur(0px);
+                }
+                to {
+                    filter: blur(20px);
+                }
+            }
+            @-webkit-keyframes blurIn {
+                from {
+                    filter: blur(0px);
+                }
+                to {
+                    filter: blur(20px);
+                }
+            }
+            .form-group {
+                padding: 10px;
+                border: 1px solid #222222;
+                height: 100%;
+            }
+            .form-group-wrapper {
+                flex-basis: 50%;
+                padding: 10px;
+            }
+            .info-wrapper {
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+                flex-wrap: wrap;
+            }
+            .info {
+                font-size: 14px;
+            }
+            .text-fade {
+                color: rgba(255, 255, 255, .6);
+            }
+
+        </style>
+    </head>
+    <body>
+
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+
+                    <form method="post" action="/logout">
+                        <button>Logout</button>
+                    </form>
+                </div>
+            </div>
+        </header>
+
+        <main class="col-12">
+            <div>
+                <!--<a href="/users/edit">Edit Profile</a>-->
+                <div class="jumbotron-wrapper">
+                    <div class="jumbotron"></div>
+                </div>
+                <div class="userinfo">
+                    <div class="userinfo-column">
+                        <div class="userinfo-column--left">
+                            <div class="userphoto"></div>
+                        </div>
+                        <div class="userinfo-column--right">
+                            <div>
+                                <div class="username">{{ with .Profile }}{{ .Nickname }}{{ end }}</div>
+                                <div class="email">{{ with .Profile }}{{ .FamilyName }}{{ end }}</div>
+                                <br/>
+                                <br/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <br/>
+                    <br/>
+                    <br/>
+
+                    <div>
+                        Edit your profile <a href="/users/{{ .ID.Hex }}/edit">here</a>
+                        <div>Create a new client <a href="/connect/register">here</a>.</div>
+                    </div>
+
+                    <br>
+
+
+                <div class="info-wrapper">
+                    <div class="form-group-wrapper">
+                        <div class="form-group">
+                            <h3>Profile</h3>
+
+                            <br>
+
+                            <div class="info"><span class="text-fade">Name:</span> {{ with .Profile }}{{ .Name }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Family Name:</span> {{ with .Profile }}{{ .FamilyName }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Given Name:</span> {{ with .Profile }}{{ .GivenName }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Middle Name:</span> {{ with .Profile }}{{ .MiddleName }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Nickname:</span> {{ with .Profile }}{{ .Nickname }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Preferred Username:</span> {{ with .Profile }}{{ .PreferredUsername }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Profile:</span> {{ with .Profile }}{{ .Profile }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Picture:</span> {{ with .Profile }}{{ .Picture }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Website:</span> {{ with .Profile }}{{ .Website }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Gender:</span> {{ with .Profile }}{{ .Gender }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Birth Date:</span> {{ with .Profile }}{{ .BirthDate }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Zone Info:</span> {{ with .Profile }}{{ .ZoneInfo }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Locale:</span> {{ with .Profile }}{{ .Locale }}{{ end }}</div>
+
+                        </div>
+                    </div>
+
+                    <div class="form-group-wrapper">
+                        <div class="form-group">
+                            <h3>Address</h3>
+                            
+                            <br>
+
+                            <div class="info"><span class="text-fade">Formatted:</span> {{ with .Address }}{{ .Formatted }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Street Address:</span> {{ with .Address }}{{ .StreetAddress }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Locality:</span> {{ with .Address }}{{ .Locality }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Region:</span> {{ with .Address }}{{ .Region }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">PostalCode:</span> {{ with .Address }}{{ .PostalCode }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Country:</span> {{ with .Address }}{{ .Country }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Latitude:</span> {{ with .Address }}{{ .Latitude }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Longitude:</span> {{ with .Address }}{{ .Longitude }}{{ end }}</div>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group-wrapper">
+                        <div class="form-group">
+                            
+                            <h3>Email</h3>
+                            
+                            <br>
+
+                            <div class="info"><span class="text-fade">Email:</span> {{ .Email.Email }}</div>
+                            <div class="info"><span class="text-fade">Email Verified:</span> {{ .Email.EmailVerified }}</div>
+                            <div class="info"><span class="text-fade">Joined since</span> {{ .CreatedAt }}</div>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group-wrapper">
+                        <div class="form-group">
+                            <h3>Phone</h3>
+                            
+                            <br>
+
+                            <div class="info"><span class="text-fade">Phone Verified:</span> {{ with .Phone }}{{ .PhoneNumber }}{{ end }}</div>
+                            <div class="info"><span class="text-fade">Is Verified:</span> {{ with .Phone }}{{ .PhoneNumberVerified }}{{ end }}</div>
+                        
+                        </div>
+                    </div>
+
+                </div>
+
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+            </div>
+        </main>
+    </body>
+</html>

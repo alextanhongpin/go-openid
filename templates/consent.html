@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Consent</title>
+
+        <link rel="stylesheet" type="text/css" href="../public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/header.css">
+        <style>
+            .main {
+                text-align: center;
+                max-width: 480px;
+            }
+            .userphoto {
+                display: inline-block;
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                border: 2px solid white;
+                background: #888888;
+            }
+            .username {
+            }
+
+            .link-switch {
+                color: rgba(255, 255, 255, .6);
+            }
+
+            .list {
+                text-align: left;
+            }
+
+            .scope-wrapper {
+
+                padding: 0 0 10px;
+            }
+            .scope-wrapper:not(:last-child) {
+                border-bottom: 1px solid rgba(255, 255, 255, .15);
+            }
+            .scope {
+                font-weight: bold;
+            }
+            .scope-info {
+                font-size: 14px;
+                color: rgba(255, 255, 255, .6);
+            }
+
+            .button-wrapper {
+                text-align: right;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <br>
+                <div><div class="userphoto"></div></div>
+            <br>
+                <div class="username">Hi, johndoe</div>
+                <div><small class="link-switch">Switch Account</small></div>
+            <br>
+            <div>
+                <div class="list">
+                    <h2>OpenID needs the following permission:</h2>
+
+                    <br>
+
+                    <div class="scope-wrapper">
+                        <div class="scope">Email</div>
+                        <div class="scope-info">Your email address.</div>
+                    </div>
+                    
+                        <br>
+
+                    <div class="scope-wrapper">
+                        <div class="scope">Profile</div>
+                        <div class="scope-info">Your date of birth, full name and address.</div>
+                    </div>
+
+                        <br>
+
+                    <div class="scope-wrapper">
+                        <div class="scope">Phone</div>
+                        <div class="scope-info">Your phone number.</div>
+                    </div>
+                        <br>
+                </div>
+
+                <div class="button-wrapper">
+                    <button class="button button-ghost">Cancel</button>
+                    <button id="submit" class="button button-primary">Allow</button>
+                </div>
+            </div>
+        </main>
+
+        <script>
+
+            'use strict';
+
+            (function () {
+
+                document.getElementById('submit').addEventListener('click', (evt) => {
+                    console.log('clicked')
+                    fetch('{{.URL}}', {
+                        method: 'POST'
+                    }).then((body) => {
+                        return body.json()
+                    }).then((json) => {
+                        console.log(json)
+                    }).catch((err) => {
+                        console.log(err)
+                    })
+                }, false)
+
+
+            })()
+        </script>
+    </body>
+</html>

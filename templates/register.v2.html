@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+
+  <link rel="stylesheet" type="text/css" href="../public/styles/main.css">
+  <link rel="stylesheet" type="text/css" href="../public/styles/components/header.css">
+  <style type="text/css">
+    
+
+    .title {
+      font-size: 36px;
+      font-weight: bold;
+    }
+    .subtitle {
+      font-size: 18px;
+      color: #999;
+      font-weight: 300;
+      line-height: 36px;
+    }
+    .font-primary {
+      color: #285AE1;
+    }
+
+    
+    .login-form {
+      background: #222;
+      color: white;
+      padding: 30px;
+      max-width: 400px;
+      margin: 50px auto;
+    }
+
+    .label {
+      font-size: 14px;
+      height: 24px;
+      line-height: 24px;
+    }
+    .label--primary {
+      font-weight: bold;
+    }
+    .label--highlight {
+      color: yellow;
+    }
+
+    .input {
+      appearance: none;
+      -webkit-appearance: none;
+      font-family: Helvetica;
+      border: none;
+      width: 100%;
+      padding: 0 10px;
+      background: #ccc;
+    }
+    .input--primary {
+      font-size: 18px;
+      font-weight: 300;
+      border-bottom: 1px solid #eeeeee;
+      height: 36px;
+      margin: 4px 0;
+      outline: none;
+      transition: .174s border-color ease-out;
+    }
+    .input--primary:focus {
+      margin: 4px 0;
+    }
+
+    .small {
+      color: #999;
+      font-size: 14px;
+      line-height: 18px;
+    }
+    .link {
+      color: yellow;
+      text-decoration: none;
+    }
+
+
+
+    .align-right {
+      text-align: right;
+    }
+    .error {
+      color: #FF4444;
+    }
+    #ErrorSection {
+      max-width: 460px;
+      width: 100%;
+      margin: 0 auto;
+      display: none;
+    }
+    #ErrorSection.is-visible {
+      display: block;
+    }
+    .error-view {
+      background: #FFBBBB;;
+      padding: 0 20px;
+    }
+  </style>
+
+</head>
+<body>
+
+    <header>
+        <div class="header-wrapper">
+            <div class="header-brand">
+                <a href="/">GOID</a>
+                <span class="header-brand-superscript">OpenID Provider</span>
+            </div>
+
+            <div>
+                <div class="header-links"></div>
+                <div class="button-login"><a href="/login">Login</a></div>
+            </div>
+        </div>
+    </header>
+
+  <div id='ErrorSection'>
+    <br>
+    <br>
+    <div class='error-view'>
+      <br>
+        <div class='error'>Error!</div>
+      <br>
+    </div>
+  </div>
+
+<div class='login-form'>
+  <h1 class='title'>Register</h1>
+  <span class='subtitle'>Create a new account.</span>
+  
+  <br>
+  <br>
+  <br>
+
+  <div>
+    <div>
+      <label class='label label--primary' for='email'>Email</label>
+    </div>
+    <div>
+      <input class='input input--primary' id='email' type="email" name="email" placeholder='e.g. john.doe@mail.com'>
+    </div>
+  </div>
+
+  <br>
+
+  <div>
+    <div>
+      <label class='label label--primary' for='password'>Password</label>
+    </div>
+    <div>
+      <input class='input input--primary' id='password' type="password" name="password" placeholder='min 6 characters'>
+    </div>
+  </div>
+
+
+  <div>
+    <input id='remember_me' type="checkbox" name="remember_me">
+    <label for='remember_me' class='font-primary label label--highlight'>Remember me</label>
+  </div>
+
+  <br>
+  <br>
+  <br>
+
+  <div class='small'>
+    By proceeding, you agree to our <a class='link'>Privacy Policy</a> and <a href="" class='link'>Terms and Condition</a>.
+  </div>
+
+  <br>
+
+  <div class='align-right'>
+    <button class='button button-primary' id='submit'>Continue</button>
+  </div>
+
+</form>
+
+<script type="text/javascript">
+  (function () {
+    'use strict'
+
+    const submit = document.getElementById('submit')
+    const email = document.getElementById('email')
+    const password = document.getElementById('password')
+    const errorView = new ErrorView(document.getElementById('ErrorSection'))
+
+    submit.addEventListener('click', (evt) => {
+      errorView.hide()
+      if (!password.value.trim().length) {
+        errorView.show('Password is required')
+        return
+      }
+
+      if (!email.value.trim().length) {
+        errorView.show('Email is required')
+        return
+      }
+      window.fetch('/register', {
+        method: 'post',
+        body: JSON.stringify({
+          email: email.value,
+          password: password.value
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }).then((response) => {
+        console.log(response.headers.get('Location'))
+        if (!response) {
+          return null
+        }
+        if (response.headers.get('Location')) {
+          window.location.href = response.headers.get('Location')
+          return
+        }
+        return response.json()
+      }).then((json) => {
+        if (!json.ok) {
+          console.error('error:', json)
+          errorView.show(json.error_description)
+          return
+        }
+
+        console.log('success:', json)
+        if (json.redirect_uri) {
+          // window.location.href = json.redirect_uri
+          window.location.replace(json.redirect_uri)
+        }
+      }).catch((error) => {
+        console.error('error:', error)
+        errorView.show(error.error_description)
+      })
+    }, false)
+
+    function ErrorView (el) {
+      return {
+        show (message) {
+          el.querySelector('.error').innerHTML = message
+          el.classList.add('is-visible')
+        },
+        hide () {
+          el.classList.remove('is-visible')
+        }
+      }
+    }
+  })()
+</script>
+</body>
+</html>

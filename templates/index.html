@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Home</title>
+        <link rel="stylesheet" type="text/css" href="/public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="/public/styles/components/header.css">
+        <style>
+
+            .authinfo {
+                width: 480px;
+                margin: auto;
+                display: flex;
+            }
+
+            .button-login a {
+                color: inherit;
+                text-decoration: none;
+            }
+            main {
+                max-width: 1140px;
+                margin: auto;
+                width: 100%;
+                color: rgba(255, 255, 255, .5);
+            }
+            .main-heading {
+                color: white;
+                font-size: 56px;
+            }
+            .main-heading__underline {
+                border-bottom: 5px solid #FF4444;
+            }
+            .main-subheading {
+                font-size: 20px;
+            }
+            .button-register {
+                height: 40px;
+                line-height: 40px;
+                font-size: 20px;
+                padding: 0 20px;
+                background: #4444FF;
+                display: inline-block;
+                color: white;
+            }
+            .button-register a {
+                color: inherit;
+                text-decoration: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+        
+
+        <main>
+            <br>
+            
+            <h1 class="main-heading"><span class="main-heading__underline">Secure</span> your login.</h1>
+
+            <br>
+
+            <div class="main-subheading">Connect your app securely with our platform.</div>
+
+            <br>
+
+            <div class="button-register"><a href="/register">Register</a></div>
+        </main>
+    </body>
+</html>

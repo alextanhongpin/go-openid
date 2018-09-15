@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Profile</title>
+        <link rel="stylesheet" type="text/css" href="/public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="/public/styles/components/header.css">
+        <style>
+            .input-group {
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+                margin: 0 0 10px;
+                justify-content: space-between;
+            }
+            .input-group label {
+                color: white;
+                font-size: 14px;
+                color: rgba(255, 255, 255, .6);
+                flex-basis: 200px;
+                line-height: 30px;
+            }
+            .input-group input {
+                background: #CCCCCC;
+                height: 30px;
+                border: none;
+                max-width: 240px;
+                width: 100%;
+                padding: 0 5px;
+                transition: .1s all ease-out;
+                outline: none;
+            }
+            .input-group input:focus {
+                background: white;
+            }
+
+            .form-group {
+                border: 1px solid #222222;
+                padding: 10px;
+
+            }
+
+            .main {
+                max-width: 570px;
+            }
+
+            .info {
+                font-size: 14px;
+            }
+            .text-fade {
+                color: rgba(255, 255, 255, .6);
+            }
+
+            .profile-photo {
+                height: 120px;
+                width: 120px;
+                background: #666666;
+                border: 3px solid white;
+                display: inline-block;
+            }
+            .profile-photo-wrapper {
+                text-align: center;
+            }
+
+            .button-wrapper {
+                text-align: right;
+            }
+
+            /* SIDEBAR START */
+            .sidebar {
+                background: #333;
+                position: absolute;
+                left: 0;
+                top: 20px;
+                width: 100%;
+            }
+            .sidebar-item {
+                height: 40px;
+                line-height: 40px;
+                font-size: 14px;
+                padding: 0 10px;
+                transition: .1s all ease-out;
+                border-left: 5px solid #333;
+            }
+            .sidebar-item:not(:last-child) {
+                border-bottom: 1px solid #222;
+            }
+            .sidebar-item.is-selected {
+                border-left: 5px solid rebeccapurple;
+                background: #666;
+            }
+            .sidebar-item:hover:not(.is-selected) {
+                background: #666;
+                border-left: 5px solid #666;
+            }
+
+            /* SIDEBAR END */
+
+            .container.flex {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+            .container.flex .aside {
+                max-width: 240px;
+                width: 100%;
+                padding: 20px 10px;
+                position: relative;
+            }
+            .container.flex .forms {
+                max-width: calc(100% - 240px);
+                width: 100%;
+                padding: 20px 10px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="">
+            <br>
+
+            <h1>Edit your profile</h1>
+
+            <br>
+
+            <div class="container flex">
+                <div class="aside">
+                    <div class="sidebar">
+                        <div class="sidebar-item is-selected">Profile</div>
+                        <div class="sidebar-item">Email</div>
+                        <div class="sidebar-item">Phone</div>
+                        <div class="sidebar-item">Address</div>
+                    </div>
+                </div>
+                <div class="forms">
+                    <div class="form-group profile">
+                        <h3>Profile</h3>
+                        <p class="text-fade">View your current profile</p>
+
+                        <br>
+
+                        <div class="profile-photo-wrapper">
+                            <div class="profile-photo"></div>
+                        </div>
+
+                        <br>
+
+                        <div class="input-group">
+                            <label for="">Name</label>
+                            <input type="text" name="profile.name" value="{{ with .Profile }}{{ .Name }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Family Name</label>
+                            <input type="text" name="profile.family_name" value="{{ with .Profile }}{{ .FamilyName }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Given Name</label>
+                            <input type="text" name="profile.given_name" value="{{ with .Profile }}{{ .GivenName }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Middle Name</label>
+                            <input type="text" name="profile.middle_name" value="{{ with .Profile }}{{ .MiddleName }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Nickname</label>
+                            <input type="text" name="profile.nickname" value="{{ with .Profile }}{{ .Nickname }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Preferred Username</label>
+                            <input type="text" name="profile.preferred_username" value="{{ with .Profile }}{{ .PreferredUsername }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Profile</label>
+                            <input type="text" name="profile.profile" value="{{ with .Profile }}{{ .Profile }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Picture</label>
+                            <input type="text" name="profile.picture" value="{{ with .Profile }}{{ .Picture }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Website</label>
+                            <input type="text" name="profile.website" value="{{ with .Profile }}{{ .Website }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Gender</label>
+                            <input type="text" name="profile.gender" value="{{ with .Profile }}{{ .Gender }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Birth Date</label>
+                            <input type="text" name="profile.birth_date" value="{{ with .Profile }}{{ .BirthDate }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Zone Info</label>
+                            <input type="text" name="profile.zone_info" value="{{ with .Profile }}{{ .ZoneInfo }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Locale</label>
+                            <input type="text" name="profile.locale" value="{{ with .Profile }}{{ .Locale }}{{ end }}">
+                        </div>
+                        
+                    </div>
+
+                    <br>
+
+                    <div class="form-group email">
+                        
+                        <h3>Email</h3>
+                        
+                        <br>
+
+                        <div class="info"><span class="text-fade">Email:</span> {{ .Email.Email }}</div>
+                        <div class="info"><span class="text-fade">Email Verified:</span> {{ .Email.EmailVerified }}</div>
+                        <div class="info"><span class="text-fade">Joined since</span> {{ .CreatedAt }}</div>
+                    </div>
+
+                    <br>
+
+                    <div class="form-group phone">
+                        <h3>Phone</h3>
+                        
+                        <br>
+
+                        <div class="input-group">
+                            <label for="">Phone Number</label>
+                            <input type="text" name="phone.phone_number" value="{{ with .Phone }}{{ .PhoneNumber }}{{ end }}"/>
+                        </div>
+                        <div>
+                            <div class="info">Is Verified: {{ with .Phone }}{{ .PhoneNumberVerified }}{{ end }}</div>
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="form-group address">
+                        <h3>Address</h3>
+                        
+                        <br>
+
+                        <div class="input-group">
+                            <label for="">Formatted</label>
+                            <input type="text" name="address.formatted" value="{{ with .Address }}{{ .Formatted }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Street Address</label>
+                            <input type="text" name="address.street_address" value="{{ with .Address }}{{ .StreetAddress }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Locality</label>
+                            <input type="text" name="address.locality" value="{{ with .Address }}{{ .Locality }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Region</label>
+                            <input type="text" name="address.region" value="{{ with .Address }}{{ .Region }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Postal Code</label>
+                            <input type="text" name="address.postal_code" value="{{ with .Address }}{{ .PostalCode }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Country</label>
+                            <input type="text" name="address.country" value="{{ with .Address }}{{ .Country }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Latitude</label>
+                            <input type="number" name="address.latitude" value="{{ with .Address }}{{ .Latitude }}{{ end }}">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="">Longitude</label>
+                            <input type="number" name="address.longitude" value="{{ with .Address }}{{ .Longitude }}{{ end }}">
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <div class="button-wrapper">
+                        <button id="submit" class="button button-primary">Update</button>
+                    </div>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                    <br>
+                </div>
+            </div>
+        </main>
+
+
+        <script src="/public/scripts/smoothscroll.js"></script>
+        <script>
+        
+            (function () {
+                'use strict'
+
+                const formGroup = document.querySelector('.forms')
+                const formGroupPositionsTop = [
+                    document.querySelector('.form-group.profile'),
+                    document.querySelector('.form-group.email'),
+                    document.querySelector('.form-group.phone'),
+                    document.querySelector('.form-group.address')
+                ].map((el) => el.offsetTop + 20)
+
+                const sidebar = document.querySelector('.sidebar')
+                const sidebarsItem = document.querySelectorAll('.sidebar-item')
+                const aside = document.querySelector('.aside').getBoundingClientRect()
+                const sidebarTop = sidebar.offsetHeight
+                const sidebarLeft = sidebar.offsetWidth
+
+                sidebarsItem.forEach((el, i) => {
+                    el.addEventListener('click', (evt) => {
+                        // window.scrollTo(0, formGroupPositionsTop[i] + 20)
+                        window.scroll({
+                            top: formGroupPositionsTop[i] + 20, 
+                            left: 0, 
+                            behavior: 'smooth' 
+                        })
+                        // window.scrollHeight = formGroupPositionsTop[i]
+                    }, false)
+                })
+                window.addEventListener('scroll', (evt) => {
+          
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+                    if (scrollTop > sidebarTop) {
+                        sidebar.style.position = 'fixed'
+                        sidebar.style.left = aside.left + 'px'
+                        sidebar.style.top = '20px'
+                        sidebar.style.width = '240px'
+                    } else {
+                        sidebar.style.position = 'absolute'
+                        sidebar.style.left = 0
+                        sidebar.style.top = '20px'
+                    }
+                        const selections = formGroupPositionsTop.map((top, index) => {
+                            sidebarsItem[index].classList.remove('is-selected')
+                            return [top, index]
+                        }).filter(([top, index]) => {
+                            return scrollTop > top
+                        })
+                        if (selections.length - 1 >= 0) {
+                            const [_, index] = selections[selections.length - 1]
+                            sidebarsItem[index].classList.add('is-selected')
+                        } else {
+                            sidebarsItem[0].classList.add('is-selected')
+
+                        }
+                }, false)
+                
+                document.getElementById('submit').addEventListener('click', (evt) => {
+                    const fields = [...document.querySelectorAll('input')].map((el) => {
+                        const key = el.getAttribute('name')
+                        let value = el.value
+                        if (key === 'address.latitude' || key === 'address.longitude') {
+                            value = parseFloat(el.value, 10)
+                        }
+                        return { key, value }
+                    }).reduce((prev, next) => {
+                        const nest = next.key.split('.')
+                        if (nest.length > 1) {
+                            // Nested object
+                            const key1 = nest[0]
+                            const key2 = nest[1]
+                            if (!prev[key1]) {
+                                prev[key1] = {}
+                            }
+                            prev[key1][key2] = next.value
+
+                            if (key2 === 'birth_date') {
+                                if  (!next.value) {
+                                    prev[key1][key2] = null
+                                } else if (next.value === '<nil>') {
+                                    prev[key1][key2] = null
+                                }
+                            }
+                        } else {
+                            prev[next.key] = next.value
+                        }
+                        return prev
+                    }, {})
+                    console.log('fields', fields)
+                    fetch('/api/users/{{ .ID.Hex }}', {
+                        method: 'PUT',
+                        body: JSON.stringify(fields),
+                        credentials: 'include',
+                        headers: {
+                            'content-type': 'application/json'
+                        }
+                    }).then((body) => {
+                        return body && body.json()
+                    }).then((success) => {
+                        console.log(success)
+                    }).catch((error) => {
+                        console.log(error)
+                    })
+                }, false)
+            })()
+        </script>
+    </body>
+</html>

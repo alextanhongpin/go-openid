@@ -1,0 +1,72 @@
+*, *:before, *:after {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: Avenir, Arial, sans-serif;
+    background:black;
+}
+
+main {
+    color: white;
+    padding: 0 20px;
+    max-width: 1140px;
+    width: 100%;
+    margin: auto;
+}
+
+.flex {
+    display: -webkit-flex;
+    display: -webkit-box;
+    display: flex;
+}
+.subheading {
+    color: rgba(255, 255, 255, .6);
+}
+.button-login {
+    height: 40px;
+    line-height: 40px;
+    border: 1px solid rgba(255, 255, 255 , .15);
+    padding: 0 20px;
+}
+.button-login a {
+    text-decoration: none;
+    color: inherit;
+}
+.button-login:hover {
+    border: 1px solid rgba(255, 255, 255 , .3);
+}
+.button {
+    height: 40px;
+    line-height: 40px;
+    padding: 0 20px;
+    border: none;
+    background: none;
+    color: white;
+    min-width: 120px;
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+    font-size: 16px;
+}
+.button a {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+}
+.button-ghost {
+    border: 1px solid rgba(255, 255 ,255, .15);
+}
+.button-ghost:hover {
+    border: 1px solid rgba(255, 255 ,255, .3);
+}
+
+.button-primary {
+    background: #4444FF;
+    border: 1px solid #4444FF;
+}
+
+.button-primary:hover {
+    background: #5555FF;
+}

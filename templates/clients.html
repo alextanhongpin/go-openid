@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Clients</title>
+        <link rel="stylesheet" type="text/css" href="../public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/header.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/forms.css">
+        <style>
+
+            .app-tile {
+                text-align: center;
+                display: inline-block;
+                padding: 10px;
+                border-radius: 5px;
+            }
+            .app-tile:hover {
+                background: #222;
+            }
+            .app-logo {
+                height: 80px;
+                width: 80px;
+                border-radius: 7px;
+                background: #888;
+                display: inline-block;
+            }
+            .app-brand {
+                font-size: 14px;
+            }
+            .app-tiles a {
+                text-decoration: none;
+                color: inherit;
+            }
+            .app-created-at {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+            }
+            .split-column {
+                display: -webkit-box;
+                display: -webkit-flex;
+                display: flex;
+                justify-content: space-between;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <br>
+            <h1>Developer Portal</h1>
+
+            <div class="split-column">
+                <div><p class="subheading">View the apps you created.</p></div>
+                <div class="button button-primary"><a class="" href="/connect/register">Create</a></div>
+            </div>
+            <br>
+
+            <div class="app-tiles">
+                {{ range .Data }}
+                    <a class="app-tile" href="/clients/{{ .ID.Hex }}">
+                        <div class="app-logo"></div>
+                        <div class="app-brand">{{ .ClientName }}</div>
+                        <div class="app-created-at">{{ .CreatedAt }}</div>
+                    </a>
+
+                {{ end }}
+            </div>
+        </main>
+    </body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Client Register</title>
+        <link rel="stylesheet" type="text/css" href="../public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/header.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/forms.css">
+        <style>
+
+            .app-logo-wrapper {
+                text-align: center;
+            }
+
+            .app-logo {
+                border-radius: 11px;
+                width: 100px;
+                height: 100px;
+                background: #999;
+                display: inline-block;
+            }
+            .app-logo-label {
+                line-height: 100px;
+                font-size: 14px;
+            }
+            .text-fade {
+                opacity: .6;
+            }
+            
+
+            x-tag {
+                color: black;
+                background: white;
+            }
+
+            x-tag::slotted(.tag-input){
+                display: inline-block;
+            }
+
+
+
+            x-tag::slotted(.tag-textfield) {
+                display: inline-block;
+            }
+
+        </style>
+    </head>
+    <body>
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <br>
+            <h1>Client Registration</h1>
+            <div class="subheading">Connect your application to GOID</div>
+
+            <br>
+
+
+            <div class="app-logo-wrapper">
+                <div>
+                    <div class="app-logo">
+                        <div class="app-logo-label">
+                            Upload Logo
+                        </div>
+                    </div>
+                </div>
+
+                <br>
+
+                <div class="text-fade">Register your application with GOID to allow other people to connect to you.</div>
+
+                <br>
+
+                <button class="button button-primary">Get Started</button>
+            </div>
+
+            <br>
+
+            <!--Place it in the secure client page-->
+            <div class="credentials">
+                <h3>Credentials</h3>
+                <div>
+                    <button>Refresh</button> <span class="text-fade"> Refresh your token. Note that all clients application will need to use the new credentials in order to operate.</span>
+                </div>
+                <br>
+                <p class="text-fade">Download your credentials <a href="something">here</a>. </p>
+                <br>
+                <div>
+                    <table class="credentials-table">
+                        <tbody>
+                            <tr>
+                                <td class="text-fade">Client ID</td>
+                                <td>********231f</td>
+                                <td><button class="">Copy</button></td>
+                            </tr>
+                            <tr>
+                                <td class="text-fade">Client Secret</td>
+                                <td>********231f</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="text-fade">API Version</td>
+                                <td>v0.0.1</td>
+                            </tr>
+                            <tr>
+                                <td class="text-fade">Last Modified</td>
+                                <td>Sat Jul 15 2017 13:52:20 GMT+0800 (+08)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <br>
+            </div>
+ 
+            <br>
+            {{ with .Data }}
+            <div class="form-group col-2">
+
+                <input type="hidden" name="_id" value="{{ .ID.Hex }}"/>
+
+                <h3 class="form-heading">Your Application Details</h3>
+              
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Client Name</label>
+                        <small>Give your application a unique name.</small>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your client name" name="client_name" value="{{ .ClientName }}"/>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Logo URI</label>
+                        <small>A link to your application logo. You can also upload an image.</small>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your logo uri link" name="logo_uri" value="{{ .ClientURI }}"/>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Redirect URIs</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your redirect uris, separated by comma" name="redirect_uris" value='{{ StringsJoin .RedirectURIs ", "}}' />
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Application Type</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Web | Native" name="application_type" value="{{ .ApplicationType }}"/>
+                        <select>
+                            <option value="Web">Web</option>
+                            <option value="Native">Native</option>
+                        </select>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Contacts</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter you emails separated by comma" name="contacts"/>
+                    </p>
+                </div>
+            </div>
+
+            <br>
+
+
+            <div class="form-group col-2">
+                <h3 class="form-heading">Terms and Policy</h3>
+              
+                <div class="input-group">
+                    <p>
+                        <label for="">Client URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your client uri" name="client_uri" value="{{ .ClientURI }}"/>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Policy URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your policy uri" name="policy_uri" value="{{ .PolicyURI }}"/>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">TOS URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your tos uri" name="tos_uri" value="{{ .TosURI }}"/>
+                    </p>
+                </div>
+
+            </div>
+
+
+            <x-tag data-items="a,b,c,">Value</x-tag>
+            <!--<br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Jwks URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your jwks uri" name="jwks_uri"/>
+                </p>
+            </div>
+
+            <br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Jwks</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your jwks" name="jwks"/>
+                </p>
+            </div>
+
+            <br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Sector Identifier URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your sector identified uri" name="sector_identified_uri"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Subject Type</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your subject type" name="subject_type"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Token Endpoint Auth Method</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your id token endpoint auth method" name="token_endpoint_auth_method"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Token Endpoint Auth Signing Alg</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your token endpoint auth signing alg" name="token_endpoint_auth_signing_alg"/>
+                </p>
+            </div>
+
+
+            <div class="input-group">
+                <p>
+                    <label for="">Initiate Login URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your initiate login uri" name="initiate_login_uri"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Request URIs</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your request uris" name="request_uris"/>
+                </p>
+            </div>-->
+            {{ end }}
+            <br>
+
+            <button id="submit" class="button button-primary">Update</button>
+            <button id="delete" class="button button-ghost">Delete</button>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+        </main>
+
+
+        <script>
+        
+            'use strict'
+
+            const id = document.querySelector('input[name=_id]').value
+            document.getElementById("submit").addEventListener("click", submitForm, false)
+
+            function submitForm() {
+                const fields = [
+                    '_id',
+                    'redirect_uris',
+                    'application_type',
+                    'contacts',
+                    'client_name',
+                    'logo_uri',
+                    'client_uri',
+                    'policy_uri',
+                    'tos_uri',
+                    // 'jwks_uri',
+                    // 'jwks',
+                    // 'sector_identified_uri',
+                    // 'subject_type',
+                    // 'token_endpoint_auth_method',
+                    // 'token_endpoint_auth_signing_alg',
+                    // 'initiate_login_uri',
+                    // 'request_uris'
+                ]
+
+                const request = fields.map((field) => {
+                    let value =  document.querySelector(`input[name=${field}]`).value || ''
+                    if (field === 'redirect_uris') {
+                        value = value.split(',').map((n) => n.trim()).filter(x => x)
+                    } else if (field === 'contacts') {
+                        value = value.split(',').map((n) => n.trim()).filter(x => x)
+                    }
+                    return {
+                        key: field,
+                        value: value
+                    }
+                }).reduce((prev, next) => {
+                    prev[next.key] = next.value
+                    return prev
+                }, {})
+
+                console.log(request)
+
+                fetch(`/connect/register/${id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(request),
+                    headers: {
+                        'content-type': 'application/json',
+                        'accept': 'application/json'
+                    }
+                }).then((body) => {
+                    return body && body.json()
+                }).then((data) => {
+                    if (data.ok) {
+                        window.alert('Successfully created a new client')
+                    }
+                    console.log(data)
+                }).catch((error) => {
+                    console.log(error)
+                })
+            }
+
+            document.getElementById("delete").addEventListener("click", (evt) => {
+                fetch(`/connect/register/${id}`, {
+                    method: "DELETE"
+                }).then((body) => {
+                    return body && body.json()
+                }).then((json) => {
+                    console.log(json)
+                }).catch((err) => {
+                    console.log(err)
+                })
+            }, false)
+
+            class XTag extends HTMLElement {
+                constructor() {
+                    super()
+
+                    const items = []
+
+                    const shadow = this.attachShadow({ mode: 'open' })
+                    const div = document.createElement('div')
+                    div.className = 'tag-textfield'
+
+                    const existingItems = this.getAttribute('data-items')
+                    if (existingItems.trim().length) {
+                        const found = existingItems.split(',').map((a) => a.trim()).filter(x => x)
+                        const unique = new Set(found)
+                        items.push(...unique)
+                        div.innerHTML = items.join(', ')
+                    }
+                    
+
+                    shadow.appendChild(div)
+
+                    // div.addEventListener('click', () => {
+                    //     window.alert('hello')
+                    // }, false)
+
+                    const input = document.createElement('input')
+                    input.className = 'tag-input'
+
+                    shadow.appendChild(input)
+
+                    let cached = ''
+                    input.addEventListener('keyup', (evt) => {
+                        const isEnter = evt.keyCode === 13
+                        const isDelete = evt.keyCode === 8
+                        if (isEnter && evt.currentTarget.value.trim().length) {
+                            if (items.includes(evt.currentTarget.value)) {
+                            input.value = ''
+                                return
+                            }
+                            items.push(evt.currentTarget.value)
+                            input.value = ''
+                            div.innerHTML = items.join(', ')
+                            this.setAttribute('data-items', items.join(', '))
+
+                            const customEvent = new CustomEvent('update', {
+                                detail: items.join(', ')
+                            })
+                            this.dispatchEvent(customEvent)
+                        }
+                        if (isDelete && items.length) {
+                            if (!cached.length) {
+                                items.pop()
+                                div.innerHTML = items.join(', ')
+                            }
+                        }
+                        cached = evt.currentTarget.value
+                    }, false)
+                }
+            }
+            customElements.define('x-tag', XTag)
+
+            const xtag = document.querySelector('x-tag')
+            
+            xtag.addEventListener('update', (evt) => {
+                console.log(evt.detail)
+            })
+
+
+        </script>
+    </body>
+</html>

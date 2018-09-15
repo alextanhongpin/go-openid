@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Users</title>
+
+        <link rel="stylesheet" type="text/css" href="/public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="/public/styles/components/header.css">
+        <style>
+
+
+            .table {
+                display: block;
+                width: 100%;
+            }
+
+            .tr {
+                display: -webkit-flex;
+                display: -webkit-box;
+                display: flex;
+            }
+            .td, .th {
+                flex-basis: 400px;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                overflow: hidden;
+            }
+            main {
+                max-width: 1140px;
+                width: 100%;
+                margin: auto;
+            }
+            .heading {
+                font-size: 30px;
+                font-weight: bold;
+            }
+            .subheading {
+                color: rgba(255, 255, 255, .6)
+            }
+            .thead {
+                text-transform: capitalize;
+                font-size: 14px;
+                font-weight: bold;
+                color: rgba(255, 255, 255, .6)
+            }
+            .tr {
+                border: 1px solid rgba(255, 255, 255 ,.15);
+                padding: 0 10px;
+                height: 40px;
+                line-height: 40px;
+            }
+            .button-create {
+                height: 40px;
+                line-height: 40px;
+                font-size: 20px;
+                padding: 0 20px;
+                background: #4444FF;
+                display: inline-block;
+                color: white;
+                border: none;
+            }
+           
+        </style>
+    </head>
+    <body>
+
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+        <main>
+            <div class="heading">Users</div>
+            <div class="subheading">View all registered users here</div>
+           
+            <br>
+
+            <div>
+                <button class="button-create">Add User</button>
+            </div>
+
+            <br>
+
+            <div>{{ .Count -}}&nbsp;User(s)</div>
+
+            <br>
+
+            <div class="table">
+                <div class="thead">
+                    <div class="tr">
+                        <div class="th">ID</div>
+                        <div class="th">Email</div>
+                        <div class="th">Created At</div>
+                        <div class="th">Updated At</div>
+                        <div class="th">Actions</div>
+                    </div>
+                </div>
+                <!--{{ .Data }}-->
+                <div class="tbody">
+                    {{ range .Data -}}
+                        <div class="tr" data-id="{{ .ID.Hex }}">
+                            <div class="td"><a href="/users/{{ .ID.Hex }}">{{ .ID.Hex }}</a></div>
+                            <div class="td">{{ .Email.Email }}</div>
+                            <div class="td">{{ .CreatedAt }}</div>
+                            <div class="td">
+                                {{ if .Profile }}
+                                    {{ .Profile.UpdatedAt }}
+                                {{ else }}
+                                    {{ "-" }} 
+                                {{end}}
+                            </div>
+                            <div class="td">
+                                <button class="button-delete" data-id="{{ .ID.Hex }}">Delete</button>
+                            </div>
+                        </div>
+                    {{- end }}
+                </div>
+            </div>
+        </main>
+
+        <script>
+        
+            'use strict'
+
+            const deleteButtons = document.querySelectorAll(".button-delete")
+            
+            deleteButtons.forEach((button) => {
+                button.addEventListener("click", (evt) => {
+                    const id = evt.currentTarget.dataset.id
+                    console.log(id)
+
+                    fetch(`/api/users/${id}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    }).then((body) => {
+                        return body && body.json()
+                    }).then((json) => {
+                        console.log(json)
+                        // Delete the row
+                        if (json.ok) {
+                            document.querySelector(`.tr[data-id='${id}']`).remove()
+                        } else if (json.error) {
+                            window.alert(json.message)
+                        }
+                    }).catch((err) => {
+                        console.log(err)
+                    })
+                }, false)
+            })
+
+        </script>
+
+    </body>
+</html>
+

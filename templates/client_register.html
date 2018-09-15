@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html>  
+    <head>
+        <title>Client Register</title>
+        <link rel="stylesheet" type="text/css" href="../public/styles/main.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/header.css">
+        <link rel="stylesheet" type="text/css" href="../public/styles/components/forms.css">
+        <style>
+            .app-logo-wrapper {
+                text-align: right;
+            }
+            .app-logo {
+                width: 160px;
+                height: 160px;
+                border: 3px solid white;
+                background: #888888;
+                display: inline-block;
+            }
+
+            @media (max-width: 640px) {
+                .app-logo-wrapper {
+                    text-align: center;
+                    padding-bottom: 30px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div class="header-wrapper">
+                <div class="header-brand">
+                    <a href="/">GOID</a>
+                    <span class="header-brand-superscript">OpenID Provider</span>
+                </div>
+
+                <div>
+                    <div class="header-links"></div>
+                    <div class="button-login"><a href="/login">Login</a></div>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <br>
+            <h1>Client Registration</h1>
+            <div class="subheading">Connect your application to GOID</div>
+
+            <br>
+
+            <div class="app-logo-wrapper">
+                <div class="app-logo"></div>
+            </div>
+
+            <div class="form-group col-2">
+
+                <h3 class="form-heading">Your Application Credentials</h3>
+              
+                <div class="input-group">
+                    <p>
+                        <label for="">Client Secret</label>
+                    </p>
+                    <p>
+                        <input type="password" placeholder="Enter your client name" name="client_secret" value="123456" readonly/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Client ID</label>
+                    </p>
+                    <p>
+                        <input type="password" placeholder="Enter your client name" name="client_id" value="123456" readonly/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">API Version</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="The api version" name="api_version" value="v1.5" readonly/>
+                    </p>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="form-group col-2">
+
+                <h3 class="form-heading">Your Application Details</h3>
+              
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Client Name</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your client name" name="client_name"/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Logo URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your logo uri link" name="logo_uri"/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Redirect URIs</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your redirect uris, separated by comma" name="redirect_uris"/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Application Type</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Web | Native" name="application_type"/>
+                    </p>
+                </div>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Contacts</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter you emails separated by comma" name="contacts"/>
+                    </p>
+                </div>
+            </div>
+
+            <br>
+
+
+            <div class="form-group col-2">
+                <h3 class="form-heading">Terms and Policy</h3>
+              
+                <div class="input-group">
+                    <p>
+                        <label for="">Client URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your client uri" name="client_uri"/>
+                    </p>
+                </div>
+
+                <br>
+                <br>
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">Policy URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your policy uri" name="policy_uri"/>
+                    </p>
+                </div>
+
+                <br>
+
+                <div class="input-group">
+                    <p>
+                        <label for="">TOS URI</label>
+                    </p>
+                    <p>
+                        <input type="text" placeholder="Enter your tos uri" name="tos_uri"/>
+                    </p>
+                </div>
+
+            </div>
+
+            <!--<br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Jwks URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your jwks uri" name="jwks_uri"/>
+                </p>
+            </div>
+
+            <br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Jwks</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your jwks" name="jwks"/>
+                </p>
+            </div>
+
+            <br>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Sector Identifier URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your sector identified uri" name="sector_identified_uri"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Subject Type</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your subject type" name="subject_type"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Token Endpoint Auth Method</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your id token endpoint auth method" name="token_endpoint_auth_method"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Token Endpoint Auth Signing Alg</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your token endpoint auth signing alg" name="token_endpoint_auth_signing_alg"/>
+                </p>
+            </div>
+
+
+            <div class="input-group">
+                <p>
+                    <label for="">Initiate Login URI</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your initiate login uri" name="initiate_login_uri"/>
+                </p>
+            </div>
+
+            <div class="input-group">
+                <p>
+                    <label for="">Request URIs</label>
+                </p>
+                <p>
+                    <input type="text" placeholder="Enter your request uris" name="request_uris"/>
+                </p>
+            </div>-->
+
+            <br>
+
+            <button id="submit" class="button button-primary">Update</button>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+        </main>
+
+
+        <script>
+        
+            'use strict'
+
+            document.getElementById("submit").addEventListener("click", submitForm, false)
+
+            function submitForm() {
+                const fields = [
+                    'redirect_uris',
+                    'application_type',
+                    'contacts',
+                    'client_name',
+                    'logo_uri',
+                    'client_uri',
+                    'policy_uri',
+                    'tos_uri',
+                    // 'jwks_uri',
+                    // 'jwks',
+                    // 'sector_identified_uri',
+                    // 'subject_type',
+                    // 'token_endpoint_auth_method',
+                    // 'token_endpoint_auth_signing_alg',
+                    // 'initiate_login_uri',
+                    // 'request_uris'
+                ]
+
+                const request = fields.map((field) => {
+                    let value =  document.querySelector(`input[name=${field}]`).value || ''
+                    if (field === 'redirect_uris') {
+                        value = value.split(',').map((n) => n.trim()).filter(x => x)
+                    } else if (field === 'contacts') {
+                        value = value.split(',').map((n) => n.trim()).filter(x => x)
+                    }
+                    return {
+                        key: field,
+                        value: value
+                    }
+                }).reduce((prev, next) => {
+                    prev[next.key] = next.value
+                    return prev
+                }, {})
+
+                console.log('request', request)
+
+                fetch('/connect/register', {
+                    method: 'POST',
+                    body: JSON.stringify(request),
+                    headers: {
+                        'content-type': 'application/json',
+                        'accept': 'application/json'
+                    }
+                }).then((body) => {
+                    const json = body && body.json()
+                    if (json) {
+                        window.alert('Successfully created a new client')
+                    }
+                    console.log(json)
+                }).catch((error) => {
+                    console.log(error)
+                })
+            }
+
+        </script>
+    </body>
+</html>

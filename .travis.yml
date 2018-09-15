@@ -1,0 +1,21 @@
+language: go
+sudo: false
+go:
+  - master
+
+services:
+  - go-openid
+
+# env:
+before_install:
+  - go get github.com/mattn/goveralls
+
+install:
+  - go get -v golang.org/x/crypto/bcrypt
+  - go get -v github.com/julienschmidt/httprouter
+  - go get -v github.com/dgrijalva/jwt-go
+  - go get -v gopkg.in/mgo.v2
+
+script:
+  - $HOME/gopath/bin/goveralls -service=travis-ci
+# - go test -v ./...

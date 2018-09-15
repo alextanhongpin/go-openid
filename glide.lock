@@ -1,0 +1,68 @@
+hash: 95d6d4f1df18fdc4776a740581bbd3682a922924f911ad9bc921245ee9c76e24
+updated: 2017-08-13T06:06:18.893062795+08:00
+imports:
+- name: github.com/apache/thrift
+  version: b2a4d4ae21c789b689dd162deb819665567f481c
+  subpackages:
+  - lib/go/thrift
+- name: github.com/asaskevich/govalidator
+  version: 15028e809df8c71964e8efa6c11e81d5c0262302
+- name: github.com/codahale/hdrhistogram
+  version: 3a0bb77429bd3a61596f5e8a3172445844342120
+- name: github.com/dgrijalva/jwt-go
+  version: a539ee1a749a2b895533f979515ac7e6e0f5b650
+- name: github.com/go-redis/redis
+  version: 7a034e1609674d5eb847c3885e5058c54e79a1df
+  subpackages:
+  - internal
+  - internal/consistenthash
+  - internal/hashtag
+  - internal/pool
+  - internal/proto
+- name: github.com/julienschmidt/httprouter
+  version: 975b5c4c7c21c0e3d2764200bf2aa8e34657ae6e
+- name: github.com/opentracing/opentracing-go
+  version: 1949ddbfd147afd4d964a9f00b24eb291e0e7c38
+  subpackages:
+  - ext
+  - log
+- name: github.com/openzipkin/zipkin-go-opentracing
+  version: a3f24586d6771f7a52012fc17b05a3f781592173
+  subpackages:
+  - thrift/gen-go/zipkincore
+- name: github.com/uber/jaeger-client-go
+  version: 377c5872ffb7b70ac7819205339019dbe9e9f4f2
+  subpackages:
+  - config
+  - internal/baggage
+  - internal/baggage/remote
+  - internal/spanlog
+  - log
+  - rpcmetrics
+  - thrift-gen/agent
+  - thrift-gen/baggage
+  - thrift-gen/jaeger
+  - thrift-gen/sampling
+  - thrift-gen/zipkincore
+  - utils
+- name: github.com/uber/jaeger-lib
+  version: e3c1d3b562900c6ac0a7ded654cb95d88e72b63e
+  subpackages:
+  - metrics
+- name: golang.org/x/crypto
+  version: b176d7def5d71bdd214203491f89843ed217f420
+  subpackages:
+  - bcrypt
+  - blowfish
+- name: golang.org/x/net
+  version: f5079bd7f6f74e23c4d65efa0f4ce14cbd6a3c0f
+  subpackages:
+  - context
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  subpackages:
+  - bson
+  - internal/json
+  - internal/sasl
+  - internal/scram
+testImports: []

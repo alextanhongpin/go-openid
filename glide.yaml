@@ -1,0 +1,21 @@
+package: github.com/alextanhongpin/go-openid
+import:
+- package: github.com/asaskevich/govalidator
+- package: github.com/dgrijalva/jwt-go
+- package: github.com/go-redis/redis
+- package: github.com/julienschmidt/httprouter
+- package: github.com/opentracing/opentracing-go
+  subpackages:
+  - log
+- package: github.com/openzipkin/zipkin-go-opentracing
+  subpackages:
+  - thrift/gen-go/zipkincore
+- package: github.com/uber/jaeger-client-go
+  subpackages:
+  - config
+- package: golang.org/x/crypto
+  subpackages:
+  - bcrypt
+- package: gopkg.in/mgo.v2
+  subpackages:
+  - bson

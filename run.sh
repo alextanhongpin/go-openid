@@ -1,0 +1,1 @@
+go run main.go --dsn $(ipconfig getifaddr en0):27017
