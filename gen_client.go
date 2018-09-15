@@ -9,13 +9,13 @@ import (
 // MarshalJSON marshals as JSON.
 func (c Client) MarshalJSON() ([]byte, error) {
 	type Client struct {
-		ApplicationType              string       `json:"application_type,omitempty"`
+		ApplicationType              string       `json:"application_type,omitempty" valid:"in(web|native)"`
 		ClientName                   string       `json:"client_name,omitempty"`
-		ClientURI                    string       `json:"client_uri,omitempty"`
-		Contacts                     []string     `json:"contacts,omitempty"`
+		ClientURI                    string       `json:"client_uri,omitempty" valid:"url,optional"`
+		Contacts                     []string     `json:"contacts,omitempty" valid:"email"`
 		DefaultAcrValues             string       `json:"default_acr_values,omitempty"`
 		DefaultMaxAge                int64        `json:"default_maxa_age,omitempty"`
-		GrantTypes                   []string     `json:"grant_types,omitempty"`
+		GrantTypes                   []string     `json:"grant_types,omitempty" valid:"in(Authorization_code|implicit|refresh_token)"`
 		IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg,omitempty"`
 		IDTokenEncryptedResponseEnc  string       `json:"id_token_encryption_response_enc,omitempty"`
 		IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg,omitempty"`
@@ -87,13 +87,13 @@ func (c Client) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON unmarshals from JSON.
 func (c *Client) UnmarshalJSON(input []byte) error {
 	type Client struct {
-		ApplicationType              *string       `json:"application_type,omitempty"`
+		ApplicationType              *string       `json:"application_type,omitempty" valid:"in(web|native)"`
 		ClientName                   *string       `json:"client_name,omitempty"`
-		ClientURI                    *string       `json:"client_uri,omitempty"`
-		Contacts                     []string      `json:"contacts,omitempty"`
+		ClientURI                    *string       `json:"client_uri,omitempty" valid:"url,optional"`
+		Contacts                     []string      `json:"contacts,omitempty" valid:"email"`
 		DefaultAcrValues             *string       `json:"default_acr_values,omitempty"`
 		DefaultMaxAge                *int64        `json:"default_maxa_age,omitempty"`
-		GrantTypes                   []string      `json:"grant_types,omitempty"`
+		GrantTypes                   []string      `json:"grant_types,omitempty" valid:"in(Authorization_code|implicit|refresh_token)"`
 		IDTokenEncryptedResponseAlg  *string       `json:"id_token_encrypted_response_alg,omitempty"`
 		IDTokenEncryptedResponseEnc  *string       `json:"id_token_encryption_response_enc,omitempty"`
 		IDTokenSignedResponseAlg     *string       `json:"id_token_signed_response_alg,omitempty"`

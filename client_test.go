@@ -1,9 +1,11 @@
 package oidc_test
 
 import (
+	"log"
 	"testing"
 
 	"github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,13 +39,64 @@ func TestUnmarshallClientJSON(t *testing.T) {
 	c := oidc.ClientRegistrationRequest{}
 
 	err := c.UnmarshalJSON(body)
+	log.Println(c)
 	assert.Nil(err)
 
-	err = c.Validate()
-	assert.Nil(err)
+	// ok, err := govalidator.ValidateStruct(&c)
+	// assert.Nil(err)
+	// log.Println(ok)
+	// err = c.Validate()
+	// assert.Nil(err)
 
-	assert.Equal("web", c.ApplicationType)
+	s, _ := schema.New()
+	result, err := s.Validate("client-metadata", c)
+	assert.Nil(err)
+	log.Println(result, err)
+	if !result.Valid() {
+		for _, err := range result.Errors() {
+			log.Println(err)
+		}
+	}
+
+	result, err = s.Validate("client-registration-response", c)
+	assert.Nil(err)
+	log.Println(result, err)
+	if !result.Valid() {
+		for _, err := range result.Errors() {
+			log.Println(err)
+		}
+	}
+
 }
+
+// {
+//   "client_id": "s6BhdRkqt3",
+//   "client_secret": "ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk",
+//   "client_secret_expires_at": 1577858400,
+//   "registration_access_token": "this.is.an.access.token.value.ffx83",
+//   "registration_client_uri": "https://server.example.com/connect/register?client_id=s6BhdRkqt3",
+//   "token_endpoint_auth_method": "client_secret_basic",
+//   "application_type": "web",
+//   "redirect_uris": [
+//     "https://client.example.org/callback",
+//     "https://client.example.org/callback2"
+//   ],
+//   "client_name": "My Example",
+//   "client_name#ja-Jpan-JP": "クライアント名",
+//   "logo_uri": "https://client.example.org/logo.png",
+//   "subject_type": "pairwise",
+//   "sector_identifier_uri": "https://other.example.net/file_of_redirect_uris.json",
+//   "jwks_uri": "https://client.example.org/my_public_keys.jwks",
+//   "userinfo_encrypted_response_alg": "RSA1_5",
+//   "userinfo_encrypted_response_enc": "A128CBC-HS256",
+//   "contacts": [
+//     "ve7jtb@example.org",
+//     "mary@example.org"
+//   ],
+//   "request_uris": [
+//     "https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"
+//   ]
+// }
 
 // func makeAccessTokenRequest () {
 // 	t := &http.Transport{

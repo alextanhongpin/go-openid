@@ -7,7 +7,12 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+func init() {
+	// govalidator.SetFieldsRequiredByDefault(true)
+}
+
 //go:generate gencodec -type Client -out gen_client.go
+//go:generate gencodec -type ClientRegistrationResponse -out gen_client_registration_response.go
 
 // ClientRegistrationEndpoint represents the client registration endpoint.
 const ClientRegistrationEndpoint = "/connect/register"
@@ -45,12 +50,12 @@ type Client struct {
 	UserinfoEncryptedResponseAlg string       `json:"userinfo_encrypted_response_alg,omitempty"`
 	UserinfoEncryptedResponseEnc string       `json:"userinfo_encrypted_response_enc,omitempty"`
 	UserinfoSignedResponseAlg    string       `json:"userinfo_signed_response_alg,omitempty"`
-	// Private read-only fields.
-	ClientID                string `json:"-"`
-	ClientIDIssuedAt        int64  `json:"-"`
-	ClientSecret            string `json:"-"`
-	ClientSecretExpiresAt   int64  `json:"-"`
-	RegistrationAccessToken string `json:"-"`
+	ClientID                     string       `json:"client_id,omitempty"`
+	ClientIDIssuedAt             int64        `json:"client_id_issued_at,omitempty"`
+	ClientSecret                 string       `json:"client_secret,omitempty"`
+	ClientSecretExpiresAt        int64        `json:"client_secret_expires_at,omitempty"`
+	RegistrationAccessToken      string       `json:"registration_access_token,omitempty"`
+	RegistrationClientURI        string       `json:"registration_client_uri,omitempty"`
 }
 
 type ClientRegistrationRequest = Client
