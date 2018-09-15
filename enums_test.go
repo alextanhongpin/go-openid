@@ -10,20 +10,29 @@ func TestScope(t *testing.T) {
 	assert := assert.New(t)
 
 	s := "address email"
-	si := checkScope(s)
+	si := parseScope(s)
 
 	assert.True(si.Has(ScopeAddress))
 	assert.True(si.Has(ScopeEmail))
 	assert.True(!si.Has(ScopeOpenID))
 
 	s = "  "
-	si = checkScope(s)
-
+	si = parseScope(s)
 	assert.True(si.Has(ScopeNone))
 
-	s = " profile address eml openid"
-	si = checkScope(s)
+	s = ""
+	si = parseScope(s)
+	assert.True(si.Has(ScopeNone))
 
+	s = "a b c xy y z"
+	si = parseScope(s)
+	assert.True(si.Has(ScopeNone))
+
+	// Can handle duplicates!
+	s = "profile profile address eml openid"
+	si = parseScope(s)
+
+	assert.True(!si.Has(ScopeNone), "should not have scope none")
 	assert.True(si.Has(ScopeAddress))
 	assert.True(si.Has(ScopeProfile))
 	assert.True(si.Has(ScopeOpenID))

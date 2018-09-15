@@ -2,7 +2,6 @@ package oidc
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/asaskevich/govalidator"
 )
@@ -36,7 +35,7 @@ func (a *AuthenticationRequest) Validate(state string, uris []string) error {
 	if err := a.ValidateScope(); err != nil {
 		return err
 	}
-	if err := a.VerifyResponseType(); err != nil {
+	if err := a.ValidateResponseType(); err != nil {
 		return err
 	}
 	if err := a.VerifyRedirectURI(uris); err != nil {
@@ -58,12 +57,12 @@ func (a *AuthenticationRequest) ValidateScope() error {
 	return validateScope(a.Scope)
 }
 
-func (a *AuthenticationRequest) VerifyResponseType() error {
+func (a *AuthenticationRequest) ValidateResponseType() error {
 	// REQUIRED. OAuth 2.0 Response Type value that determines the
 	// authorization processing flow to be used, including what parameters
 	// are returned from the endpoints used. When using the Authorization
 	// Code Flow, this value is code.
-	return validResponseType(a.ResponseType)
+	return validateResponseType(a.ResponseType)
 }
 
 type ClientValidator func(clientID string) error
@@ -86,7 +85,7 @@ func (a *AuthenticationRequest) VerifyRedirectURI(uris RedirectURIs) error {
 	// this case. The Redirection URI MAY use an alternate scheme, such as
 	// one that is intended to identify a callback into a native
 	// application.
-	return validRedirectURI(a.RedirectURI, uris)
+	return validateRedirectURI(a.RedirectURI, uris)
 }
 
 func (a *AuthenticationRequest) VerifyState(state string) error {
@@ -111,27 +110,37 @@ type AuthenticationResponse struct {
 	TokenType   string  `json:"token_type,omitempty"`
 }
 
+// -- helpers
+
 func validateScope(scope string) error {
 	if scope == "" {
 		return errors.New("scope required")
 	}
-	if !strings.Contains(scope, "openid") {
+	if !parseScope(scope).Has(ScopeOpenID) {
 		return errors.New("invalid scope")
 	}
 	return nil
 }
 
-func validResponseType(responseType string) error {
+func validateResponseType(responseType string) error {
 	if responseType == "" {
 		return errors.New("response_type required")
 	}
-	if !strings.Contains("code id_token token", responseType) {
+
+	var (
+		a = ResponseTypeCode
+		b = ResponseTypeIDToken
+		c = ResponseTypeToken
+	)
+
+	parsed := parseResponseType(responseType)
+	if !parsed.OneOf(a, b, c) {
 		return errors.New("invalid response_type")
 	}
 	return nil
 }
 
-func validRedirectURI(redirectURI string, list RedirectURIs) error {
+func validateRedirectURI(redirectURI string, list RedirectURIs) error {
 	if !govalidator.IsURL(redirectURI) {
 		return errors.New("redirect_uri invalid")
 	}
@@ -141,44 +150,7 @@ func validRedirectURI(redirectURI string, list RedirectURIs) error {
 	return nil
 }
 
-// struct memory allocation = 0, interface{} = 8, bool = 1
-var displaymap = map[string]struct{}{
-	"page":  struct{}{},
-	"popup": struct{}{},
-	"touch": struct{}{},
-	"wap":   struct{}{},
-}
-
 func verifyDisplay(display string) bool {
 	_, ok := displaymap[display]
 	return ok
-}
-
-type Prompt int
-
-const (
-	PromptNone Prompt = 1 << iota
-	PromptConsent
-	PromptLogin
-	PromptSelectAccount
-)
-
-var promptmap = map[string]Prompt{
-	"none":           PromptNone,
-	"login":          PromptLogin,
-	"consent":        PromptConsent,
-	"select_account": PromptSelectAccount,
-}
-
-func checkPrompt(prompt string) (i Prompt) {
-	ps := strings.Split(prompt, " ")
-	for _, p := range ps {
-		if v, exist := promptmap[p]; exist {
-			i |= v
-		}
-	}
-	if i == 0 {
-		i |= PromptNone
-	}
-	return
 }

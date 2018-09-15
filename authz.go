@@ -1,10 +1,13 @@
 package oidc
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
 )
+
+// TODO: Remove the enum-based error; use custom error struct instead.
 
 // ErrorCode represents the ErrorCode.
 type ErrorCode int
@@ -71,21 +74,42 @@ type AuthorizationRequest struct {
 // Validate performs validation on required fields.
 func (r *AuthorizationRequest) Validate() error {
 	// Required fields
-	if r.ResponseType != "code" {
-		return UnsupportedResponseType.JSON()
+	if err := validateAuthzResponseType(r.ResponseType); err != nil {
+		return err
 	}
-	if strings.TrimSpace(r.ClientID) == "" {
-		return AccessDenied.JSON()
+	if err := validateAuthzClientID(r.ClientID); err != nil {
+		return err
 	}
-	// Optional fields
-	if strings.TrimSpace(r.RedirectURI) == "" {
-		return InvalidRedirectURI.JSON()
+
+	if err := validateAuthzRedirectURI(r.RedirectURI); err != nil {
+		return err
 	}
-	if !govalidator.IsURL(r.RedirectURI) {
-		return InvalidRedirectURI.JSON()
+	// if strings.TrimSpace(r.Scope) == "" {
+	//         return InvalidScope.JSON()
+	// }
+	return nil
+}
+
+func validateAuthzResponseType(in string) error {
+	parsed := parseResponseType(in)
+	if !parsed.Is(ResponseTypeCode) {
+		desc := fmt.Sprintf(`"%s" is not a valid response_type`, in)
+		return ErrUnsupportedResponseType.WithDescription(desc)
 	}
-	if strings.TrimSpace(r.Scope) == "" {
-		return InvalidScope.JSON()
+	return nil
+}
+
+func validateAuthzClientID(id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrAccessDenied.WithDescription("client_id cannot be empty")
+	}
+	return nil
+}
+
+func validateAuthzRedirectURI(in string) error {
+	if !govalidator.IsURL(in) {
+		return ErrInvalidRequest.WithDescription("redirect_uri format is invalid")
 	}
 	return nil
 }
