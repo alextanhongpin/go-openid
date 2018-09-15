@@ -20,7 +20,7 @@ type CodeRepo interface {
 
 // UserRepo represents the operations for the user repository.
 type UserRepo interface {
-	Get(id string) (*oidc.StandardClaims, bool)
-	Put(id string, user *oidc.StandardClaims)
+	Get(id string) (*oidc.IDToken, bool)
+	Put(id string, user *oidc.IDToken)
 	Delete(id string)
 }

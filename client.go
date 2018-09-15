@@ -1,6 +1,13 @@
 package oidc
 
+import jwt "github.com/dgrijalva/jwt-go"
+
 //go:generate gencodec -type Client -out gen_client.go
+
+type ClientToken struct {
+	*jwt.StandardClaims
+	ClientID string
+}
 
 // Client represents the OIDC Client Metadata.
 type Client struct {
@@ -45,6 +52,12 @@ type Client struct {
 // NewClient returns a new client with the given name.
 func NewClient(name string) *Client {
 	return &Client{ClientName: name}
+}
+
+func (c *Client) Copy() *Client {
+	copy := new(Client)
+	*copy = *c
+	return copy
 }
 
 // -- redirect uris
