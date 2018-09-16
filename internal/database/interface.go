@@ -7,8 +7,9 @@ type ClientRepo interface {
 	Get(name string) (*oidc.Client, bool)
 	GetByID(id string) *oidc.Client
 	GetByIDAndSecret(id, secret string) *oidc.Client
-	Put(id string, client *oidc.Client)
+	Put(id string, client *oidc.Client) error
 	Delete(name string)
+	Has(id string) bool
 }
 
 // CodeRepo represents the operations for the code repository.

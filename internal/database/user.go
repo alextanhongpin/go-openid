@@ -9,18 +9,18 @@ import (
 // UserKV represents the in-memory store for user.
 type UserKV struct {
 	sync.RWMutex
-	db map[string]*oidc.StandardClaims
+	db map[string]*oidc.IDToken
 }
 
 // NewUserKV returns a new user key-value store.
 func NewUserKV() *UserKV {
 	return &UserKV{
-		db: make(map[string]*oidc.StandardClaims),
+		db: make(map[string]*oidc.IDToken),
 	}
 }
 
 // Get returns a user by id.
-func (u *UserKV) Get(id string) (*oidc.StandardClaims, bool) {
+func (u *UserKV) Get(id string) (*oidc.IDToken, bool) {
 	u.RLock()
 	user, exist := u.db[id]
 	u.RUnlock()
@@ -28,7 +28,7 @@ func (u *UserKV) Get(id string) (*oidc.StandardClaims, bool) {
 }
 
 // Put stores the user in the db by the given id.
-func (u *UserKV) Put(id string, user *oidc.StandardClaims) {
+func (u *UserKV) Put(id string, user *oidc.IDToken) {
 	u.Lock()
 	u.db[id] = user
 	u.Unlock()

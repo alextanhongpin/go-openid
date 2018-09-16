@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
@@ -17,15 +18,30 @@ type ClientValidator interface {
 	Validate(client *oidc.Client) error
 }
 
-func RegisterClient(repo ClientRepository, validator ClientValidator, client *oidc.Client) (*oidc.Client, error) {
+type ClientHelper interface {
+	NewDuration() time.Duration
+	NewTime() time.Time
+	NewClientID() string
+	NewClientSecret(clientID string, duration time.Duration) string
+}
+
+func RegisterClient(
+	client *oidc.Client,
+	helper ClientHelper,
+	repo ClientRepository,
+	validator ClientValidator,
+) (*oidc.Client, error) {
+	if client == nil {
+		return nil, errors.New("empty client")
+	}
 	// Checking to prevent nil pointer
 	client = client.Copy()
 
 	var (
-		dur      = 10 * time.Minute
-		now      = time.Now().UTC()
+		dur      = helper.NewDuration()
+		now      = helper.NewTime()
 		exp      = now.Add(dur)
-		clientID = newClientID()
+		clientID = helper.NewClientID()
 		attempts = 3
 	)
 
@@ -35,11 +51,11 @@ func RegisterClient(repo ClientRepository, validator ClientValidator, client *oi
 			// Break when the id is unique.
 			break
 		}
-		clientID = newClientID()
+		clientID = helper.NewClientID()
 	}
 
 	// Generate client id, client secret
-	clientSecret := newClientSecret(clientID, dur)
+	clientSecret := helper.NewClientSecret(clientID, dur)
 
 	client.ClientID = clientID
 	client.ClientSecret = clientSecret
@@ -59,12 +75,4 @@ func RegisterClient(repo ClientRepository, validator ClientValidator, client *oi
 	}
 
 	return client, nil
-}
-
-func newClientID() string {
-	return "abc"
-}
-
-func newClientSecret(clientID string, duration time.Duration) (clientSecret string) {
-	return ""
 }

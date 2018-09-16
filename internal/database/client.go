@@ -40,6 +40,13 @@ func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
 	return
 }
 
+func (c *ClientKV) Has(id string) bool {
+	c.RLock()
+	_, ok := c.db[id]
+	c.RUnlock()
+	return ok
+}
+
 // GetByIDAndSecret returns the client by client id and client secret.
 func (c *ClientKV) GetByIDAndSecret(id, secret string) (client *oidc.Client) {
 	c.RLock()
@@ -54,10 +61,11 @@ func (c *ClientKV) GetByIDAndSecret(id, secret string) (client *oidc.Client) {
 }
 
 // Put insert a new client by id.
-func (c *ClientKV) Put(name string, client *oidc.Client) {
+func (c *ClientKV) Put(id string, client *oidc.Client) error {
 	c.Lock()
-	c.db[name] = client
+	c.db[id] = client
 	c.Unlock()
+	return nil
 }
 
 // Delete removes a client from the store.
