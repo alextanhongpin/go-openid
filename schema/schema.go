@@ -7,6 +7,14 @@ import (
 	jsonschema "github.com/xeipuuv/gojsonschema"
 )
 
+// Result represents an alias to the jsonschema.Result type.
+type Result = jsonschema.Result
+
+// Validator represents the interface for validation.
+type Validator interface {
+	Validate(data interface{}) (*Result, error)
+}
+
 type SchemaKey string
 
 type Schema struct {
@@ -21,8 +29,8 @@ func New() (*Schema, error) {
 	)
 
 	loader := make(map[SchemaKey]jsonschema.JSONLoader)
-	loader[cm] = jsonschema.NewStringLoader(clientMetadata)
-	loader[crr] = jsonschema.NewStringLoader(clientRegistrationResponse)
+	loader[cm] = jsonschema.NewStringLoader(clientJSON)
+	loader[crr] = jsonschema.NewStringLoader(clientRegistrationResponseJSON)
 
 	schema := make(map[SchemaKey]*jsonschema.Schema)
 
@@ -30,7 +38,7 @@ func New() (*Schema, error) {
 		loader: loader,
 		schema: schema,
 	}
-	if err := s.loadOne(cm, clientMetadata); err != nil {
+	if err := s.loadOne(cm, clientJSON); err != nil {
 		return nil, err
 	}
 	if err := s.loadDependent(cm, crr); err != nil {

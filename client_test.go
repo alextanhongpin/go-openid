@@ -36,7 +36,7 @@ func TestUnmarshallClientJSON(t *testing.T) {
 		]
 	}`)
 
-	c := oidc.ClientRegistrationRequest{}
+	c := oidc.Client{}
 
 	err := c.UnmarshalJSON(body)
 	log.Println(c)
@@ -63,7 +63,7 @@ func TestUnmarshallClientJSON(t *testing.T) {
 	log.Println(result, err)
 	if !result.Valid() {
 		for _, err := range result.Errors() {
-			log.Println(err)
+			log.Printf("%+v", err)
 		}
 	}
 

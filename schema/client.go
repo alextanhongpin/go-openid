@@ -1,8 +1,47 @@
 package schema
 
-var clientMetadata = `
+import (
+	"fmt"
+
+	jsonschema "github.com/xeipuuv/gojsonschema"
+)
+
+// ClientValidator represents the struct to validate client metadata.
+type ClientValidator struct {
+	schema *jsonschema.Schema
+}
+
+// NewClientValidator returns a new pointer to the
+// ClientValidator.
+func NewClientValidator() (*ClientValidator, error) {
+	schema, err := loadSchema(clientJSON)
+	return &ClientValidator{schema}, err
+}
+func loadSchema(source string) (*jsonschema.Schema, error) {
+	loader := jsonschema.NewStringLoader(source)
+	return jsonschema.NewSchema(loader)
+}
+func validate(schema *jsonschema.Schema, data interface{}) (*Result, error) {
+	result, err := schema.Validate(jsonschema.NewGoLoader(data))
+	if err != nil {
+		return nil, err
+	}
+	if !result.Valid() {
+		err := result.Errors()[0]
+		return result, fmt.Errorf("%s: %s", err.Field(), err.Description())
+	}
+	return result, nil
+}
+
+// Validate validates the given client metadata and returns the corresponding
+// errors.
+func (c *ClientValidator) Validate(data interface{}) (*Result, error) {
+	return validate(c.schema, data)
+}
+
+var clientJSON = `
 {
-	"$id": "client-metadata.json",
+	"$id": "http://server.example.com/schemas/client.json",
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"description": "Client Metadata according to the OIDC Client Registration Specification",
 	"type": "object",

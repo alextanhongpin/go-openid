@@ -9,13 +9,13 @@ import (
 // MarshalJSON marshals as JSON.
 func (c Client) MarshalJSON() ([]byte, error) {
 	type Client struct {
-		ApplicationType              string       `json:"application_type,omitempty" valid:"in(web|native)"`
+		ApplicationType              string       `json:"application_type,omitempty"`
 		ClientName                   string       `json:"client_name,omitempty"`
-		ClientURI                    string       `json:"client_uri,omitempty" valid:"url,optional"`
-		Contacts                     []string     `json:"contacts,omitempty" valid:"email"`
+		ClientURI                    string       `json:"client_uri,omitempty"`
+		Contacts                     []string     `json:"contacts,omitempty"`
 		DefaultAcrValues             string       `json:"default_acr_values,omitempty"`
 		DefaultMaxAge                int64        `json:"default_maxa_age,omitempty"`
-		GrantTypes                   []string     `json:"grant_types,omitempty" valid:"in(Authorization_code|implicit|refresh_token)"`
+		GrantTypes                   []string     `json:"grant_types,omitempty"`
 		IDTokenEncryptedResponseAlg  string       `json:"id_token_encrypted_response_alg,omitempty"`
 		IDTokenEncryptedResponseEnc  string       `json:"id_token_encryption_response_enc,omitempty"`
 		IDTokenSignedResponseAlg     string       `json:"id_token_signed_response_alg,omitempty"`
@@ -39,11 +39,12 @@ func (c Client) MarshalJSON() ([]byte, error) {
 		UserinfoEncryptedResponseAlg string       `json:"userinfo_encrypted_response_alg,omitempty"`
 		UserinfoEncryptedResponseEnc string       `json:"userinfo_encrypted_response_enc,omitempty"`
 		UserinfoSignedResponseAlg    string       `json:"userinfo_signed_response_alg,omitempty"`
-		ClientID                     string       `json:"-"`
-		ClientIDIssuedAt             int64        `json:"-"`
-		ClientSecret                 string       `json:"-"`
-		ClientSecretExpiresAt        int64        `json:"-"`
-		RegistrationAccessToken      string       `json:"-"`
+		ClientID                     string       `json:"client_id,omitempty"`
+		ClientIDIssuedAt             int64        `json:"client_id_issued_at,omitempty"`
+		ClientSecret                 string       `json:"client_secret,omitempty"`
+		ClientSecretExpiresAt        int64        `json:"client_secret_expires_at,omitempty"`
+		RegistrationAccessToken      string       `json:"registration_access_token,omitempty"`
+		RegistrationClientURI        string       `json:"registration_client_uri,omitempty"`
 	}
 	var enc Client
 	enc.ApplicationType = c.ApplicationType
@@ -81,19 +82,20 @@ func (c Client) MarshalJSON() ([]byte, error) {
 	enc.ClientSecret = c.ClientSecret
 	enc.ClientSecretExpiresAt = c.ClientSecretExpiresAt
 	enc.RegistrationAccessToken = c.RegistrationAccessToken
+	enc.RegistrationClientURI = c.RegistrationClientURI
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (c *Client) UnmarshalJSON(input []byte) error {
 	type Client struct {
-		ApplicationType              *string       `json:"application_type,omitempty" valid:"in(web|native)"`
+		ApplicationType              *string       `json:"application_type,omitempty"`
 		ClientName                   *string       `json:"client_name,omitempty"`
-		ClientURI                    *string       `json:"client_uri,omitempty" valid:"url,optional"`
-		Contacts                     []string      `json:"contacts,omitempty" valid:"email"`
+		ClientURI                    *string       `json:"client_uri,omitempty"`
+		Contacts                     []string      `json:"contacts,omitempty"`
 		DefaultAcrValues             *string       `json:"default_acr_values,omitempty"`
 		DefaultMaxAge                *int64        `json:"default_maxa_age,omitempty"`
-		GrantTypes                   []string      `json:"grant_types,omitempty" valid:"in(Authorization_code|implicit|refresh_token)"`
+		GrantTypes                   []string      `json:"grant_types,omitempty"`
 		IDTokenEncryptedResponseAlg  *string       `json:"id_token_encrypted_response_alg,omitempty"`
 		IDTokenEncryptedResponseEnc  *string       `json:"id_token_encryption_response_enc,omitempty"`
 		IDTokenSignedResponseAlg     *string       `json:"id_token_signed_response_alg,omitempty"`
@@ -117,11 +119,12 @@ func (c *Client) UnmarshalJSON(input []byte) error {
 		UserinfoEncryptedResponseAlg *string       `json:"userinfo_encrypted_response_alg,omitempty"`
 		UserinfoEncryptedResponseEnc *string       `json:"userinfo_encrypted_response_enc,omitempty"`
 		UserinfoSignedResponseAlg    *string       `json:"userinfo_signed_response_alg,omitempty"`
-		ClientID                     *string       `json:"-"`
-		ClientIDIssuedAt             *int64        `json:"-"`
-		ClientSecret                 *string       `json:"-"`
-		ClientSecretExpiresAt        *int64        `json:"-"`
-		RegistrationAccessToken      *string       `json:"-"`
+		ClientID                     *string       `json:"client_id,omitempty"`
+		ClientIDIssuedAt             *int64        `json:"client_id_issued_at,omitempty"`
+		ClientSecret                 *string       `json:"client_secret,omitempty"`
+		ClientSecretExpiresAt        *int64        `json:"client_secret_expires_at,omitempty"`
+		RegistrationAccessToken      *string       `json:"registration_access_token,omitempty"`
+		RegistrationClientURI        *string       `json:"registration_client_uri,omitempty"`
 	}
 	var dec Client
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -231,6 +234,9 @@ func (c *Client) UnmarshalJSON(input []byte) error {
 	}
 	if dec.RegistrationAccessToken != nil {
 		c.RegistrationAccessToken = *dec.RegistrationAccessToken
+	}
+	if dec.RegistrationClientURI != nil {
+		c.RegistrationClientURI = *dec.RegistrationClientURI
 	}
 	return nil
 }

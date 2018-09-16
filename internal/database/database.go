@@ -2,7 +2,7 @@ package database
 
 // InMemImpl represents the data storage access layer.
 type Database struct {
-	Client ClientRepo
+	Client ClientRepository
 	Code   CodeRepo
 	User   UserRepo
 }

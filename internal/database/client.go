@@ -4,12 +4,14 @@ import (
 	"sync"
 
 	oidc "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
 // ClientKV represents an in-memory client store.
 type ClientKV struct {
 	sync.RWMutex
 	db map[string]*oidc.Client
+	// TODO: Add cache-layer, both in-memory and redis
 }
 
 // NewClientKV returns a pointer to an in-memory client store.
@@ -69,8 +71,24 @@ func (c *ClientKV) Put(id string, client *oidc.Client) error {
 }
 
 // Delete removes a client from the store.
-func (c *ClientKV) Delete(name string) {
+func (c *ClientKV) Delete(id string) {
 	c.Lock()
-	delete(c.db, name)
+	delete(c.db, id)
 	c.Unlock()
+}
+
+func (c *ClientKV) GenerateClientCredentials() (clientID, clientSecret string) {
+	// for i := 0; i < defaultRetry; i++ {
+	//         clientID = crypto.NewXID()
+	//         if exist := c.Has(clientID); !exist {
+	//                 break
+	//         }
+	// }
+	clientID = crypto.NewXID()
+	var err error
+	clientSecret, err = crypto.GenerateRandomString(32)
+	if err != nil {
+		panic(err)
+	}
+	return
 }

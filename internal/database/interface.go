@@ -2,14 +2,15 @@ package database
 
 import "github.com/alextanhongpin/go-openid"
 
-// ClientRepo represents the interface for the client repository.
-type ClientRepo interface {
+// ClientRepository represents the interface for the client repository.
+type ClientRepository interface {
 	Get(name string) (*oidc.Client, bool)
 	GetByID(id string) *oidc.Client
 	GetByIDAndSecret(id, secret string) *oidc.Client
 	Put(id string, client *oidc.Client) error
 	Delete(name string)
 	Has(id string) bool
+	GenerateClientCredentials() (clientID, clientSecret string)
 }
 
 // CodeRepo represents the operations for the code repository.
