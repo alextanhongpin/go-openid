@@ -4,6 +4,8 @@ import jwt "github.com/dgrijalva/jwt-go"
 
 //go:generate gencodec -type Client -out gen_client.go
 
+// ClientToken represents the access token that is provided to the client
+// during registration.
 type ClientToken struct {
 	*jwt.StandardClaims
 	ClientID string
