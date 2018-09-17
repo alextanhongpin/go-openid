@@ -3,61 +3,85 @@ package api
 import (
 	"errors"
 	"log"
+	"time"
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/database"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/schema"
 )
 
-func newClient(c *oidc.Client, clientID, clientSecret string, iat, exp int64) *oidc.Client {
+func NewClient(c *oidc.Client) (*oidc.Client, error) {
 	client := new(oidc.Client)
 	*client = *c
 
-	// Overwrite values set by the client.
+	var (
+		clientID = crypto.NewXID()
+		iat      = time.Now().UTC()
+		day      = time.Hour * 24
+		exp      = iat.Add(7 * day)
+		aud      = "https://server.example.com/c2id/clients"
+		iss      = clientID
+		sub      = clientID
+		key      = []byte("secret")
+	)
+	// Generate client secret.
+	clientSecret, err := crypto.GenerateRandomString(32)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate access token.
+	claims := crypto.NewStandardClaims(aud, sub, iss, iat.Unix(), exp.Unix())
+	accessToken, err := crypto.NewJWT(key, claims)
+	if err != nil {
+		return nil, err
+	}
+
 	client.ClientID = clientID
 	client.ClientSecret = clientSecret
-	client.ClientIDIssuedAt = iat
-	client.ClientSecretExpiresAt = exp
-	client.RegistrationAccessToken = ""
-	client.RegistrationClientURI = ""
-	return client
+	client.ClientIDIssuedAt = iat.Unix()
+	client.ClientSecretExpiresAt = 100 // Never expire.
+	client.RegistrationAccessToken = accessToken
+	client.RegistrationClientURI = aud
+
+	return client, nil
 }
 
-// helper ClientHelper,
-// type ClientHelper interface {
-//         NewFrozenTime() (iat, exp int64)
-// }
-
+// RegisterClient creates a new client and stores it into the repository.
 func RegisterClient(
 	client *oidc.Client,
-	clock func() (iat, exp int64),
-	repo database.ClientRepository,
-	validator schema.Validator,
+	clientFactory func(client *oidc.Client) (*oidc.Client, error),
+	repository database.ClientRepository,
+	requestValidator schema.Validator,
+	responseValidator schema.Validator,
 ) (*oidc.Client, error) {
 	if client == nil {
 		return nil, errors.New("empty client")
 	}
 
-	clientID, clientSecret := repo.GenerateClientCredentials()
-
-	// Generate issued at and expiration time externally; for testability.
-	iat, exp := clock()
-	newClient := newClient(client, clientID, clientSecret, iat, exp)
-
-	log.Println("ndw client id now", newClient, validator)
-
-	// TODO: additionalProperties in gojsonschema is not working.
-	// Validate request with schema before storing.
-	if _, err := validator.Validate(newClient); err != nil {
-		log.Println("validation error", err)
+	if _, err := requestValidator.Validate(client); err != nil {
+		log.Println("Fail at request validator", err)
 		return nil, err
 	}
-	log.Println("ndw client id now", newClient)
-	if exist := repo.Has(clientID); exist {
+
+	newClient, err := clientFactory(client)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := responseValidator.Validate(newClient); err != nil {
+		log.Println("Fail at response validator", err)
+		return nil, err
+	}
+
+	clientID := newClient.ClientID
+	if exist := repository.Has(clientID); exist {
 		return nil, errors.New("client already exist")
 	}
+
 	// Store everything in the database.
-	if err := repo.Put(clientID, newClient); err != nil {
+	if err := repository.Put(clientID, newClient); err != nil {
 		return nil, err
 	}
 
