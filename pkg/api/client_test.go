@@ -9,7 +9,7 @@ import (
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/api"
 	"github.com/alextanhongpin/go-openid/pkg/api/testdata"
-	"github.com/alextanhongpin/go-openid/schema"
+	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
 func TestClientError(t *testing.T) {
@@ -80,12 +80,14 @@ func TestClientError(t *testing.T) {
 		res, err := registerClient(req)
 		assert.Nil(err)
 		log.Println(res, err)
-		// assert.Equal(clientID, res.ClientID)
+		assert.True(res.ClientID != "", "should return client id")
+		assert.True(res.ClientSecret != "", "should return client secret")
 		// assert.Equal(clientSecret, res.ClientSecret)
 		// assert.Equal(clientName, res.ClientName)
 		// assert.Equal(iat, res.ClientIDIssuedAt)
 		// assert.Equal(exp, res.ClientSecretExpiresAt)
 	})
+
 	// t.Run("test double-registration", func(t *testing.T) {
 	//         _, err := api.RegisterClient(req, clock, repository, validator)
 	//         assert.NotNil(err, "should not allow double registration")

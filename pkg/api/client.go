@@ -2,15 +2,15 @@ package api
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
-	"github.com/alextanhongpin/go-openid/schema"
+	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
+// NewClient returns a new client with the generated client id and secret.
 func NewClient(c *oidc.Client) (*oidc.Client, error) {
 	client := new(oidc.Client)
 	*client = *c
@@ -41,7 +41,7 @@ func NewClient(c *oidc.Client) (*oidc.Client, error) {
 	client.ClientID = clientID
 	client.ClientSecret = clientSecret
 	client.ClientIDIssuedAt = iat.Unix()
-	client.ClientSecretExpiresAt = 100 // Never expire.
+	client.ClientSecretExpiresAt = 0 // Never expire.
 	client.RegistrationAccessToken = accessToken
 	client.RegistrationClientURI = aud
 
@@ -61,7 +61,6 @@ func RegisterClient(
 	}
 
 	if _, err := requestValidator.Validate(client); err != nil {
-		log.Println("Fail at request validator", err)
 		return nil, err
 	}
 
@@ -71,7 +70,6 @@ func RegisterClient(
 	}
 
 	if _, err := responseValidator.Validate(newClient); err != nil {
-		log.Println("Fail at response validator", err)
 		return nil, err
 	}
 
