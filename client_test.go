@@ -48,25 +48,6 @@ func TestUnmarshallClientJSON(t *testing.T) {
 	// err = c.Validate()
 	// assert.Nil(err)
 
-	s, _ := schema.New()
-	result, err := s.Validate("client-metadata", c)
-	assert.Nil(err)
-	log.Println(result, err)
-	if !result.Valid() {
-		for _, err := range result.Errors() {
-			log.Println(err)
-		}
-	}
-
-	result, err = s.Validate("client-registration-response", c)
-	assert.Nil(err)
-	log.Println(result, err)
-	if !result.Valid() {
-		for _, err := range result.Errors() {
-			log.Printf("%+v", err)
-		}
-	}
-
 }
 
 // {
