@@ -2,7 +2,7 @@ package schema
 
 import jsonschema "github.com/xeipuuv/gojsonschema"
 
-//go:generate go run gen.go -file json/client-registration-response.json -var clientRegistrationResponseJSON -out gen_client-registration-response.go
+//go:generate go run gen.go -file $PWD/json/client-registration-response.json -var clientRegistrationResponseJSON -out $PWD/gen_client-registration-response.go
 
 type ClientRegistrationResponse struct {
 	schema *jsonschema.Schema

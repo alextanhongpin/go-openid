@@ -4,7 +4,7 @@ import (
 	jsonschema "github.com/xeipuuv/gojsonschema"
 )
 
-//go:generate go run gen.go -file json/client.json -var clientJSON -out gen_client.go
+//go:generate go run gen.go -file $PWD/json/client.json -var clientJSON -out $PWD/gen_client.go
 
 // ClientValidator represents the struct to validate client metadata.
 type ClientValidator struct {
