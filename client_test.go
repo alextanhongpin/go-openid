@@ -4,9 +4,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/schema"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alextanhongpin/go-openid"
 )
 
 func TestUnmarshallClientJSON(t *testing.T) {
