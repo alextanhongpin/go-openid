@@ -3,3 +3,4 @@ clean: # Cleans all the generate files from go:generate
 
 json:
 	@go generate -x 
+	@cd schema && go generate -x
