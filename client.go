@@ -56,7 +56,8 @@ func NewClient(name string) *Client {
 	return &Client{ClientName: name}
 }
 
-func (c *Client) Copy() *Client {
+// Clone returns a clone of the client.
+func (c *Client) Clone() *Client {
 	copy := new(Client)
 	*copy = *c
 	return copy

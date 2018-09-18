@@ -2,9 +2,9 @@ package database
 
 // InMemImpl represents the data storage access layer.
 type Database struct {
-	Client ClientRepository
-	Code   CodeRepo
-	User   UserRepo
+	Client repository.Client
+	Code   repository.Code
+	User   repository.User
 }
 
 // NewInMem returns an in-memory database.

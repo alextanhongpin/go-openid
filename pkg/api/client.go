@@ -5,15 +5,60 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/internal/database"
+	"github.com/alextanhongpin/go-openid/internal/model"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
+// -- model
+
+type clientModelImpl struct {
+	repository    repository.Client
+	newValidator  schema.Validator
+	saveValidator schema.Validator
+}
+
+// type ClientSaveRequest struct {
+//         client *oidc.Client
+//         validator schema.Validator
+// }
+
+func (c *clientModelImpl) Save(client *oidc.Client) error {
+	if _, err := c.saveValidator.Validate(client); err != nil {
+		return err
+	}
+	if exist := c.repository.Has(client.ClientID); exist {
+		return errors.New("client already exist")
+	}
+	return c.repository.Put(client.ClientID, client)
+}
+
+func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
+	if _, err := c.newValidator.Validate(client); err != nil {
+		return nil, err
+	}
+	return NewClient(client)
+}
+
+// -- service
+
+type clientServiceImpl struct {
+	model.Client
+}
+
+func (c *clientServiceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
+	newClient, err := c.New(client)
+	if err != nil {
+		return nil, err
+	}
+	return newClient, c.Save(newClient)
+}
+
+// -- helper
+
 // NewClient returns a new client with the generated client id and secret.
 func NewClient(c *oidc.Client) (*oidc.Client, error) {
-	client := new(oidc.Client)
-	*client = *c
+	client := c.Clone()
 
 	var (
 		clientID = crypto.NewXID()
@@ -46,42 +91,4 @@ func NewClient(c *oidc.Client) (*oidc.Client, error) {
 	client.RegistrationClientURI = aud
 
 	return client, nil
-}
-
-// RegisterClient creates a new client and stores it into the repository.
-func RegisterClient(
-	client *oidc.Client,
-	clientFactory func(client *oidc.Client) (*oidc.Client, error),
-	repository database.ClientRepository,
-	requestValidator schema.Validator,
-	responseValidator schema.Validator,
-) (*oidc.Client, error) {
-	if client == nil {
-		return nil, errors.New("empty client")
-	}
-
-	if _, err := requestValidator.Validate(client); err != nil {
-		return nil, err
-	}
-
-	newClient, err := clientFactory(client)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := responseValidator.Validate(newClient); err != nil {
-		return nil, err
-	}
-
-	clientID := newClient.ClientID
-	if exist := repository.Has(clientID); exist {
-		return nil, errors.New("client already exist")
-	}
-
-	// Store everything in the database.
-	if err := repository.Put(clientID, newClient); err != nil {
-		return nil, err
-	}
-
-	return newClient, nil
 }
