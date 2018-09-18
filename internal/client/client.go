@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/internal/model"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
+	"github.com/alextanhongpin/go-openid/pkg/model"
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
@@ -17,10 +17,20 @@ type clientModelImpl struct {
 	validators map[string]schema.Validator
 }
 
+// NewClientModelImpl returns a new client model implementation.
 func NewClientModelImpl(r repository.Client, v map[string]schema.Validator) *clientModelImpl {
 	return &clientModelImpl{r, v}
 }
 
+// New returns a new client with client id and client secret.
+func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
+	if err := c.validateNew(client); err != nil {
+		return err
+	}
+	return NewClient(client)
+}
+
+// Save stores the new, non-existing client into the database.
 func (c *clientModelImpl) Save(client *oidc.Client) error {
 	if err := c.validateSave(client); err != nil {
 		return err
@@ -29,13 +39,6 @@ func (c *clientModelImpl) Save(client *oidc.Client) error {
 		return errors.New("client already exist")
 	}
 	return c.repository.Put(client.ClientID, client)
-}
-
-func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
-	if err := c.validateNew(client); err != nil {
-		return err
-	}
-	return NewClient(client)
 }
 
 // -- model validation
@@ -73,10 +76,13 @@ type clientServiceImpl struct {
 	model model.Client
 }
 
+// NewClientServiceImpl returns a new client service implementation.
 func NewClientServiceImpl(m model.Client) *clientServiceImpl {
 	return &clientServiceImpl{m}
 }
 
+// Register performs client registration which will return a new client with
+// client id and client secret.
 func (c *clientServiceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
 	newClient, err := c.New(client)
 	if err != nil {
