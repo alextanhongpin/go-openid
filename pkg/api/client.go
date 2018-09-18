@@ -7,16 +7,18 @@ import (
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/model"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
+	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
 // -- model
 
 type clientModelImpl struct {
 	repository repository.Client
+	validators map[string]schema.Validator
 }
 
-func NewClientModelImplementation(r repository.Client) *clientModelImpl {
-	return &clientModelImpl{r}
+func NewClientModelImpl(r repository.Client, v map[string]schema.Validator) *clientModelImpl {
+	return &clientModelImpl{r, v}
 }
 
 func (c *clientModelImpl) Save(client *oidc.Client) error {
@@ -45,15 +47,21 @@ func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
 // and it's better than dependency injection. This layers do not need mocking
 // anyway - we want to skip them in the test, or either test them with actual
 // implementations.
-
-func (c *clientModelImpl) validateSave(client *oidc.Client) error {
-	_, err := c.saveValidator.Validate(client)
+func validate(key string, validators map[string]schema.Validator, data interface{}) error {
+	// If the validator is not present, skip it.
+	if v, ok := validators[key]; !ok {
+		return nil
+	}
+	_, err := v.Validate(data)
 	return err
 }
 
+func (c *clientModelImpl) validateSave(client *oidc.Client) error {
+	return validate("Save", c.validators, client)
+}
+
 func (c *clientModelImpl) validateNew(client *oidc.Client) error {
-	_, err := c.newValidator.Validate(client)
-	return err
+	return validate("New", c.validators, client)
 }
 
 // -- service
