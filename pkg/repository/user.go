@@ -1,4 +1,6 @@
-package user
+package repository
+
+import "github.com/alextanhongpin/go-openid"
 
 // User represents the operations for the user repository.
 type User interface {

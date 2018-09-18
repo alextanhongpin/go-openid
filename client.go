@@ -51,9 +51,15 @@ type Client struct {
 	RegistrationClientURI        string       `json:"registration_client_uri,omitempty"`
 }
 
-// NewClient returns a new client with the given name.
-func NewClient(name string) *Client {
-	return &Client{ClientName: name}
+// NewClient returns a new client with default values.
+func NewClient() *Client {
+	return &Client{
+		ApplicationType:              "web",
+		GrantTypes:                   []string{"authorization_code"},
+		RequestObjectEncryptionEnc:   "A128CBC-HS256",
+		ResponseTypes:                []string{"code"},
+		UserinfoEncryptedResponseEnc: "A128CBC-HS256",
+	}
 }
 
 // Clone returns a clone of the client.

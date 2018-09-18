@@ -13,9 +13,11 @@ import (
 )
 
 func main() {
-	file := flag.String("file", "", "the name of the file with the extension .json")
-	variable := flag.String("var", "", "the name of the variable to be generated")
-	out := flag.String("out", "", "the out file")
+	var (
+		file     = flag.String("file", "", "the name of the file with the extension .json")
+		variable = flag.String("var", "", "the name of the variable to be generated")
+		out      = flag.String("out", "", "the out file")
+	)
 	flag.Parse()
 
 	if *file == "" || *variable == "" || *out == "" {

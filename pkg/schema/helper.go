@@ -1,7 +1,7 @@
 package schema
 
 import (
-	"fmt"
+	"errors"
 
 	jsonschema "github.com/xeipuuv/gojsonschema"
 )
@@ -18,7 +18,7 @@ func validate(schema *jsonschema.Schema, data interface{}) (*Result, error) {
 	}
 	if !result.Valid() {
 		err := result.Errors()[0]
-		return result, fmt.Errorf("%s: %s", err.Field(), err.Description())
+		return result, errors.New(err.Description())
 	}
 	return result, nil
 }

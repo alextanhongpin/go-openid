@@ -1,14 +1,59 @@
-package api
+package client
 
 import (
 	"errors"
 	"time"
 
+	"github.com/google/go-cloud/wire"
+
 	"github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/model"
+	"github.com/alextanhongpin/go-openid/pkg/repository"
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
+
+func ProvideRepository() *database.ClientKV {
+	return database.NewClientKV()
+}
+
+func ProvideModel(r repository.Client, v map[string]schema.Validator) *clientModelImpl {
+	return NewClientModelImpl(r, v)
+}
+
+func ProvideService(m model.Client) *clientServiceImpl {
+	return NewClientServiceImpl(m)
+}
+
+var ClientMegaSet = wire.NewSet(
+	ProvideRepository,
+	wire.Bind(new(repository.Client), new(database.ClientKV)),
+	ProvideModel,
+	wire.Bind(new(model.Client), new(clientModelImpl)),
+	ProvideService)
+
+var ClientSet = wire.NewSet(
+	// Creates a new pointer to the struct *ClientKV.
+	database.NewClientKV,
+
+	// Map the struct *ClientKV to the interface repository.Client to be
+	// used as the next argument.
+	wire.Bind(new(repository.Client), new(database.ClientKV)),
+
+	// Accepts the previous repository.Client interface, but skip the
+	// second argument. The second argument will be required as a
+	// parameter, since we do not defined it here. Returns a pointer to the
+	// struct *clientModelImpl.
+	NewClientModelImpl,
+
+	// Take the previous struct pointer and convert it to the interface
+	// type.
+	wire.Bind(new(model.Client), new(clientModelImpl)),
+
+	// Takes the previous interface and returns a pointer to the
+	// *clientServiceImpl.
+	NewClientServiceImpl)
 
 // -- model
 
@@ -25,7 +70,7 @@ func NewClientModelImpl(r repository.Client, v map[string]schema.Validator) *cli
 // New returns a new client with client id and client secret.
 func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
 	if err := c.validateNew(client); err != nil {
-		return err
+		return nil, err
 	}
 	return NewClient(client)
 }
@@ -41,6 +86,15 @@ func (c *clientModelImpl) Save(client *oidc.Client) error {
 	return c.repository.Put(client.ClientID, client)
 }
 
+// Read returns a client by client_id from the repository.
+func (c *clientModelImpl) Read(clientID string) (*oidc.Client, error) {
+	client, exist := c.repository.Get(clientID)
+	if !exist {
+		return nil, errors.New("client does not exist")
+	}
+	return client, nil
+}
+
 // -- model validation
 
 // This means more function, but it is a better way than 1) creating dedicated
@@ -52,7 +106,8 @@ func (c *clientModelImpl) Save(client *oidc.Client) error {
 // implementations.
 func validate(key string, validators map[string]schema.Validator, data interface{}) error {
 	// If the validator is not present, skip it.
-	if v, ok := validators[key]; !ok {
+	v, ok := validators[key]
+	if !ok {
 		return nil
 	}
 	_, err := v.Validate(data)
@@ -84,11 +139,17 @@ func NewClientServiceImpl(m model.Client) *clientServiceImpl {
 // Register performs client registration which will return a new client with
 // client id and client secret.
 func (c *clientServiceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
-	newClient, err := c.New(client)
+	newClient, err := c.model.New(client)
 	if err != nil {
 		return nil, err
 	}
-	return newClient, c.Save(newClient)
+
+	return newClient, c.model.Save(newClient)
+}
+
+// Read returns a client by client id or error if the client is not found.
+func (c *clientServiceImpl) Read(clientID string) (*oidc.Client, error) {
+	return c.model.Read(clientID)
 }
 
 // -- helper

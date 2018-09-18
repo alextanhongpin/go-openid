@@ -1,6 +1,8 @@
 package database
 
-// InMemImpl represents the data storage access layer.
+import "github.com/alextanhongpin/go-openid/pkg/repository"
+
+// Database represents the data storage access layer.
 type Database struct {
 	Client repository.Client
 	Code   repository.Code

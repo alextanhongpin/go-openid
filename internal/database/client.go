@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	oidc "github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
 // ClientKV represents an in-memory client store.
@@ -22,9 +21,9 @@ func NewClientKV() *ClientKV {
 }
 
 // Get returns a client by id and a status indicating that the client exist.
-func (c *ClientKV) Get(name string) (*oidc.Client, bool) {
+func (c *ClientKV) Get(id string) (*oidc.Client, bool) {
 	c.RLock()
-	client, ok := c.db[name]
+	client, ok := c.db[id]
 	c.RUnlock()
 	return client, ok
 }
@@ -77,18 +76,16 @@ func (c *ClientKV) Delete(id string) {
 	c.Unlock()
 }
 
-func (c *ClientKV) GenerateClientCredentials() (clientID, clientSecret string) {
-	// for i := 0; i < defaultRetry; i++ {
-	//         clientID = crypto.NewXID()
-	//         if exist := c.Has(clientID); !exist {
-	//                 break
-	//         }
-	// }
-	clientID = crypto.NewXID()
-	var err error
-	clientSecret, err = crypto.GenerateRandomString(32)
-	if err != nil {
-		panic(err)
+// List returns a paginated list of users.
+func (c *ClientKV) List(limit int) []*oidc.Client {
+	var i int
+	var clients []*oidc.Client
+	for _, v := range c.db {
+		if i == limit {
+			break
+		}
+		clients = append(clients, v)
+		i++
 	}
-	return
+	return clients
 }
