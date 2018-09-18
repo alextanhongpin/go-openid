@@ -7,24 +7,20 @@ import (
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/model"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
-	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
 // -- model
 
 type clientModelImpl struct {
-	repository    repository.Client
-	newValidator  schema.Validator
-	saveValidator schema.Validator
+	repository repository.Client
 }
 
-// type ClientSaveRequest struct {
-//         client *oidc.Client
-//         validator schema.Validator
-// }
+func NewClientModelImplementation(r repository.Client) *clientModelImpl {
+	return &clientModelImpl{r}
+}
 
 func (c *clientModelImpl) Save(client *oidc.Client) error {
-	if _, err := c.saveValidator.Validate(client); err != nil {
+	if err := c.validateSave(client); err != nil {
 		return err
 	}
 	if exist := c.repository.Has(client.ClientID); exist {
@@ -34,16 +30,43 @@ func (c *clientModelImpl) Save(client *oidc.Client) error {
 }
 
 func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
-	if _, err := c.newValidator.Validate(client); err != nil {
-		return nil, err
+	if err := c.validateNew(client); err != nil {
+		return err
 	}
 	return NewClient(client)
+}
+
+// -- model validation
+
+// This means more function, but it is a better way than 1) creating dedicated
+// structs with embedded validation, like saveClientRequest.Validate(). Besides
+// private functions are not included in the interface, and hence reduce the
+// code required for mocking. 2) private functions don't pollute the struct,
+// and it's better than dependency injection. This layers do not need mocking
+// anyway - we want to skip them in the test, or either test them with actual
+// implementations.
+
+func (c *clientModelImpl) validateSave(client *oidc.Client) error {
+	_, err := c.saveValidator.Validate(client)
+	return err
+}
+
+func (c *clientModelImpl) validateNew(client *oidc.Client) error {
+	_, err := c.newValidator.Validate(client)
+	return err
 }
 
 // -- service
 
 type clientServiceImpl struct {
-	model.Client
+	// We need to give this a name in case of collision between the same
+	// name, and we want to avoid using the CamelCase client to represent
+	// model naming.
+	model model.Client
+}
+
+func NewClientServiceImpl(m model.Client) *clientServiceImpl {
+	return &clientServiceImpl{m}
 }
 
 func (c *clientServiceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
