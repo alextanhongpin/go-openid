@@ -9,11 +9,11 @@ import (
 )
 
 // NewService returns a new client service.
-func NewService(map[string]schema.Validator) *clientServiceImpl {
+func NewService(schema.Validators) *clientServiceImpl {
 	panic(wire.Build(ClientServiceSet))
 }
 
 // NewModel returns a new client model.
-func NewModel(map[string]schema.Validator) *clientModelImpl {
+func NewModel(schema.Validators) *clientModelImpl {
 	panic(wire.Build(ClientModelSet))
 }

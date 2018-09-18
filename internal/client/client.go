@@ -32,11 +32,11 @@ var ClientServiceSet = wire.NewSet(
 
 type clientModelImpl struct {
 	repository repository.Client
-	validators map[string]schema.Validator
+	schema.Validators
 }
 
 // NewClientModelImpl returns a new client model implementation.
-func NewClientModelImpl(r repository.Client, v map[string]schema.Validator) *clientModelImpl {
+func NewClientModelImpl(r repository.Client, v schema.Validators) *clientModelImpl {
 	return &clientModelImpl{r, v}
 }
 
@@ -88,12 +88,45 @@ func validate(key string, validators map[string]schema.Validator, data interface
 }
 
 func (c *clientModelImpl) validateSave(client *oidc.Client) error {
-	return validate("Save", c.validators, client)
+	_, err := c.Validate("Save", client, true)
+	return err
 }
 
 func (c *clientModelImpl) validateNew(client *oidc.Client) error {
-	return validate("New", c.validators, client)
+	_, err := c.Validate("New", client, true)
+	return err
 }
+
+// TODO: Example validation using decorator pattern.
+// type clientValidatorImpl struct {
+//         save  schema.Validator
+//         new   schema.Validator
+//         model model.Client
+// }
+//
+//
+// func (c *clientValidatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
+//         _, err := c.new.Validate(client)
+//         if err != nil {
+//                 return nil, err
+//         }
+//         return c.model.New(client)
+// }
+//
+// func (c *clientValidatorImpl) Save(client *oidc.Client) error {
+//         _, err := c.save.Validate(client)
+//         if err != nil {
+//                 return err
+//         }
+//         return c.model.Save(client)
+// }
+//
+// func (c *clientValidatorImpl) Read(clientID string) (*oidc.Client, error) {
+//         if clientID == "" {
+//                 return nil, errors.New("client_id cannot be empty")
+//         }
+//         return c.model.Read(clientID)
+// }
 
 // -- service
 

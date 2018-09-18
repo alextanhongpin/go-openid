@@ -13,7 +13,7 @@ import (
 func TestNewClientModel(t *testing.T) {
 	assert := assert.New(t)
 
-	model := client.NewModel(newValidator(t))
+	model := client.NewModel(newValidators())
 
 	t.Run("register with empty request", func(t *testing.T) {
 		client := new(oidc.Client)
@@ -108,17 +108,18 @@ func die(t *testing.T, err error) {
 	}
 }
 
-func newValidator(t *testing.T) map[string]schema.Validator {
-	// Setup validation.
-	validateNewRequest, err := schema.NewClientValidator()
-	die(t, err)
-
-	// Setup validation.
-	validateSaveRequest, err := schema.NewClientResponseValidator()
-	die(t, err)
-
-	return map[string]schema.Validator{
-		"New":  validateNewRequest,
-		"Save": validateSaveRequest,
+func newValidators() schema.Validators {
+	v := schema.NewValidators()
+	cv, err := schema.NewClientValidator()
+	if err != nil {
+		panic(err)
 	}
+	crv, err := schema.NewClientResponseValidator()
+	if err != nil {
+		panic(err)
+	}
+
+	v.Register("New", cv)
+	v.Register("Save", crv)
+	return v
 }
