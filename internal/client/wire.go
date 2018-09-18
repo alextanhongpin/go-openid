@@ -8,10 +8,12 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
+// NewService returns a new client service.
 func NewService(map[string]schema.Validator) *clientServiceImpl {
-	panic(wire.Build(ClientSet))
+	panic(wire.Build(ClientServiceSet))
 }
 
-func NewSimplerService(map[string]schema.Validator) *clientServiceImpl {
-	panic(wire.Build(ClientMegaSet))
+// NewModel returns a new client model.
+func NewModel(map[string]schema.Validator) *clientModelImpl {
+	panic(wire.Build(ClientModelSet))
 }

@@ -7,42 +7,13 @@ import (
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/client"
-	"github.com/alextanhongpin/go-openid/internal/database"
-	"github.com/alextanhongpin/go-openid/pkg/model"
-	"github.com/alextanhongpin/go-openid/pkg/repository"
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
-func die(t *testing.T, err error) {
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func newClientModel(t *testing.T) (repository.Client, model.Client) {
-	// Setup repository.
-	repository := database.NewClientKV()
-
-	// Setup validation.
-	validateNewRequest, err := schema.NewClientValidator()
-	die(t, err)
-
-	// Setup validation.
-	validateSaveRequest, err := schema.NewClientResponseValidator()
-	die(t, err)
-
-	// Setup validators.
-	validators := make(map[string]schema.Validator)
-	validators["New"] = validateNewRequest
-	validators["Save"] = validateSaveRequest
-
-	// Setup client model.
-	return repository, client.NewClientModelImpl(repository, validators)
-}
-
 func TestNewClientModel(t *testing.T) {
 	assert := assert.New(t)
-	_, model := newClientModel(t)
+
+	model := client.NewModel(newValidator(t))
 
 	t.Run("register with empty request", func(t *testing.T) {
 		client := new(oidc.Client)
@@ -68,6 +39,13 @@ func TestNewClientModel(t *testing.T) {
 		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
 		newClient, err := model.New(client)
 		assert.Nil(err)
+
+		assert.Equal("", newClient.ApplicationType, "should have default application type of web")
+		assert.Equal(0, len(newClient.GrantTypes), "should have default grant_type of authorization_code")
+		assert.Equal(1, len(newClient.RedirectURIs), "should match the redirect_uris provided")
+		assert.Equal("https://server.example.com/cb", newClient.RedirectURIs[0], "should match the redirect_uris provided")
+		assert.Equal("", newClient.RequestObjectEncryptionEnc, "should have default value")
+		assert.Equal("", newClient.UserinfoEncryptedResponseEnc, "should have defaut value")
 
 		assert.True(newClient.ClientID != "", "should return a generated client_id")
 		assert.True(newClient.ClientSecret != "", "should return a generated client_secret")
@@ -120,7 +98,27 @@ func TestNewClientModel(t *testing.T) {
 		_, err := model.Read("")
 		assert.Equal("client does not exist", err.Error())
 	})
-	// clients := repo.List(1)
-	// assert.True(len(clients) > 0)
-	// log.Println(clients)
+}
+
+// -- helpers
+
+func die(t *testing.T, err error) {
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func newValidator(t *testing.T) map[string]schema.Validator {
+	// Setup validation.
+	validateNewRequest, err := schema.NewClientValidator()
+	die(t, err)
+
+	// Setup validation.
+	validateSaveRequest, err := schema.NewClientResponseValidator()
+	die(t, err)
+
+	return map[string]schema.Validator{
+		"New":  validateNewRequest,
+		"Save": validateSaveRequest,
+	}
 }

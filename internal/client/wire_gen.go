@@ -19,9 +19,8 @@ func NewService(arg map[string]schema.Validator) *clientServiceImpl {
 	return clientClientServiceImpl
 }
 
-func NewSimplerService(arg map[string]schema.Validator) *clientServiceImpl {
-	clientKV := ProvideRepository()
-	clientClientModelImpl := ProvideModel(clientKV, arg)
-	clientClientServiceImpl := ProvideService(clientClientModelImpl)
-	return clientClientServiceImpl
+func NewModel(arg map[string]schema.Validator) *clientModelImpl {
+	clientKV := database.NewClientKV()
+	clientClientModelImpl := NewClientModelImpl(clientKV, arg)
+	return clientClientModelImpl
 }

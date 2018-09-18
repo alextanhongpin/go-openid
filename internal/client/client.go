@@ -14,46 +14,19 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
-func ProvideRepository() *database.ClientKV {
-	return database.NewClientKV()
-}
-
-func ProvideModel(r repository.Client, v map[string]schema.Validator) *clientModelImpl {
-	return NewClientModelImpl(r, v)
-}
-
-func ProvideService(m model.Client) *clientServiceImpl {
-	return NewClientServiceImpl(m)
-}
-
-var ClientMegaSet = wire.NewSet(
-	ProvideRepository,
-	wire.Bind(new(repository.Client), new(database.ClientKV)),
-	ProvideModel,
-	wire.Bind(new(model.Client), new(clientModelImpl)),
-	ProvideService)
-
-var ClientSet = wire.NewSet(
-	// Creates a new pointer to the struct *ClientKV.
+// ClientModelSet represents a new model.
+var ClientModelSet = wire.NewSet(
 	database.NewClientKV,
-
-	// Map the struct *ClientKV to the interface repository.Client to be
-	// used as the next argument.
 	wire.Bind(new(repository.Client), new(database.ClientKV)),
-
-	// Accepts the previous repository.Client interface, but skip the
-	// second argument. The second argument will be required as a
-	// parameter, since we do not defined it here. Returns a pointer to the
-	// struct *clientModelImpl.
 	NewClientModelImpl,
+)
 
-	// Take the previous struct pointer and convert it to the interface
-	// type.
+// ClientServiceSet represents a new service.
+var ClientServiceSet = wire.NewSet(
+	ClientModelSet,
 	wire.Bind(new(model.Client), new(clientModelImpl)),
-
-	// Takes the previous interface and returns a pointer to the
-	// *clientServiceImpl.
-	NewClientServiceImpl)
+	NewClientServiceImpl,
+)
 
 // -- model
 
