@@ -9,7 +9,7 @@ import (
 	"github.com/alextanhongpin/go-openid/internal/client"
 )
 
-func TestNewClientservice(t *testing.T) {
+func TestNewClientService(t *testing.T) {
 	assert := assert.New(t)
 
 	service, err := client.NewService()
@@ -85,4 +85,46 @@ func TestNewClientservice(t *testing.T) {
 		_, err := service.Read("")
 		assert.Equal("client_id cannot be empty", err.Error())
 	})
+}
+
+func TestClientRegistration(t *testing.T) {
+	assert := assert.New(t)
+
+	body := []byte(`{
+		"application_type": "web",
+		"redirect_uris": [
+			"https://client.example.org/callback",
+			"https://client.example.org/callback2"
+		],
+		"client_name": "My Example",
+		"client_name#ja-Jpan-JP": "クライアント名",
+		"logo_uri": "https://client.example.org/logo.png",
+		"subject_type": "pairwise",
+		"sector_identifier_uri": "https://other.example.net/file_of_redirect_uris.json",
+		"token_endpoint_auth_method": "client_secret_basic",
+		"jwks_uri": "https://client.example.org/my_public_keys.jwks",
+		"userinfo_encrypted_response_alg": "RSA1_5",
+		"userinfo_encrypted_response_enc": "A128CBC-HS256",
+		"contacts": [
+			"ve7jtb@example.org",
+			"mary@example.org"
+		],
+		"request_uri": [
+			"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"
+		]
+	}`)
+
+	c := oidc.NewClient()
+	err := c.UnmarshalJSON(body)
+	assert.Nil(err)
+
+	service, err := client.NewService()
+	assert.Nil(err)
+
+	newClient, err := service.Register(c)
+	assert.Nil(err)
+	assert.NotNil(newClient)
+
+	assert.Equal(c.ClientName, newClient.ClientName, "should set the client_name")
+	assert.Equal(c.ApplicationType, newClient.ApplicationType, "should set the application_type")
 }
