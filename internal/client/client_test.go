@@ -81,24 +81,8 @@ func TestNewClientservice(t *testing.T) {
 		assert.NotNil(storedClient)
 	})
 
-	t.Run("attempt to save an empty client", func(t *testing.T) {
-		client := oidc.NewClient()
-		_, err := service.Register(client)
-		assert.NotNil(err)
-
-		assert.Equal("client_id is required", err.Error(), "should return the first validation error")
-	})
-
 	t.Run("attempt to read a non-existing client", func(t *testing.T) {
 		_, err := service.Read("")
-		assert.Equal("client does not exist", err.Error())
+		assert.Equal("client_id cannot be empty", err.Error())
 	})
-}
-
-// -- helpers
-
-func die(t *testing.T, err error) {
-	if err != nil {
-		t.Fatal(err)
-	}
 }

@@ -7,27 +7,64 @@ package client
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
+	repository "github.com/alextanhongpin/go-openid/pkg/repository"
 	schema "github.com/alextanhongpin/go-openid/pkg/schema"
+	wire "github.com/google/go-cloud/wire"
 )
 
 // Injectors from wire.go:
 
 func NewService() (*clientServiceImpl, error) {
-	client, err := schema.NewClientValidator()
+	client := provideRepository()
+	clientClientModelImpl := provideModel(client)
+	schemaClient, err := provideClientValidator()
 	if err != nil {
 		return nil, err
 	}
-	clientResponse, err := schema.NewClientResponseValidator()
+	clientResponse, err := provideClientResponseValidator()
 	if err != nil {
 		return nil, err
 	}
-	clientKV := database.NewClientKV()
-	clientClientModelImpl := NewClientModelImpl(clientKV)
-	clientClientValidatorImpl := &clientValidatorImpl{
+	clientClientValidatorImpl := provideValidator(clientClientModelImpl, schemaClient, clientResponse)
+	clientClientServiceImpl := provideService(clientClientValidatorImpl)
+	return clientClientServiceImpl, nil
+}
+
+// wire.go:
+
+var clientServiceSet = wire.NewSet(
+	provideRepository,
+	provideModel,
+	provideClientValidator,
+	provideClientResponseValidator,
+	provideValidator,
+	provideService,
+)
+
+func provideRepository() repository.Client {
+	return database.NewClientKV()
+}
+
+func provideModel(repo repository.Client) *clientModelImpl {
+	return NewClientModelImpl(repo)
+}
+
+func provideClientValidator() (*schema.Client, error) {
+	return schema.NewClientValidator()
+}
+
+func provideClientResponseValidator() (*schema.ClientResponse, error) {
+	return schema.NewClientResponseValidator()
+}
+
+func provideValidator(model *clientModelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *clientValidatorImpl {
+	return &clientValidatorImpl{
+		model:          model,
 		client:         client,
 		clientResponse: clientResponse,
-		model:          clientClientModelImpl,
 	}
-	clientClientServiceImpl := NewClientServiceImpl(clientClientValidatorImpl)
-	return clientClientServiceImpl, nil
+}
+
+func provideService(model *clientValidatorImpl) *clientServiceImpl {
+	return NewClientServiceImpl(model)
 }
