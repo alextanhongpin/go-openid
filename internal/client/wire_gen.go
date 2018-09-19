@@ -12,15 +12,22 @@ import (
 
 // Injectors from wire.go:
 
-func NewService(validators schema.Validators) *clientServiceImpl {
+func NewService() (*clientServiceImpl, error) {
+	client, err := schema.NewClientValidator()
+	if err != nil {
+		return nil, err
+	}
+	clientResponse, err := schema.NewClientResponseValidator()
+	if err != nil {
+		return nil, err
+	}
 	clientKV := database.NewClientKV()
-	clientClientModelImpl := NewClientModelImpl(clientKV, validators)
-	clientClientServiceImpl := NewClientServiceImpl(clientClientModelImpl)
-	return clientClientServiceImpl
-}
-
-func NewModel(validators schema.Validators) *clientModelImpl {
-	clientKV := database.NewClientKV()
-	clientClientModelImpl := NewClientModelImpl(clientKV, validators)
-	return clientClientModelImpl
+	clientClientModelImpl := NewClientModelImpl(clientKV)
+	clientClientValidatorImpl := &clientValidatorImpl{
+		client:         client,
+		clientResponse: clientResponse,
+		model:          clientClientModelImpl,
+	}
+	clientClientServiceImpl := NewClientServiceImpl(clientClientValidatorImpl)
+	return clientClientServiceImpl, nil
 }

@@ -7,17 +7,17 @@ import (
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/client"
-	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
-func TestNewClientModel(t *testing.T) {
+func TestNewClientservice(t *testing.T) {
 	assert := assert.New(t)
 
-	model := client.NewModel(newValidators())
+	service, err := client.NewService()
+	assert.Nil(err)
 
 	t.Run("register with empty request", func(t *testing.T) {
 		client := new(oidc.Client)
-		_, err := model.New(client)
+		_, err := service.Register(client)
 		assert.Equal("redirect_uris is required", err.Error(), "should validate the only required field")
 	})
 
@@ -30,14 +30,14 @@ func TestNewClientModel(t *testing.T) {
 		// Attempt to inject client_id to override system.
 		client.ClientID = "xyz"
 
-		_, err := model.New(client)
+		_, err := service.Register(client)
 		assert.Equal("Additional property client_id is not allowed", err.Error(), "should return error indicating redirect_uris is required")
 	})
 
 	t.Run("register and save with only redirect_uris", func(t *testing.T) {
 		client := new(oidc.Client)
 		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
-		newClient, err := model.New(client)
+		newClient, err := service.Register(client)
 		assert.Nil(err)
 
 		assert.Equal("", newClient.ApplicationType, "should have default application type of web")
@@ -53,15 +53,13 @@ func TestNewClientModel(t *testing.T) {
 		assert.True(newClient.RegistrationAccessToken != "", "should return a default registration token")
 		assert.True(newClient.RegistrationClientURI == "https://server.example.com/c2id/clients", "should have the correct registration_client_uri")
 
-		err = model.Save(newClient)
-		assert.Nil(err)
 	})
 
 	t.Run("register and save with default values", func(t *testing.T) {
 		client := oidc.NewClient()
 		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
 
-		newClient, err := model.New(client)
+		newClient, err := service.Register(client)
 		assert.Nil(err)
 
 		var (
@@ -78,24 +76,21 @@ func TestNewClientModel(t *testing.T) {
 		assert.Equal(requestObjectEncryptionEnc, newClient.RequestObjectEncryptionEnc, "should have default value")
 		assert.Equal(userinfoEncryptedResponseEnc, newClient.UserinfoEncryptedResponseEnc, "should have defaut value")
 
-		err = model.Save(newClient)
-		assert.Nil(err)
-
-		storedClient, err := model.Read(newClient.ClientID)
+		storedClient, err := service.Read(newClient.ClientID)
 		assert.Nil(err)
 		assert.NotNil(storedClient)
 	})
 
 	t.Run("attempt to save an empty client", func(t *testing.T) {
 		client := oidc.NewClient()
-		err := model.Save(client)
+		_, err := service.Register(client)
 		assert.NotNil(err)
 
 		assert.Equal("client_id is required", err.Error(), "should return the first validation error")
 	})
 
 	t.Run("attempt to read a non-existing client", func(t *testing.T) {
-		_, err := model.Read("")
+		_, err := service.Read("")
 		assert.Equal("client does not exist", err.Error())
 	})
 }
@@ -106,20 +101,4 @@ func die(t *testing.T, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func newValidators() schema.Validators {
-	v := schema.NewValidators()
-	cv, err := schema.NewClientValidator()
-	if err != nil {
-		panic(err)
-	}
-	crv, err := schema.NewClientResponseValidator()
-	if err != nil {
-		panic(err)
-	}
-
-	v.Register("New", cv)
-	v.Register("Save", crv)
-	return v
 }
