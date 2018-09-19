@@ -1,0 +1,68 @@
+{
+	"$id": "authentication-request.json",
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"description": "An Authentication Request is an OAuth 2.0 Authorization Request that requests that the End-User be authenticated by the Authorization Server.",
+	"type": "object",
+	"allOf": [
+		{
+			"$ref": "#/definitions/authentication-request"
+		}
+	],
+	"definitions": {
+		"authentication-request": {
+			"type": "object",
+			"properties": {
+				"scope": {
+					"type": "string",
+					"enum": ["openid"]
+				},
+				"response_type": {
+					"type": "string",
+					"default": "code"
+				},
+				"client_id": {
+					"type": "string"
+				},
+				"redirect_uri": {
+					"type": "string",
+					"format": "uri"
+				},
+				"state": {
+					"type": "string"
+				},
+				"nonce": {
+					"type": "string"
+				},
+				"display": {
+					"type": "string",
+					"enum": ["page", "popup", "touch", "wap"]
+				},
+				"prompt": {
+					"type": "string",
+					"pattern": "(none|login|consent|select_account)"
+				},
+				"max_age": {
+					"type": "integer"
+				},
+				"ui_locales": {
+					"type": "string"
+				},
+				"id_token_hint": {
+					"type": "string"
+				},
+				"login_hint": {
+					"type": "string"
+				},
+				"acr_values": {
+					"type": "string"
+				}
+			},
+			"required": [
+				"scope",
+				"response_type",
+				"client_id",
+				"redirect_uri"
+			]
+		}
+	}
+}
