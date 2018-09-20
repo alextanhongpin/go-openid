@@ -74,7 +74,8 @@ func TestEncodeDecodeBasicAuth(t *testing.T) {
 	)
 
 	enc := authheader.EncodeBase64(username, password)
-	u, p := authheader.DecodeBase64(enc)
+	u, p, err := authheader.DecodeBase64(enc)
+	assert.Nil(err)
 	assert.Equal(username, u, "should match the given username")
 	assert.Equal(password, p, "should match the given password")
 }
