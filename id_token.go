@@ -1,7 +1,6 @@
 package oidc
 
 import (
-	"crypto/subtle"
 	"errors"
 	"strings"
 	"time"
@@ -348,11 +347,4 @@ func validSub(sub string) error {
 		return errors.New("subject cannot be longer than 255 characters")
 	}
 	return nil
-}
-
-func cmpstr(s string, cmp string, required bool) bool {
-	if s == "" {
-		return !required
-	}
-	return subtle.ConstantTimeCompare([]byte(s), []byte(cmp)) == 1
 }
