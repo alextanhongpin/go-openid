@@ -12,7 +12,7 @@ import (
 
 	oidc "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/authheader"
-	"github.com/alextanhongpin/go-openid/pkg/querystring"
+	qs "github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
 // Endpoints represent the endpoints for the OpenIDConnect.
@@ -31,13 +31,13 @@ func NewEndpoints(s Service) *Endpoints {
 func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// Construct request parameters
 	var req oidc.AuthorizationRequest
-	if err := querystring.Decode(&req, r.URL.Query()); err != nil {
+	if err := qs.Decode(&req, r.URL.Query()); err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 
 	if !govalidator.IsURL(req.RedirectURI) {
-		http.Error(w, oidc.InvalidRedirectURI.String(), http.StatusForbidden)
+		http.Error(w, oidc.ErrInvalidRedirectURI.Error(), http.StatusForbidden)
 		return
 	}
 
@@ -51,14 +51,12 @@ func (e *Endpoints) Authorize(w http.ResponseWriter, r *http.Request, _ httprout
 	// Call service
 	res, authErr := e.service.Authorize(r.Context(), &req)
 	if authErr != nil {
-		q := querystring.Encode(authErr)
-		u.RawQuery = q.Encode()
+		u.RawQuery = qs.Encode(authErr).Encode()
 		http.Redirect(w, r, u.String(), http.StatusFound)
 		return
 	}
 
-	q := querystring.Encode(res)
-	u.RawQuery = q.Encode()
+	u.RawQuery = qs.Encode(res).Encode()
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
@@ -70,25 +68,19 @@ func (e *Endpoints) Token(w http.ResponseWriter, r *http.Request, _ httprouter.P
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
-	auth := r.Header.Get("Authorization")
-	token, err := authheader.Basic(auth)
+	token, err := authheader.Basic(r.Header.Get("Authorization"))
 	if err != nil {
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
-	clientID, clientSecret := oidc.DecodeClientAuth(token)
-	if err := e.service.ValidateClient(clientID, clientSecret); err != nil {
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(err)
-		return
-	}
+	clientID, clientSecret := authheader.DecodeBase64(token)
 
 	var req oidc.AccessTokenRequest
-	if err := querystring.Decode(&req, r.Form); err != nil {
+	if err := qs.Decode(&req, r.Form); err != nil {
 		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
@@ -110,32 +102,27 @@ func (e *Endpoints) RegisterClient(w http.ResponseWriter, r *http.Request, _ htt
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
-	auth := r.Header.Get("Authorization")
-	token, err := authheader.Bearer(auth)
+	token, err := authheader.Bearer(r.Header.Get("Authorization"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
-	_, err = e.service.ParseJWT(token)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(err)
-		return
-	}
+	// TODO: Validate token.
+
 	// Check for authorization headers to see if the client can register
-	var req oidc.ClientRegistrationRequest
+	var req oidc.Client
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
 	res, err := e.service.RegisterClient(r.Context(), &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
@@ -151,58 +138,42 @@ func (e *Endpoints) Client(w http.ResponseWriter, r *http.Request, _ httprouter.
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 
-	// TODO: Check authorization header to ensure the client has the right credentials.
-	auth := r.Header.Get("Authorization")
-	if len(auth) < 8 || auth[0:6] != "Bearer" {
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(oidc.InvalidRequest.JSON())
-		return
-	}
-
-	// TODO: Check the user status from cache.
-	_, err := e.service.ParseJWT(auth[7:])
+	token, err := authheader.Bearer(r.Header.Get("Authorization"))
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(err)
+		json.NewEncoder(w).Encode(oidc.ErrInvalidRequest)
 		return
 	}
 
+	// TODO: Validate token.
+
 	id := r.URL.Query().Get("client_id")
-	client, err := e.service.Client(r.Context(), id)
+	client, err := e.service.ReadClient(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(err)
 		return
 	}
 	json.NewEncoder(w).Encode(client)
-	// GET /connect/register?client_id=
-	// Authorization: Bearer this.is.an.access.token.value
-	// return 200, cache-control: no-store, pragma: no-cache
-	// Client does not exist, invalid client, invalid token returns 401 unauthorized
-	// No permission: 403 forbidden
-	// Do not return 404
 }
 
 // .well-known/webfinger
-func (e *Endpoints) Webfinger()     {}
-func (e *Endpoints) Configuration() {}
+func (e *Endpoints) Webfinger() {}
 
 // .well-known/openid-configuration
-func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
+func (e *Endpoints) Configuration() {}
 
+func (e *Endpoints) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
 	return nil, nil
 }
 
 // RefreshToken returns a new refresh token alongside with the id token.
 func (e *Endpoints) RefreshToken() {}
 
-func validateTokenHeader(token string) (string, error) {
-	return "1", nil
-}
-
 func (e *Endpoints) UserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	auth := r.Header.Get("Authorization")
-	if auth[0:6] != "Bearer" {
+
+	_, err := authheader.Bearer(r.Header.Get("Authorization"))
+	if err != nil {
 		// Error
 		err := oidc.ErrUnauthorizedClient
 		msg := fmt.Sprintf(`error="%s" error_description="%s"`, err.Error(), "The access token expired")
@@ -211,20 +182,7 @@ func (e *Endpoints) UserInfo(w http.ResponseWriter, r *http.Request, _ httproute
 		return
 	}
 
-	token := auth[7:]
-
-	// TODO: Receive the correct token type.
-	claims, err := e.service.ParseJWT(token)
-	if err != nil {
-		// TODO: Return the correct error.
-		err := oidc.ErrUnauthorizedClient
-		msg := fmt.Sprintf(`error="%s" error_description="%s"`, err.Error(), "The access token expired")
-		w.Header().Set("WWW-Authenticate", msg)
-		http.Error(w, err.Error(), http.StatusForbidden)
-		return
-	}
-
-	res, err := e.service.UserInfo(r.Context(), claims.UserID)
+	res, err := e.service.UserInfo(r.Context(), "")
 	if err != nil {
 		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 		http.Error(w, err.Error(), http.StatusForbidden)

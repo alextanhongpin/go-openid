@@ -30,6 +30,34 @@ type IDToken struct {
 	Profile                             *Profile
 }
 
+// User represents the user struct.
+type User struct {
+	ID             string
+	HashedPassword string `json:"-"`
+	Address
+	Email
+	Phone
+	Profile
+}
+
+func (u *User) Clone() *User {
+	copy := new(User)
+	*copy = *u
+	return copy
+}
+
+func (u *User) ToIDToken() *IDToken {
+	user := u.Clone()
+
+	idToken := NewIDToken()
+	*idToken.Address = user.Address
+	*idToken.Email = user.Email
+	*idToken.Phone = user.Phone
+	*idToken.Profile = user.Profile
+
+	return idToken
+}
+
 // NewIDToken returns a pointer to a new id token with empty fields.
 func NewIDToken() *IDToken {
 	return &IDToken{

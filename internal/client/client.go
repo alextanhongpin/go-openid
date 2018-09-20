@@ -7,25 +7,29 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
-// NewClient returns a new client with the generated client id and secret.
+// NewClient returns a new client with the generated client id and secret. It basically clones an existing client, which can be unmarshalled from json, and injects the credentials.
 func NewClient(c *oidc.Client) (*oidc.Client, error) {
 	client := c.Clone()
 
-	var (
-		clientID = crypto.NewXID()
-		iat      = time.Now().UTC()
-		day      = time.Hour * 24
-		exp      = iat.Add(7 * day)
-		aud      = "https://server.example.com/c2id/clients"
-		iss      = clientID
-		sub      = clientID
-		key      = []byte("secret")
-	)
+	// Generate client id.
+	clientID := crypto.NewXID()
+
 	// Generate client secret.
 	clientSecret, err := crypto.GenerateRandomString(32)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: Move secret to envvars.
+	var (
+		iat = time.Now().UTC()
+		day = time.Hour * 24
+		exp = iat.Add(7 * day)
+		aud = "https://server.example.com/c2id/clients"
+		iss = clientID
+		sub = clientID
+		key = []byte("client_token_secret")
+	)
 
 	// Generate access token.
 	claims := crypto.NewStandardClaims(aud, sub, iss, iat.Unix(), exp.Unix())

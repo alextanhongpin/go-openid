@@ -30,6 +30,10 @@ type AuthenticationRequest struct {
 	UILocales    string `json:"ui_locales,omitempty"`
 }
 
+func (a *AuthenticationRequest) GetPrompt() Prompt {
+	return parsePrompt(a.Prompt)
+}
+
 // Validate performs validation on the required fields except the validation of
 // the client, which requires a call to another domain service.
 func (a *AuthenticationRequest) Validate(state string, uris []string) error {
@@ -104,11 +108,11 @@ func (a *AuthenticationRequest) VerifyState(state string) error {
 // returned from the OP's Authorization Endpoint in response to the
 // Authorization Request message sent by the RP.
 type AuthenticationResponse struct {
-	AccessToken string  `json:"access_token,omitempty"`
-	ExpiresIn   int64   `json:"expires_in,omitempty"`
-	IDToken     IDToken `json:"id_token,omitempty"`
-	State       string  `json:"state,omitempty"`
-	TokenType   string  `json:"token_type,omitempty"`
+	AccessToken string `json:"access_token,omitempty"`
+	ExpiresIn   int64  `json:"expires_in,omitempty"`
+	IDToken     string `json:"id_token,omitempty"`
+	State       string `json:"state,omitempty"`
+	TokenType   string `json:"token_type,omitempty"`
 }
 
 // -- helpers

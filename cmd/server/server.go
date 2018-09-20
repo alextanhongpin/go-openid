@@ -17,7 +17,6 @@ func main() {
 	port := flag.Int("port", 8080, "the port of the application")
 	flag.Parse()
 
-	e := initEndpoints(defaultJWTSigningKey)
 	r := httprouter.New()
 
 	htmls := NewHTMLs("templates")
@@ -26,9 +25,6 @@ func main() {
 	r.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		htmls.Render(w, "login", nil)
 	})
-	r.GET("/authorize", e.Authorize)
-	r.POST("/token", e.Token)
-	r.GET("/connect/register", e.RegisterClient)
 
 	srv := http.Server{
 		Addr:         fmt.Sprintf(":%d", *port),
