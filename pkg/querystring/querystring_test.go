@@ -20,7 +20,7 @@ func TestEncode(t *testing.T) {
 		Age:       10,
 		IsMarried: true,
 	}
-	o := Encode(in)
+	o := Encode(url.Values{}, in)
 	assert.Equal("age=10&is_married=true&name=john", o.Encode(), "should encode the struct into querystring")
 }
 
@@ -32,7 +32,7 @@ func TestDecode(t *testing.T) {
 	u.Add("is_married", "true")
 
 	var o testStruct
-	err := Decode(&o, u)
+	err := Decode(u, &o)
 	assert.Nil(err)
 	assert.Equal("john", o.Name, "should decode name")
 	assert.Equal(10, o.Age, "should decode age")

@@ -24,7 +24,7 @@ func TestDiscoveryEmail(t *testing.T) {
 	)
 
 	var res oidc.Discovery
-	err := querystring.Decode(&res, q)
+	err := querystring.Decode(q, &res)
 	assert.Nil(err)
 
 	assert.Equal(host, u.Host, "should have the matching host")
@@ -63,7 +63,7 @@ func TestDiscoveryURL(t *testing.T) {
 	)
 
 	var res oidc.Discovery
-	err := querystring.Decode(&res, q)
+	err := querystring.Decode(q, &res)
 	assert.Nil(err)
 
 	assert.Equal(resource, res.Resource, "should have the correct resource in the qs")

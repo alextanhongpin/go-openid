@@ -19,7 +19,7 @@ func TestEncodeAuthorizationRequest(t *testing.T) {
 		Scope:        "email",
 		State:        "xyz",
 	}
-	u := querystring.Encode(req)
+	u := querystring.Encode(url.Values{}, req)
 	assert.Equal("client_id=abc&redirect_uri=http%3A%2F%2Fclient.example.com%2Fcb&response_type=code&scope=email&state=xyz", u.Encode(), "should encode authorization request")
 }
 
@@ -29,7 +29,7 @@ func TestDecodeAuthorizationRequest(t *testing.T) {
 	assert.Nil(err)
 
 	var req AuthorizationRequest
-	err = querystring.Decode(&req, u.Query())
+	err = querystring.Decode(u.Query(), &req)
 	assert.Nil(err)
 
 	var (
@@ -82,7 +82,7 @@ func TestEncodeAuthorizationError(t *testing.T) {
 	u, err := url.Parse("https://client.example.com/cb")
 	assert.Nil(err)
 
-	q := querystring.Encode(res)
+	q := querystring.Encode(url.Values{}, res)
 	u.RawQuery = q.Encode()
 
 	assert.Equal("https://client.example.com/cb?error=access_denied&state=xyz", u.String(), "should encode the correct authorization error")

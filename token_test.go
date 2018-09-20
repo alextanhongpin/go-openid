@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestTokenFlow(t *testing.T) {
 		ExpiresIn:    3600,
 		RefreshToken: "tGzv3JOkF0XG5Qx2TlKWIA",
 	}
-	form := querystring.Encode(tokenReq)
+	form := querystring.Encode(url.Values{}, tokenReq)
 	req := httptest.NewRequest("POST", "/token", strings.NewReader(form.Encode()))
 	req.Header.Add("Authorization", authorization)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")

@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-// TODO: NewDecoder(u).Decode(interface{})
-func Decode(in interface{}, u url.Values) error {
+func Decode(u url.Values, in interface{}) error {
 	t := reflect.TypeOf(in)
 	v := reflect.ValueOf(in)
 
@@ -52,9 +51,7 @@ func Decode(in interface{}, u url.Values) error {
 	}
 }
 
-// TODO: NewEncoder(url.Values).Encode(interface{})
-func Encode(in interface{}) url.Values {
-	u := url.Values{}
+func Encode(u url.Values, in interface{}) url.Values {
 	t := reflect.TypeOf(in)
 	vt := reflect.ValueOf(in)
 	if t.Kind() == reflect.Ptr {
