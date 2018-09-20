@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 
+	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 )
 
@@ -79,37 +75,7 @@ func main() {
 	r.POST("/register", postRegister)
 	r.GET("/client/register", getClientRegister)
 
-	srv := newServer(*port, r)
+	srv := gsrv.New(*port, r)
 	<-srv
 	log.Println("Gracefully shutdown HTTP server.")
-}
-
-func newServer(port int, r *httprouter.Router) <-chan struct{} {
-	srv := http.Server{
-		Addr:         fmt.Sprintf(":%d", port),
-		Handler:      r,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
-
-	idle := make(chan struct{})
-	go func() {
-		sigint := make(chan os.Signal, 1)
-		signal.Notify(sigint, os.Interrupt)
-		<-sigint
-
-		// Receive interrupt signal, shut down.
-		if err := srv.Shutdown(context.Background()); err != nil {
-			// Error from closing listener, or context timeout.
-			log.Printf("HTTP server Shutdown: %v", err)
-		}
-		close(idle)
-	}()
-
-	log.Printf("listening to port *:%d. press ctrl + c to cancel.", port)
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		// Error starting or closing listener.
-		log.Printf("HTTP server ListenAndServe: %v", err)
-	}
-	return idle
 }
