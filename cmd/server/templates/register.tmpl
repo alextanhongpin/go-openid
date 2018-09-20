@@ -1,4 +1,4 @@
-{{define "title"}}Login{{end}}
+{{define "title"}}Register{{end}}
 {{define "style"}}
 <style>
 body {
@@ -7,9 +7,9 @@ body {
 {{end}}
 {{define "content"}}
 <div>
-	<h1>Login</h1>	
+	<h1>Register</h1>	
 
-	<form action='/login' method='post'>
+	<form action='/register' method='post'>
 		<label for="email">Email</label>
 		<input 
 			id="email" 
@@ -27,7 +27,7 @@ body {
 			minlength='8' 
 			required/>
 
-		<button type="submit">Login</button>
+		<button type="submit">Register</button>
 	</form>
 </div>
 {{end}}
