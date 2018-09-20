@@ -7,20 +7,23 @@ import (
 	"github.com/alextanhongpin/go-openid"
 )
 
-// Index table.
-var emailToIDmap map[string]string
-var idToEmailmap map[string]string
+var (
+	ErrEmailDoesNotExist = errors.New("email does not exist")
+)
 
 // UserKV represents the in-memory store for user.
 type UserKV struct {
 	sync.RWMutex
 	db map[string]*oidc.User
+	// Maps email to id, and vice-versa.
+	idx map[string]string
 }
 
 // NewUserKV returns a new user key-value store.
 func NewUserKV() *UserKV {
 	return &UserKV{
-		db: make(map[string]*oidc.User),
+		db:  make(map[string]*oidc.User),
+		idx: make(map[string]string),
 	}
 }
 
@@ -33,10 +36,17 @@ func NewUserKV() *UserKV {
 // }
 
 // Put stores the user in the db by the given id.
-func (u *UserKV) Put(id string, user *oidc.User) {
+func (u *UserKV) Put(id string, user *oidc.User) error {
+	email := user.Email.Email
 	u.Lock()
 	u.db[id] = user
 	u.Unlock()
+
+	// Set indices.
+	u.Lock()
+	u.idx[email] = id
+	u.Unlock()
+	return nil
 }
 
 // Delete removes the user with the given id.
@@ -46,13 +56,30 @@ func (u *UserKV) Put(id string, user *oidc.User) {
 //         u.Unlock()
 // }
 
-func (u *UserKV) FindByEmail(email string) (*oidc.User, error) {
+// FindByEmail returns a user by the given email, or error if the email does
+// not exist.
+func (u *UserKV) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
 	u.RLock()
-	user, exist := u.db[email]
+	id, exist := u.idx[email]
 	u.RUnlock()
-
 	if !exist {
-		return nil, errors.New("email does not exist")
+		return nil, ErrEmailDoesNotExist
+	}
+
+	u.RLock()
+	user, exist := u.db[id]
+	u.RUnlock()
+	if !exist {
+		return nil, ErrEmailDoesNotExist
+	}
+	if sanitized {
+		return sanitizeUser(user), nil
 	}
 	return user, nil
+}
+
+func sanitizeUser(u *oidc.User) *oidc.User {
+	copy := u.Clone()
+	copy.HashedPassword = ""
+	return copy
 }

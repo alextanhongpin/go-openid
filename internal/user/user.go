@@ -11,9 +11,9 @@ import (
 func NewUser() *oidc.User {
 	id := crypto.NewXID()
 
-	user := oidc.User{}
+	user := new(oidc.User)
 	user.ID = id
 	user.Profile.UpdatedAt = time.Now().UTC().Unix()
 
-	return &user
+	return user
 }

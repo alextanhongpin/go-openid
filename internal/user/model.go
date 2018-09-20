@@ -10,8 +10,8 @@ type userModelImpl struct {
 }
 
 // FindByEmail returns a user by email.
-func (u *userModelImpl) FindByEmail(email string) (*oidc.User, error) {
-	return u.repository.FindByEmail(email)
+func (u *userModelImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
+	return u.repository.FindByEmail(email, sanitized)
 }
 
 // Create stores the username and hashed password into the storage.

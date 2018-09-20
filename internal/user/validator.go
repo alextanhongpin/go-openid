@@ -13,11 +13,11 @@ type userValidatorImpl struct {
 	model model.User
 }
 
-func (u *userValidatorImpl) FindByEmail(email string) (*oidc.User, error) {
+func (u *userValidatorImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
 	if err := isEmail(email); err != nil {
 		return nil, err
 	}
-	return u.model.FindByEmail(email)
+	return u.model.FindByEmail(email, sanitized)
 }
 
 func (u *userValidatorImpl) Create(email, hashedPassword string) error {
