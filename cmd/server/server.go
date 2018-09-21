@@ -44,29 +44,35 @@ func main() {
 
 	postLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		r.ParseForm()
-		res := json.NewEncoder(w)
-		email, password := r.FormValue("email"), r.FormValue("password")
+
+		var (
+			email    = r.FormValue("email")
+			password = r.FormValue("password")
+		)
 		u, err := svc.Login(email, password)
 		if err != nil {
-			res.Encode(M{
+			json.NewEncoder(w).Encode(M{
 				"error": "email of password is invalid",
 			})
 			return
 		}
-		res.Encode(M{"user": u})
+		json.NewEncoder(w).Encode(M{"user": u})
 	}
 
 	postRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		r.ParseForm()
-		res := json.NewEncoder(w)
-		email, password := r.FormValue("email"), r.FormValue("password")
+
+		var (
+			email    = r.FormValue("email")
+			password = r.FormValue("password")
+		)
 		if err := svc.Register(email, password); err != nil {
-			res.Encode(M{
+			json.NewEncoder(w).Encode(M{
 				"error": err.Error(),
 			})
 			return
 		}
-		res.Encode(M{"success": true})
+		json.NewEncoder(w).Encode(M{"success": true})
 	}
 
 	r.GET("/", getLogin)
