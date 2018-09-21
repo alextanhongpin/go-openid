@@ -75,11 +75,21 @@ func main() {
 		json.NewEncoder(w).Encode(M{"success": true})
 	}
 
+	getAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	}
+
+	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+
+	}
+
 	r.GET("/", getLogin)
 	r.GET("/register", getRegister)
 	r.POST("/login", postLogin)
 	r.POST("/register", postRegister)
 	r.GET("/client/register", getClientRegister)
+	r.GET("/authorize", getAuthorize)
+	r.POST("/authorize", postAuthorize)
 
 	srv := gsrv.New(*port, r)
 	<-srv
