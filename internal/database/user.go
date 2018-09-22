@@ -58,7 +58,7 @@ func (u *UserKV) Put(id string, user *oidc.User) error {
 
 // FindByEmail returns a user by the given email, or error if the email does
 // not exist.
-func (u *UserKV) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
+func (u *UserKV) FindByEmail(email string) (*oidc.User, error) {
 	u.RLock()
 	id, exist := u.idx[email]
 	u.RUnlock()
@@ -72,14 +72,5 @@ func (u *UserKV) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
 	if !exist {
 		return nil, ErrEmailDoesNotExist
 	}
-	if sanitized {
-		return sanitizeUser(user), nil
-	}
 	return user, nil
-}
-
-func sanitizeUser(u *oidc.User) *oidc.User {
-	copy := u.Clone()
-	copy.HashedPassword = ""
-	return copy
 }

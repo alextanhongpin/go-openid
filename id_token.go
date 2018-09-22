@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alextanhongpin/go-openid/pkg/passwd"
 	"github.com/asaskevich/govalidator"
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -31,12 +32,25 @@ type IDToken struct {
 
 // User represents the user struct.
 type User struct {
-	ID             string
-	HashedPassword string `json:"-"`
+	hashedPassword string
+	ID             string `json:"id,omitempty"`
 	Address
 	Email
 	Phone
 	Profile
+}
+
+func (u *User) SetPassword(password string) error {
+	hash, err := passwd.Hash(password)
+	if err != nil {
+		return err
+	}
+	u.hashedPassword = hash
+	return nil
+}
+
+func (u *User) ComparePassword(password string) error {
+	return passwd.Verify(password, u.hashedPassword)
 }
 
 func (u *User) Clone() *User {

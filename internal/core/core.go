@@ -7,7 +7,8 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
 
-func Authenticate(user *oidc.User) (*oidc.AuthenticationResponse, error) {
+// NewToken returns a new token for the authenticated user.
+func NewToken(user *oidc.User) (*oidc.AuthenticationResponse, error) {
 	// Get id_token of user.
 	idToken := user.ToIDToken()
 

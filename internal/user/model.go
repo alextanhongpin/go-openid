@@ -10,16 +10,18 @@ type modelImpl struct {
 }
 
 // FindByEmail returns a user by email.
-func (u *modelImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
-	return u.repository.FindByEmail(email, sanitized)
+func (m *modelImpl) FindByEmail(email string) (*oidc.User, error) {
+	return m.repository.FindByEmail(email)
 }
 
 // Create stores the username and hashed password into the storage.
-func (u *modelImpl) Create(email, hashedPassword string) error {
+func (m *modelImpl) Create(email, password string) (*oidc.User, error) {
 	user := NewUser()
+	if err := user.SetPassword(password); err != nil {
+		return nil, err
+	}
 
 	user.Email.Email = email
-	user.HashedPassword = hashedPassword
 
-	return u.repository.Put(user.ID, user)
+	return user, m.repository.Put(user.ID, user)
 }

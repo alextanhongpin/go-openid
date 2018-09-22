@@ -13,21 +13,21 @@ type validatorImpl struct {
 	model model.User
 }
 
-func (u *validatorImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
+func (u *validatorImpl) FindByEmail(email string) (*oidc.User, error) {
 	if err := isEmail(email); err != nil {
 		return nil, err
 	}
-	return u.model.FindByEmail(email, sanitized)
+	return u.model.FindByEmail(email)
 }
 
-func (u *validatorImpl) Create(email, hashedPassword string) error {
-	if len(email) == 0 || len(hashedPassword) == 0 {
-		return errors.New("arguments cannot be empty")
+func (u *validatorImpl) Create(email, password string) (*oidc.User, error) {
+	if len(email) == 0 || len(password) == 0 {
+		return nil, errors.New("arguments cannot be empty")
 	}
 	if err := isEmail(email); err != nil {
-		return err
+		return nil, err
 	}
-	return u.model.Create(email, hashedPassword)
+	return u.model.Create(email, password)
 }
 
 // -- helpers

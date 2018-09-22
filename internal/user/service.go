@@ -6,7 +6,6 @@ import (
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/model"
-	"github.com/alextanhongpin/go-openid/pkg/passwd"
 )
 
 type serviceImpl struct {
@@ -14,27 +13,23 @@ type serviceImpl struct {
 }
 
 // Register registers a new user with the given email and password.
-func (u *serviceImpl) Register(email, password string) error {
-	user, err := u.model.FindByEmail(email, true)
+func (u *serviceImpl) Register(email, password string) (*oidc.User, error) {
+	user, err := u.model.FindByEmail(email)
 	switch {
 	case err == database.ErrEmailDoesNotExist:
-		hash, err := passwd.Hash(password)
-		if err != nil {
-			return err
-		}
-		return u.model.Create(email, hash)
+		return u.model.Create(email, password)
 	case user != nil: // User exist.
-		return errors.New("email exist")
+		return nil, errors.New("email exist")
 	default:
-		return err
+		return nil, err
 	}
 }
 
 // Login verifies if the given username and password is correct.
 func (u *serviceImpl) Login(email, password string) (*oidc.User, error) {
-	user, err := u.model.FindByEmail(email, false)
+	user, err := u.model.FindByEmail(email)
 	if err != nil {
 		return nil, err
 	}
-	return user, passwd.Verify(password, user.HashedPassword)
+	return user, user.ComparePassword(password)
 }
