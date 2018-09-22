@@ -9,22 +9,21 @@ body {
 <div>
 	<h1>Client Register</h1>	
 
-	<form action='/client/register' method='post'>
-		<label for="email">Email</label>
+	<form action='/connect/register' method='post'>
+		<label for="client_name">Client Name</label>
 		<input 
-			id="email" 
-			name="email"
-			type="email" 
-			placeholder="Enter email" 
+			id="client_name" 
+			name="client_name"
+			type="text" 
+			placeholder="Enter client name" 
 			required/>
 
-		<label for="password">Password</label>
+		<label for="redirect_uris">Redirect URIs</label>
 		<input 
-			id="password" 
-   			name="password"
-			type="password" 
-			placeholder="Enter password (min 8 characters)" 
-			minlength='8' 
+			id="redirect_uris" 
+   			name="redirect_uris"
+			type="text" 
+			placeholder="Enter redirect uris" 
 			required/>
 
 		<button type="submit">Client Register</button>

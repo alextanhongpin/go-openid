@@ -1,16 +1,16 @@
 package main
 
 // Endpoints represent the endpoints for the OpenIDConnect.
-type Endpoints struct {
-	service Service
-}
-
-// NewEndpoints returns a pointer to new endpoints.
-func NewEndpoints(s Service) *Endpoints {
-	return &Endpoints{
-		service: s,
-	}
-}
+// type Endpoints struct {
+//         service Service
+// }
+//
+// // NewEndpoints returns a pointer to new endpoints.
+// func NewEndpoints(s Service) *Endpoints {
+//         return &Endpoints{
+//                 service: s,
+//         }
+// }
 
 //
 // // Authorize performs the authorization logic.
