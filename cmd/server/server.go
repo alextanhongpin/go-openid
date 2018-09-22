@@ -13,6 +13,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/internal/core"
+	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
@@ -43,17 +45,146 @@ func main() {
 		type data struct {
 			ReturnURL string
 		}
-		var d data
-		if uri := r.URL.Query().Get("return_url"); uri != "" {
-			log.Println("getLogin", uri)
-			qs := fmt.Sprintf(`?return_url=%s`, uri)
-			d = data{qs}
+		// By default, redirect to the index page.
+		uri := "/"
+		if base64uri := r.URL.Query().Get("return_url"); base64uri != "" {
+			u, err := decodeBase64(base64uri)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			uri = u
 		}
+
+		d := data{uri}
 		tpl.Render(w, "login", d)
+	}
+
+	postLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		type loginRequest struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Pragma", "no-cache")
+
+		var req loginRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		u, err := svc.user.Login(req.Email, req.Password)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		// TODO: Move logic to the service.
+		res, err := core.NewToken(u)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		cookie := http.Cookie{
+			Name:     "auth",
+			Value:    res.AccessToken,
+			HttpOnly: true,
+			Secure:   true, // Only for https
+		}
+		http.SetCookie(w, &cookie)
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
 	}
 
 	getRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		tpl.Render(w, "register", nil)
+	}
+
+	postRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		type registerRequest struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Pragma", "no-cache")
+
+		var req registerRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		u, err := svc.user.Register(req.Email, req.Password)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// TODO: Move logic to the service.
+		res, err := core.NewToken(u)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(res)
+	}
+
+	makeAuthorizeURI := func(q url.Values) (string, error) {
+		u, err := url.Parse("http://localhost:8080/authorize")
+		if err != nil {
+			return "", err
+		}
+		u.RawQuery = q.Encode()
+		return u.String(), nil
+	}
+
+	getAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		q := r.URL.Query()
+		authorizeURI, err := makeAuthorizeURI(q)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		var req oidc.AuthenticationRequest
+		if err := querystring.Decode(q, &req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		token, _ := r.Cookie("auth")
+		isAuthorized := token != nil && token.Value != ""
+		if isAuthorized {
+			log.Println("got token:", token.Value)
+			t := strings.Split(token.Value, "=")[1]
+			claims, err := crypto.ParseJWT([]byte("access_token_secret"), t)
+			if err != nil {
+				log.Println("getAuthorize: err parsing jwt", err)
+				b64uri := encodeBase64(authorizeURI)
+				u := fmt.Sprintf(`http://localhost:8080/login?return_url=%s`, b64uri)
+				http.Redirect(w, r, u, http.StatusFound)
+				return
+			}
+			log.Println(claims)
+		}
+		log.Println("getAuthorize: got cookie", token, isAuthorized)
+		// Check the prompt type here. If login is required, direct them to the login page.
+		if prompt := req.GetPrompt(); prompt.Is(oidc.PromptLogin) && !isAuthorized {
+			b64uri := encodeBase64(authorizeURI)
+			u := fmt.Sprintf(`http://localhost:8080/login?return_url=%s`, b64uri)
+			http.Redirect(w, r, u, http.StatusFound)
+			return
+		}
+		tpl.Render(w, "consent", nil)
+	}
+
+	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// Generate code to be exchanged as token.
+		log.Println("postAuthorize", r.URL.Query())
+		// Delete cookie here.
+		json.NewEncoder(w).Encode(M{"ok": true})
 	}
 
 	getClientRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -61,7 +192,7 @@ func main() {
 		if clientID != "" {
 			client, err := svc.client.Read(clientID)
 			if err != nil {
-				json.NewEncoder(w).Encode(M{"error": err.Error()})
+				writeError(w, http.StatusBadRequest, err)
 				return
 			}
 			json.NewEncoder(w).Encode(client)
@@ -72,6 +203,10 @@ func main() {
 
 	postClientRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		r.ParseForm()
+
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Pragma", "no-cache")
 
 		var (
 			clientName   = r.FormValue("client_name")
@@ -96,118 +231,8 @@ func main() {
 		log.Println("registered:", newClient.ClientID)
 
 		w.WriteHeader(http.StatusCreated)
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Pragma", "no-cache")
 		json.NewEncoder(w).Encode(M{"success": true})
 	}
-
-	postLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		r.ParseForm()
-
-		var (
-			redirect = r.URL.Query().Get("return_url")
-			email    = r.FormValue("email")
-			password = r.FormValue("password")
-		)
-		redirectByte, err := base64.URLEncoding.DecodeString(redirect)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		redirect = string(redirectByte)
-		log.Println("postLogin: got uri" + redirect)
-
-		_, err = svc.user.Login(email, password)
-		if err != nil {
-			json.NewEncoder(w).Encode(M{
-				"error": "email of password is invalid",
-			})
-			return
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Pragma", "no-cache")
-		cookie := http.Cookie{
-			Name:  "auth",
-			Value: "xxx",
-			// Expires: time.Now().Add(1 * time.Minute),
-			// Secure:   true,
-			// HttpOnly: true,
-		}
-		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, redirect, http.StatusFound)
-	}
-
-	postRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		r.ParseForm()
-
-		var (
-			email    = r.FormValue("email")
-			password = r.FormValue("password")
-		)
-		if err := svc.user.Register(email, password); err != nil {
-			json.NewEncoder(w).Encode(M{
-				"error": err.Error(),
-			})
-			return
-		}
-		w.Header().Set("Cache-Control", "no-store")
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Pragma", "no-cache")
-		json.NewEncoder(w).Encode(M{"success": true})
-	}
-
-	makeAuthorizeURI := func(q url.Values) (string, error) {
-		u, err := url.Parse("http://localhost:8080/authorize")
-		if err != nil {
-			return "", err
-		}
-		u.RawQuery = q.Encode()
-		return u.String(), nil
-	}
-
-	// makeLoginURI := func(q url.Values) (string, error) {
-	//         u, err := url.Parse("http://localhost:8080/login")
-	//         if err != nil {
-	//                 return "", err
-	//         }
-	//         u.RawQuery = q.Encode()
-	//         return u.String(), nil
-	//
-	// }
-
-	getAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		q := r.URL.Query()
-		authorizeURI, err := makeAuthorizeURI(q)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		var req oidc.AuthenticationRequest
-		if err := querystring.Decode(q, &req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		token, _ := r.Cookie("auth")
-		isAuthorized := token != nil && token.Value != ""
-		log.Println("getAuthorize: got cookie", token, isAuthorized)
-		// Check the prompt type here. If login is required, direct them to the login page.
-		if prompt := req.GetPrompt(); prompt.Is(oidc.PromptLogin) && !isAuthorized {
-			b64uri := base64.URLEncoding.EncodeToString([]byte(authorizeURI))
-			u := fmt.Sprintf(`http://localhost:8080/login?return_url=%s`, b64uri)
-			http.Redirect(w, r, u, http.StatusFound)
-			return
-		}
-		tpl.Render(w, "consent", nil)
-	}
-
-	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		// Generate code to be exchanged as token.
-		log.Println("postAuthorize", r.URL.Query())
-		json.NewEncoder(w).Encode(M{"ok": true})
-	}
-
 	r.GET("/", getLogin)
 
 	r.GET("/register", getRegister)
@@ -219,7 +244,23 @@ func main() {
 	r.GET("/authorize", getAuthorize)
 	r.POST("/authorize", postAuthorize)
 
-	srv := gsrv.New(*port, r)
+	srv := gsrv.New(*port, r, "server.crt", "server.key")
 	<-srv
 	log.Println("Gracefully shutdown HTTP server.")
+}
+
+func decodeBase64(in string) (string, error) {
+	b, err := base64.URLEncoding.DecodeString(in)
+	return string(b), err
+}
+
+func encodeBase64(in string) string {
+	return base64.URLEncoding.EncodeToString([]byte(in))
+}
+
+func writeError(w http.ResponseWriter, status int, err error) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(M{
+		"error": err.Error(),
+	})
 }
