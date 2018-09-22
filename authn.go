@@ -36,17 +36,11 @@ func (a *AuthenticationRequest) GetPrompt() Prompt {
 
 // Validate performs validation on the required fields except the validation of
 // the client, which requires a call to another domain service.
-func (a *AuthenticationRequest) Validate(state string, uris []string) error {
+func (a *AuthenticationRequest) Validate() error {
 	if err := a.ValidateScope(); err != nil {
 		return err
 	}
 	if err := a.ValidateResponseType(); err != nil {
-		return err
-	}
-	if err := a.VerifyRedirectURI(uris); err != nil {
-		return err
-	}
-	if err := a.VerifyState(state); err != nil {
 		return err
 	}
 	return nil

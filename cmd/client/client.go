@@ -3,17 +3,20 @@ package main
 import (
 	"log"
 	"net/http"
+	"net/url"
 
+	"github.com/julienschmidt/httprouter"
+
+	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
-	"github.com/julienschmidt/httprouter"
+	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
 func main() {
-	port := 4000
-	tpldir := "templates"
+	cfg := NewConfig()
 
-	tpl := html5.New(tpldir)
+	tpl := html5.New(cfg.TemplateDir)
 	tpl.Load("authorize")
 
 	getIndex := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -26,6 +29,21 @@ func main() {
 		// should be displayed to let the users login without being
 		// redirected. The question is, how to maintain the login
 		// token/session in the popup.
+		req := oidc.AuthenticationRequest{
+			ResponseType: "code",
+			Scope:        "openid profile email",
+			ClientID:     "beis0qroo3sq8tobkdkg",
+			State:        "abc",
+			RedirectURI:  "http://localhost:4000/authorize/callback",
+		}
+		u, err := url.Parse("http://localhost:8080/authorize")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		qs := querystring.Encode(url.Values{}, req)
+		u.RawQuery = qs.Encode()
+		http.Redirect(w, r, u.String(), http.StatusFound)
 	}
 
 	postAuthorizeCallback := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -37,7 +55,7 @@ func main() {
 	r.GET("/authorize", getAuthorize)
 	r.POST("/authorize/callback", postAuthorizeCallback)
 
-	srv := gsrv.New(port, r)
+	srv := gsrv.New(cfg.Port, r)
 	<-srv
 	log.Println("shutting down server.")
 }

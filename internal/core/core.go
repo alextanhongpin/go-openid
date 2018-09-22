@@ -1,4 +1,4 @@
-package authorization
+package core
 
 import (
 	"time"
@@ -6,17 +6,6 @@ import (
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 )
-
-func Authorize(req *oidc.AuthenticationRequest) error {
-	if err := req.Validate("", nil); err != nil {
-		return err
-	}
-	if prompt := req.GetPrompt(); prompt.Is(oidc.PromptNone) {
-		// OR: LoginRequired
-		return oidc.ErrInteractionRequired
-	}
-	return nil
-}
 
 func Authenticate(user *oidc.User) (*oidc.AuthenticationResponse, error) {
 	// Get id_token of user.

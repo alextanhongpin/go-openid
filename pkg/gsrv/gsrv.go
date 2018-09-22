@@ -23,6 +23,8 @@ func New(port int, r http.Handler) <-chan struct{} {
 	go func() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, os.Kill)
+
 		<-sigint
 
 		// Receive interrupt signal, shut down.
