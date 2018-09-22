@@ -7,22 +7,22 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/repository"
 )
 
-type clientModelImpl struct {
+type modelImpl struct {
 	repository repository.Client
 }
 
-// NewClientModelImpl returns a new client model implementation.
-func NewClientModelImpl(r repository.Client) *clientModelImpl {
-	return &clientModelImpl{r}
+// NewModel returns a new client model implementation.
+func NewModel(r repository.Client) *modelImpl {
+	return &modelImpl{r}
 }
 
 // New returns a new client with client id and client secret.
-func (c *clientModelImpl) New(client *oidc.Client) (*oidc.Client, error) {
+func (c *modelImpl) New(client *oidc.Client) (*oidc.Client, error) {
 	return NewClient(client)
 }
 
 // Save stores the new, non-existing client into the database.
-func (c *clientModelImpl) Save(client *oidc.Client) error {
+func (c *modelImpl) Save(client *oidc.Client) error {
 	if exist := c.repository.Has(client.ClientID); exist {
 		return errors.New("client already exist")
 	}
@@ -30,7 +30,7 @@ func (c *clientModelImpl) Save(client *oidc.Client) error {
 }
 
 // Read returns a client by client_id from the repository.
-func (c *clientModelImpl) Read(clientID string) (*oidc.Client, error) {
+func (c *modelImpl) Read(clientID string) (*oidc.Client, error) {
 	client, exist := c.repository.Get(clientID)
 	if !exist {
 		return nil, errors.New("client does not exist")

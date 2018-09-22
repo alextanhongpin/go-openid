@@ -19,7 +19,7 @@ var clientServiceSet = wire.NewSet(
 )
 
 // NewService returns a new client service.
-func NewService() (*clientServiceImpl, error) {
+func NewService() (*serviceImpl, error) {
 	panic(wire.Build(clientServiceSet))
 }
 
@@ -27,8 +27,8 @@ func provideRepository() repository.Client {
 	return database.NewClientKV()
 }
 
-func provideModel(repo repository.Client) *clientModelImpl {
-	return NewClientModelImpl(repo)
+func provideModel(repo repository.Client) *modelImpl {
+	return NewModel(repo)
 }
 
 func provideClientValidator() (*schema.Client, error) {
@@ -39,14 +39,14 @@ func provideClientResponseValidator() (*schema.ClientResponse, error) {
 	return schema.NewClientResponseValidator()
 }
 
-func provideValidator(model *clientModelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *clientValidatorImpl {
-	return &clientValidatorImpl{
+func provideValidator(model *modelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *validatorImpl {
+	return &validatorImpl{
 		model:          model,
 		client:         client,
 		clientResponse: clientResponse,
 	}
 }
 
-func provideService(model *clientValidatorImpl) *clientServiceImpl {
-	return NewClientServiceImpl(model)
+func provideService(model *validatorImpl) *serviceImpl {
+	return &serviceImpl{model}
 }

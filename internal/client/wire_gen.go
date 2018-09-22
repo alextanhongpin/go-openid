@@ -14,9 +14,9 @@ import (
 
 // Injectors from wire.go:
 
-func NewService() (*clientServiceImpl, error) {
+func NewService() (*serviceImpl, error) {
 	client := provideRepository()
-	clientClientModelImpl := provideModel(client)
+	clientModelImpl := provideModel(client)
 	schemaClient, err := provideClientValidator()
 	if err != nil {
 		return nil, err
@@ -25,9 +25,9 @@ func NewService() (*clientServiceImpl, error) {
 	if err != nil {
 		return nil, err
 	}
-	clientClientValidatorImpl := provideValidator(clientClientModelImpl, schemaClient, clientResponse)
-	clientClientServiceImpl := provideService(clientClientValidatorImpl)
-	return clientClientServiceImpl, nil
+	clientValidatorImpl := provideValidator(clientModelImpl, schemaClient, clientResponse)
+	clientServiceImpl := provideService(clientValidatorImpl)
+	return clientServiceImpl, nil
 }
 
 // wire.go:
@@ -45,8 +45,8 @@ func provideRepository() repository.Client {
 	return database.NewClientKV()
 }
 
-func provideModel(repo repository.Client) *clientModelImpl {
-	return NewClientModelImpl(repo)
+func provideModel(repo repository.Client) *modelImpl {
+	return NewModel(repo)
 }
 
 func provideClientValidator() (*schema.Client, error) {
@@ -57,14 +57,14 @@ func provideClientResponseValidator() (*schema.ClientResponse, error) {
 	return schema.NewClientResponseValidator()
 }
 
-func provideValidator(model *clientModelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *clientValidatorImpl {
-	return &clientValidatorImpl{
+func provideValidator(model *modelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *validatorImpl {
+	return &validatorImpl{
 		model:          model,
 		client:         client,
 		clientResponse: clientResponse,
 	}
 }
 
-func provideService(model *clientValidatorImpl) *clientServiceImpl {
-	return NewClientServiceImpl(model)
+func provideService(model *validatorImpl) *serviceImpl {
+	return &serviceImpl{model}
 }

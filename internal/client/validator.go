@@ -8,14 +8,14 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
-type clientValidatorImpl struct {
+type validatorImpl struct {
 	client         *schema.Client
 	clientResponse *schema.ClientResponse
 	model          model.Client
 }
 
 // New will validate the new request.
-func (c *clientValidatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
+func (c *validatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
 	_, err := c.client.Validate(client)
 	if err != nil {
 		return nil, err
@@ -24,7 +24,7 @@ func (c *clientValidatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
 }
 
 // Save will validate the save request.
-func (c *clientValidatorImpl) Save(client *oidc.Client) error {
+func (c *validatorImpl) Save(client *oidc.Client) error {
 	_, err := c.clientResponse.Validate(client)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (c *clientValidatorImpl) Save(client *oidc.Client) error {
 }
 
 // Read will validate the read request.
-func (c *clientValidatorImpl) Read(clientID string) (*oidc.Client, error) {
+func (c *validatorImpl) Read(clientID string) (*oidc.Client, error) {
 	if clientID == "" {
 		return nil, errors.New("client_id cannot be empty")
 	}

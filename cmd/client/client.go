@@ -32,9 +32,11 @@ func main() {
 		req := oidc.AuthenticationRequest{
 			ResponseType: "code",
 			Scope:        "openid profile email",
-			ClientID:     "beis0qroo3sq8tobkdkg",
+			ClientID:     cfg.ClientID,
 			State:        "abc",
 			RedirectURI:  "http://localhost:4000/authorize/callback",
+
+			Prompt: "login",
 		}
 		u, err := url.Parse("http://localhost:8080/authorize")
 		if err != nil {
