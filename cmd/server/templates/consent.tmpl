@@ -1,0 +1,16 @@
+{{define "title"}}Consent{{end}}
+{{define "style"}}
+<style>
+body {
+}
+</style>
+{{end}}
+{{define "content"}}
+<div>
+	<h1>Consent</h1>	
+	<form action='/authorize' method='post'>
+		Allow CLIENT to access the following.		
+		<button type="submit">Allow</button>
+	</form>
+</div>
+{{end}}
