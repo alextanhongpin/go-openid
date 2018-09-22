@@ -5,17 +5,17 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/repository"
 )
 
-type userModelImpl struct {
+type modelImpl struct {
 	repository repository.User
 }
 
 // FindByEmail returns a user by email.
-func (u *userModelImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
+func (u *modelImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
 	return u.repository.FindByEmail(email, sanitized)
 }
 
 // Create stores the username and hashed password into the storage.
-func (u *userModelImpl) Create(email, hashedPassword string) error {
+func (u *modelImpl) Create(email, hashedPassword string) error {
 	user := NewUser()
 
 	user.Email.Email = email

@@ -9,18 +9,18 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/model"
 )
 
-type userValidatorImpl struct {
+type validatorImpl struct {
 	model model.User
 }
 
-func (u *userValidatorImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
+func (u *validatorImpl) FindByEmail(email string, sanitized bool) (*oidc.User, error) {
 	if err := isEmail(email); err != nil {
 		return nil, err
 	}
 	return u.model.FindByEmail(email, sanitized)
 }
 
-func (u *userValidatorImpl) Create(email, hashedPassword string) error {
+func (u *validatorImpl) Create(email, hashedPassword string) error {
 	if len(email) == 0 || len(hashedPassword) == 0 {
 		return errors.New("arguments cannot be empty")
 	}

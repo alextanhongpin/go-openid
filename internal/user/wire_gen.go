@@ -14,28 +14,28 @@ import (
 
 // Injectors from wire.go:
 
-func NewService() *userServiceImpl {
+func NewService() *serviceImpl {
 	userKV := provideRepository()
-	userUserModelImpl := provideModel(userKV)
-	userUserServiceImpl := provideService(userUserModelImpl)
-	return userUserServiceImpl
+	userModelImpl := provideModel(userKV)
+	userServiceImpl := provideService(userModelImpl)
+	return userServiceImpl
 }
 
 // wire.go:
 
-var userServiceSet = wire.NewSet(
-	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.User), new(userModelImpl)), provideService,
+var ServiceSet = wire.NewSet(
+	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.User), new(modelImpl)), provideService,
 )
 
 func provideRepository() *database.UserKV {
 	return database.NewUserKV()
 }
 
-func provideModel(repo repository.User) *userModelImpl {
-	return &userModelImpl{repository: repo}
+func provideModel(repo repository.User) *modelImpl {
+	return &modelImpl{repository: repo}
 }
 
-func provideService(model2 model.User) *userServiceImpl {
-	decorateValidator := &userValidatorImpl{model: model2}
-	return &userServiceImpl{model: decorateValidator}
+func provideService(model2 model.User) *serviceImpl {
+	decorateValidator := &validatorImpl{model: model2}
+	return &serviceImpl{model: decorateValidator}
 }
