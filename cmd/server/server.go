@@ -14,7 +14,7 @@ import (
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/core"
-	"github.com/alextanhongpin/go-openid/pkg/crypto"
+	"github.com/alextanhongpin/go-openid/internal/session"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
@@ -35,6 +35,10 @@ func main() {
 	// Load templates.
 	tpl := html5.New(*tplDir)
 	tpl.Load("login", "register", "client-register", "consent")
+
+	sessMgr := session.NewManager()
+	sessMgr.Start()
+	defer sessMgr.Stop()
 
 	svc := NewService()
 
@@ -86,13 +90,12 @@ func main() {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		cookie := http.Cookie{
-			Name:     "auth",
-			Value:    res.AccessToken,
-			HttpOnly: true,
-			Secure:   true, // Only for https
-		}
-		http.SetCookie(w, &cookie)
+
+		sess := session.NewSession()
+		cookie := session.NewCookie(sess.SID)
+		sessMgr.Put(sess.SID, sess)
+		http.SetCookie(w, cookie)
+
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(res)
 	}
@@ -154,22 +157,21 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		token, _ := r.Cookie("auth")
-		isAuthorized := token != nil && token.Value != ""
-		if isAuthorized {
-			log.Println("got token:", token.Value)
-			t := strings.Split(token.Value, "=")[1]
-			claims, err := crypto.ParseJWT([]byte("access_token_secret"), t)
+		isAuthorized := false
+		token, err := r.Cookie("id")
+		if err != nil {
+			// http.ErrNoCookie
+			isAuthorized = false
+			log.Println("cookieError:", err)
+		} else {
+			sess, err := sessMgr.Get(token.Value)
 			if err != nil {
-				log.Println("getAuthorize: err parsing jwt", err)
-				b64uri := encodeBase64(authorizeURI)
-				u := fmt.Sprintf(`http://localhost:8080/login?return_url=%s`, b64uri)
-				http.Redirect(w, r, u, http.StatusFound)
-				return
+				log.Println("sessionError:", err)
+				isAuthorized = false
 			}
-			log.Println(claims)
+			log.Println("got session", sess)
+			isAuthorized = true
 		}
-		log.Println("getAuthorize: got cookie", token, isAuthorized)
 		// Check the prompt type here. If login is required, direct them to the login page.
 		if prompt := req.GetPrompt(); prompt.Is(oidc.PromptLogin) && !isAuthorized {
 			b64uri := encodeBase64(authorizeURI)
@@ -181,10 +183,24 @@ func main() {
 	}
 
 	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		// Generate code to be exchanged as token.
-		log.Println("postAuthorize", r.URL.Query())
-		// Delete cookie here.
-		json.NewEncoder(w).Encode(M{"ok": true})
+		var req oidc.AuthenticationRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		res, err := svc.core.Authorize(&req)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		qs := querystring.Encode(url.Values{}, res)
+		u, err := url.Parse(req.RedirectURI)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		u.RawQuery = qs.Encode()
+		http.Redirect(w, r, u.String(), http.StatusFound)
 	}
 
 	getClientRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -219,13 +235,12 @@ func main() {
 
 		newClient, err := svc.client.Register(client)
 		if err != nil {
-			res := M{"error": err.Error()}
 			v, ok := err.(*oidc.ErrorJSON)
 			if ok {
-				res["error"] = v.Code
-				res["error_description"] = v.Description
+				json.NewEncoder(w).Encode(v)
+				return
 			}
-			json.NewEncoder(w).Encode(res)
+			json.NewEncoder(w).Encode(M{"error": err.Error()})
 			return
 		}
 		log.Println("registered:", newClient.ClientID)
@@ -233,8 +248,22 @@ func main() {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(M{"success": true})
 	}
+
+	postLogout := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		cookie, err := r.Cookie("id")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		sessMgr.Delete(cookie.Value)
+		json.NewEncoder(w).Encode(M{
+			"ok": true,
+		})
+	}
+
 	r.GET("/", getLogin)
 
+	r.POST("/logout", postLogout)
 	r.GET("/register", getRegister)
 	r.GET("/login", getLogin)
 	r.POST("/login", postLogin)
@@ -244,7 +273,7 @@ func main() {
 	r.GET("/authorize", getAuthorize)
 	r.POST("/authorize", postAuthorize)
 
-	srv := gsrv.New(*port, r, "server.crt", "server.key")
+	srv := gsrv.New(*port, r)
 	<-srv
 	log.Println("Gracefully shutdown HTTP server.")
 }

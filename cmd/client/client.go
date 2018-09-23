@@ -57,7 +57,7 @@ func main() {
 	r.GET("/authorize", getAuthorize)
 	r.POST("/authorize/callback", postAuthorizeCallback)
 
-	srv := gsrv.New(cfg.Port, r)
+	srv := gsrv.New(cfg.Port, r, "", "")
 	<-srv
 	log.Println("shutting down server.")
 }

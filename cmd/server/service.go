@@ -4,12 +4,14 @@ import (
 	"log"
 
 	"github.com/alextanhongpin/go-openid/internal/client"
+	"github.com/alextanhongpin/go-openid/internal/core"
 	"github.com/alextanhongpin/go-openid/internal/user"
 	"github.com/alextanhongpin/go-openid/pkg/service"
 )
 
 type serviceImpl struct {
 	client service.Client
+	core   service.Core
 	user   service.User
 }
 
@@ -20,8 +22,13 @@ func NewService() *serviceImpl {
 	if err != nil {
 		log.Fatal(err)
 	}
+	cr := core.NewService()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return &serviceImpl{
 		client: c,
 		user:   u,
+		core:   cr,
 	}
 }
