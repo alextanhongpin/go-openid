@@ -3,9 +3,10 @@ package main
 import "flag"
 
 type Config struct {
-	Port        int
-	TemplateDir string
-	ClientID    string
+	Port         int
+	TemplateDir  string
+	ClientID     string
+	ClientSecret string
 }
 
 func NewConfig() Config {

@@ -1,13 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/authheader"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
@@ -48,16 +53,57 @@ func main() {
 		http.Redirect(w, r, u.String(), http.StatusFound)
 	}
 
-	postAuthorizeCallback := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	getAuthorizeCallback := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		q := r.URL.Query()
+		var authzReq oidc.AuthorizationResponse
+		if err := querystring.Decode(q, &authzReq); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 
+		tokenReq := oidc.AccessTokenRequest{
+			GrantType:   "authorization_code",
+			Code:        authzReq.Code,
+			RedirectURI: "http://localhost:4000/authorize/callback",
+		}
+		jsonBody, err := json.Marshal(tokenReq)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		req, err := http.NewRequest("POST", "http://localhost:8080/token", bytes.NewBuffer(jsonBody))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		req = req.WithContext(ctx)
+		req.Header.Add("Authorization", "Basic "+authheader.EncodeBase64(cfg.ClientID, cfg.ClientSecret))
+
+		client := new(http.Client)
+		resp, err := client.Do(req)
+		if err != nil {
+			panic(err)
+		}
+		defer resp.Body.Close()
+
+		var res oidc.AuthenticationResponse
+		if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+			panic(err)
+		}
+		json.NewEncoder(w).Encode(res)
 	}
 
 	r := httprouter.New()
+
 	r.GET("/", getIndex)
 	r.GET("/authorize", getAuthorize)
-	r.POST("/authorize/callback", postAuthorizeCallback)
+	r.GET("/authorize/callback", getAuthorizeCallback)
 
-	srv := gsrv.New(cfg.Port, r, "", "")
+	srv := gsrv.New(cfg.Port, r)
 	<-srv
 	log.Println("shutting down server.")
 }
