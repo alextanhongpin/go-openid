@@ -20,6 +20,7 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 
+// M represents simple map interface.
 type M map[string]interface{}
 
 func main() {
@@ -49,15 +50,19 @@ func main() {
 		type data struct {
 			ReturnURL string
 		}
-		// By default, redirect to the index page.
-		uri := "/"
-		if base64uri := r.URL.Query().Get("return_url"); base64uri != "" {
-			u, err := decodeBase64(base64uri)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
+
+		parseURI := func(u url.Values) (string, error) {
+			base64uri := u.Get("return_url")
+			if base64uri == "" {
+				return "/"
 			}
-			uri = u
+			return decodeBase64(base64uri)
+		}
+
+		uri, err := parseURI(r.URL.Query())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		d := data{uri}
@@ -74,18 +79,19 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
-		var req loginRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, err)
-			return
+		loginFn := func(r *http.Request) (*oidc.AuthenticationResponse, error) {
+			var req loginRequest
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				return nil, err
+			}
+			u, err := svc.user.Login(req.Email, req.Password)
+			if err != nil {
+				return nil, err
+			}
+			return core.NewToken(u)
 		}
-		u, err := svc.user.Login(req.Email, req.Password)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		// TODO: Move logic to the service.
-		res, err := core.NewToken(u)
+
+		res, err := loginFn(r)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return

@@ -1,22 +1,21 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/authheader"
+	"github.com/alextanhongpin/go-openid/internal/core"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
+
+type M map[string]interface{}
 
 func main() {
 	cfg := NewConfig()
@@ -26,6 +25,12 @@ func main() {
 
 	getIndex := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		tpl.Render(w, "authorize", nil)
+	}
+
+	oidcClient := core.Client{
+		ClientID:             cfg.ClientID,
+		ClientSecret:         cfg.ClientSecret,
+		TokenRegistrationURI: "http://localhost:8080/token",
 	}
 
 	getAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -60,39 +65,17 @@ func main() {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		var (
+			code        = authzReq.Code
+			redirectURI = "http://localhost:4000/authorize/callback"
+		)
 
-		tokenReq := oidc.AccessTokenRequest{
-			GrantType:   "authorization_code",
-			Code:        authzReq.Code,
-			RedirectURI: "http://localhost:4000/authorize/callback",
-		}
-		jsonBody, err := json.Marshal(tokenReq)
+		res, err := oidcClient.Exchange(r.Context(), code, redirectURI)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			json.NewEncoder(w).Encode(M{
+				"error": err.Error(),
+			})
 			return
-		}
-
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-
-		req, err := http.NewRequest("POST", "http://localhost:8080/token", bytes.NewBuffer(jsonBody))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		req = req.WithContext(ctx)
-		req.Header.Add("Authorization", "Basic "+authheader.EncodeBase64(cfg.ClientID, cfg.ClientSecret))
-
-		client := new(http.Client)
-		resp, err := client.Do(req)
-		if err != nil {
-			panic(err)
-		}
-		defer resp.Body.Close()
-
-		var res oidc.AuthenticationResponse
-		if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-			panic(err)
 		}
 		json.NewEncoder(w).Encode(res)
 	}
