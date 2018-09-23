@@ -11,6 +11,9 @@ type Claims = jwt.StandardClaims
 // NewClaims return the new claims with the options to override the default
 // claims.
 func NewClaims(claims *Claims, opts ...Option) *Claims {
+	if claims == nil {
+		claims = new(Claims)
+	}
 	for _, o := range opts {
 		o(claims)
 	}
