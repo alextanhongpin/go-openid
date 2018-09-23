@@ -102,11 +102,8 @@ func (a *AuthenticationRequest) VerifyState(state string) error {
 // returned from the OP's Authorization Endpoint in response to the
 // Authorization Request message sent by the RP.
 type AuthenticationResponse struct {
-	AccessToken string `json:"access_token,omitempty"`
-	ExpiresIn   int64  `json:"expires_in,omitempty"`
-	IDToken     string `json:"id_token,omitempty"`
-	State       string `json:"state,omitempty"`
-	TokenType   string `json:"token_type,omitempty"`
+	Code  string `json:"code,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 // -- helpers

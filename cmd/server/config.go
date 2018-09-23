@@ -9,3 +9,11 @@ var (
 	defaultJWTSigningKey = "secret"
 	defaultDuration      = time.Hour
 )
+
+type Config struct {
+	AccessTokenKey []byte
+}
+
+func NewConfig() *Config {
+	return &Config{}
+}

@@ -7,33 +7,39 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-// Signer represents the signer of the claims and holds the signing key.
-type Signer struct {
+type Signer interface {
+	NewClaims(opts ...Option) *Claims
+	NewJWT(claims *Claims) (string, error)
+	ParseJWT(token string) (*Claims, error)
+}
+
+// signerImpl represents the signer of the claims and holds the signing key.
+type signerImpl struct {
 	key           []byte
 	defaultClaims *Claims
 }
 
 // NewSigner returns the signer and the default claims to be provided.
-func NewSigner(key []byte, defaultClaims *Claims) *Signer {
-	return &Signer{
+func NewSigner(key []byte, defaultClaims *Claims) *signerImpl {
+	return &signerImpl{
 		key:           key,
 		defaultClaims: defaultClaims,
 	}
 }
 
 // NewClaims returns a new claims on top of the provided option.
-func (s *Signer) NewClaims(opts ...Option) *Claims {
+func (s *signerImpl) NewClaims(opts ...Option) *Claims {
 	return NewClaims(s.defaultClaims, opts...)
 }
 
 // NewJWT returns a new jwt signed string from the given claims.
-func (s *Signer) NewJWT(claims *Claims) (string, error) {
+func (s *signerImpl) NewJWT(claims *Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(s.key)
 }
 
 // ParseJWT attempts to parse the raw token string and return the claims.
-func (s *Signer) ParseJWT(token string) (*Claims, error) {
+func (s *signerImpl) ParseJWT(token string) (*Claims, error) {
 	t, err := jwt.ParseWithClaims(token, &jwt.StandardClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return s.key, nil
 	})

@@ -52,5 +52,5 @@ func (c *Client) Exchange(ctx context.Context, code, redirectURI string) (*oidc.
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return &res, nil
 }
