@@ -31,9 +31,5 @@ func (c *modelImpl) Save(client *oidc.Client) error {
 
 // Read returns a client by client_id from the repository.
 func (c *modelImpl) Read(clientID string) (*oidc.Client, error) {
-	client, exist := c.repository.Get(clientID)
-	if !exist {
-		return nil, errors.New("client does not exist")
-	}
-	return client, nil
+	return c.repository.Get(clientID)
 }

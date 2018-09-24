@@ -57,7 +57,6 @@ func Hash(password string) (string, error) {
 
 // Verify attempts to compare the password with the hash in constant-time compare.
 func Verify(password, phc string) error {
-
 	if len(password) == 0 || len(phc) == 0 {
 		return errors.New("arguments len cannot be zero")
 	}

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"errors"
 	"sync"
 
 	oidc "github.com/alextanhongpin/go-openid"
@@ -21,11 +22,14 @@ func NewClientKV() *ClientKV {
 }
 
 // Get returns a client by id and a status indicating that the client exist.
-func (c *ClientKV) Get(id string) (*oidc.Client, bool) {
+func (c *ClientKV) Get(id string) (*oidc.Client, error) {
 	c.RLock()
 	client, ok := c.db[id]
 	c.RUnlock()
-	return client, ok
+	if !ok {
+		return nil, errors.New("client does not exist")
+	}
+	return client, nil
 }
 
 // GetByID returns the client by client id.

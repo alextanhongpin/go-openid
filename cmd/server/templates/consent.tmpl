@@ -8,7 +8,7 @@ body {
 {{define "content"}}
 <div>
 	<h1>Consent</h1>	
-	<form action='/authorize' method='post'>
+	<form action='/authorize?{{.QueryString}}' method='post'>
 		Allow CLIENT to access the following.		
 		<button type="submit">Allow</button>
 	</form>

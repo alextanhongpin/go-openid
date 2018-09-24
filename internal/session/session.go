@@ -17,6 +17,7 @@ func init() {
 
 // Session represents the information that is tracked by the session.
 type Session struct {
+	UserID    string
 	SID       string
 	CreatedAt time.Time
 	ExpireAt  time.Time
@@ -122,9 +123,10 @@ func (m *Manager) Start() {
 }
 
 // NewSession returns a new session and cookie.
-func NewSession() *Session {
+func NewSession(userID string) *Session {
 	now := time.Now().UTC()
 	sess := &Session{
+		UserID:    userID,
 		SID:       NewSessionID(now),
 		CreatedAt: now,
 		ExpireAt:  now.Add(20 * time.Minute),

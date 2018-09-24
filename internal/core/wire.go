@@ -14,6 +14,8 @@ var serviceSet = wire.NewSet(
 	wire.Bind(new(repository.Client), new(database.ClientKV)),
 	provideCodeRepository,
 	wire.Bind(new(repository.Code), new(database.CodeKV)),
+	provideUserRepository,
+	wire.Bind(new(repository.User), new(database.UserKV)),
 	provideModel,
 	wire.Bind(new(model.Core), new(modelImpl)),
 	provideService,
@@ -31,8 +33,12 @@ func provideCodeRepository() *database.CodeKV {
 	return database.NewCodeKV()
 }
 
-func provideModel(code repository.Code, client repository.Client) *modelImpl {
-	return &modelImpl{code, client}
+func provideUserRepository() *database.UserKV {
+	return database.NewUserKV()
+}
+
+func provideModel(code repository.Code, client repository.Client, user repository.User) *modelImpl {
+	return &modelImpl{code, client, user}
 }
 
 func provideService(model model.Core) *serviceImpl {

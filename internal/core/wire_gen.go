@@ -17,7 +17,8 @@ import (
 func NewService() *serviceImpl {
 	codeKV := provideCodeRepository()
 	clientKV := provideClientRepository()
-	coreModelImpl := provideModel(codeKV, clientKV)
+	userKV := provideUserRepository()
+	coreModelImpl := provideModel(codeKV, clientKV, userKV)
 	coreServiceImpl := provideService(coreModelImpl)
 	return coreServiceImpl
 }
@@ -25,7 +26,7 @@ func NewService() *serviceImpl {
 // wire.go:
 
 var serviceSet = wire.NewSet(
-	provideClientRepository, wire.Bind(new(repository.Client), new(database.ClientKV)), provideCodeRepository, wire.Bind(new(repository.Code), new(database.CodeKV)), provideModel, wire.Bind(new(model.Core), new(modelImpl)), provideService,
+	provideClientRepository, wire.Bind(new(repository.Client), new(database.ClientKV)), provideCodeRepository, wire.Bind(new(repository.Code), new(database.CodeKV)), provideUserRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.Core), new(modelImpl)), provideService,
 )
 
 func provideClientRepository() *database.ClientKV {
@@ -36,8 +37,12 @@ func provideCodeRepository() *database.CodeKV {
 	return database.NewCodeKV()
 }
 
-func provideModel(code repository.Code, client repository.Client) *modelImpl {
-	return &modelImpl{code, client}
+func provideUserRepository() *database.UserKV {
+	return database.NewUserKV()
+}
+
+func provideModel(code repository.Code, client repository.Client, user repository.User) *modelImpl {
+	return &modelImpl{code, client, user}
 }
 
 func provideService(model2 model.Core) *serviceImpl {

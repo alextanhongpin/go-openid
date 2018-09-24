@@ -6,4 +6,5 @@ import "github.com/alextanhongpin/go-openid"
 type User interface {
 	FindByEmail(email string) (*oidc.User, error)
 	Put(id string, user *oidc.User) error
+	Get(id string) (*oidc.User, error)
 }

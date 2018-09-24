@@ -1,7 +1,11 @@
 package model
 
+import "github.com/alextanhongpin/go-openid"
+
 // Core represents the core model for the OpenID Connect Specification.
 type Core interface {
-	ValidateClient(clientID, redirectURI string) error
+	GetClient(id string) (*oidc.Client, error)
+	GetUser(id string) (*oidc.User, error)
+	// ValidateClient(clientID, redirectURI string) error
 	NewCode() string
 }

@@ -1,0 +1,17 @@
+{{define "title"}}Home{{end}}
+{{define "content"}}
+<div>
+	<h1>Home</h1>	
+
+	{{if .IsLoggedIn }}
+		<p>Hello</p>
+		<form action='/logout' method='post'>
+			<button type="submit" id="submit">Logout</button>
+		</form>
+	{{else}}
+		<a href="/login">Login</a>
+		<a href="/register">Register</a>
+	{{end}}
+	
+</div>
+{{end}}

@@ -28,12 +28,15 @@ func NewUserKV() *UserKV {
 }
 
 // Get returns a user by id.
-// func (u *UserKV) Get(id string) (*oidc.IDToken, bool) {
-//         u.RLock()
-//         user, exist := u.db[id]
-//         u.RUnlock()
-//         return user, exist
-// }
+func (u *UserKV) Get(id string) (*oidc.User, error) {
+	u.RLock()
+	user, exist := u.db[id]
+	u.RUnlock()
+	if !exist {
+		return nil, errors.New("user does not exist")
+	}
+	return user, nil
+}
 
 // Put stores the user in the db by the given id.
 func (u *UserKV) Put(id string, user *oidc.User) error {

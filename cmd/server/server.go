@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -36,7 +38,7 @@ func main() {
 
 	// Load templates.
 	tpl := html5.New(*tplDir)
-	tpl.Load("login", "register", "client-register", "consent")
+	tpl.Load("login", "register", "client-register", "consent", "index")
 
 	sessMgr := session.NewManager()
 	sessMgr.Start()
@@ -44,12 +46,49 @@ func main() {
 
 	svc := NewService()
 
+	// -- helpers
+
+	// TODO: Allow session manager to access the *http.Request to get the cookie.
+	hasSession := func(r *http.Request) bool {
+		c, err := r.Cookie("id")
+		if err != nil {
+			return false
+		}
+		// If the session does not exist, an error will be thrown.
+		sess, err := sessMgr.Get(c.Value)
+		if err != nil {
+			return false
+		}
+		return sess != nil
+	}
+
+	getSession := func(r *http.Request) (*session.Session, error) {
+		c, err := r.Cookie("id")
+		if err != nil {
+			return nil, err
+		}
+
+		return sessMgr.Get(c.Value)
+	}
+
+	setSession := func(w http.ResponseWriter, userID string) {
+		s := session.NewSession(userID)
+		sessMgr.Put(s.SID, s)
+		cookie := session.NewCookie(s.SID)
+		http.SetCookie(w, cookie)
+	}
+	// -- endpoints
+
 	getLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		// TODO: Add CSRF.
 		// Check if the querystring contains the authentication request.
 		// If yes, send it into the body as the request body.
 		type data struct {
 			ReturnURL string
+		}
+		if ok := hasSession(r); ok {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
 		}
 
 		parseURI := func(u url.Values) (string, error) {
@@ -80,6 +119,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
+		if ok := hasSession(r); ok {
+			http.Error(w, "already logged in", http.StatusUnauthorized)
+			return
+		}
 		// This inline-function is just meant to break the steps in
 		// this function to determine the pipeline. It should be
 		// encapsulated into the service for testability.
@@ -108,13 +151,6 @@ func main() {
 			return crypto.NewJWT(key, claims)
 		}
 
-		setSession := func(w http.ResponseWriter) {
-			s := session.NewSession()
-			sessMgr.Put(s.SID, s)
-			cookie := session.NewCookie(s.SID)
-			http.SetCookie(w, cookie)
-		}
-
 		// TODO: Check if the user has an existing session or not
 		// before performing login.
 		user, err := performLogin(r)
@@ -129,7 +165,7 @@ func main() {
 			return
 		}
 
-		setSession(w)
+		setSession(w, user.ID)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(M{
@@ -138,6 +174,12 @@ func main() {
 	}
 
 	getRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// If the user already has a session (is logged in), redirect
+		// them back to the home page.
+		if ok := hasSession(r); ok {
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 		tpl.Render(w, "register", nil)
 	}
 
@@ -150,6 +192,11 @@ func main() {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
+
+		if ok := hasSession(r); ok {
+			http.Error(w, "already logged in", http.StatusUnauthorized)
+			return
+		}
 
 		performRegister := func(r *http.Request) (*oidc.User, error) {
 			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -176,13 +223,6 @@ func main() {
 			return crypto.NewJWT(key, claims)
 		}
 
-		setSession := func(w http.ResponseWriter) {
-			s := session.NewSession()
-			sessMgr.Put(s.SID, s)
-			cookie := session.NewCookie(s.SID)
-			http.SetCookie(w, cookie)
-		}
-
 		// TODO: Check if the user has an existing session or not
 		// before performing login.
 		user, err := performRegister(r)
@@ -197,7 +237,7 @@ func main() {
 			return
 		}
 
-		setSession(w)
+		setSession(w, user.ID)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(M{
@@ -214,57 +254,85 @@ func main() {
 			return
 		}
 
-		// checkSession returns an error if the user does not exist in
-		// the current session.
-		checkSession := func(r *http.Request) error {
-			c, err := r.Cookie("id")
-			if err != nil {
-				return err
-			}
-			_, err = sessMgr.Get(c.Value)
-			return err
-		}
-
-		isAuthorized := func(r *http.Request) bool {
-			return checkSession(r) == nil
-		}
-
-		// Check the prompt type here. If login is required, direct them to the login page.
-		if prompt := req.GetPrompt(); prompt.Is(oidc.PromptLogin) && !isAuthorized(r) {
-			ruri, err := urlWithQuery("http://localhost:8080/authorize", q)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			base64uri := encodeBase64(ruri)
+		redirectToLogin := func() {
+			redirectURI := getHost(r)
+			redirectURI.RawQuery = q.Encode()
+			base64uri := encodeBase64(redirectURI.String())
 			u := fmt.Sprintf(`http://localhost:8080/login?return_url=%s`, base64uri)
 			http.Redirect(w, r, u, http.StatusFound)
-			return
 		}
-		tpl.Render(w, "consent", nil)
+
+		isAuthorized := hasSession(r)
+
+		type response struct {
+			QueryString string
+		}
+		res := response{q.Encode()}
+		prompt := req.GetPrompt()
+		switch {
+		case prompt.Is(oidc.PromptNone) && isAuthorized:
+			// Success
+			tpl.Render(w, "consent", res)
+		case prompt.Is(oidc.PromptNone) && !isAuthorized:
+			http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
+			// ErrorLoginRequired
+			// http.Redirect(w, r, req.RedirectURI, http.StatusNotFound)
+		case prompt.Is(oidc.PromptLogin) && !isAuthorized:
+			// Force login:
+			redirectToLogin()
+		case prompt.Is(oidc.PromptLogin) && isAuthorized:
+			tpl.Render(w, "consent", res)
+		case prompt.Is(oidc.PromptConsent) && isAuthorized:
+			tpl.Render(w, "consent", res)
+		// case prompt.Is(oidc.PromptSelectAccount):
+		default:
+			http.Error(w, "invalid prompt", http.StatusBadRequest)
+		}
 	}
 
 	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		ctx := r.Context()
+		if authorized := hasSession(r); !authorized {
+			// User is not logged in, throw error.
+			writeError(w, http.StatusUnauthorized, errors.New("not logged in"))
+			return
+		}
+
+		sess, err := getSession(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// Attach the user_id to the context.
+		ctx = context.WithValue(ctx, oidc.UserContextKey, sess.UserID)
+
+		// Construct the request payload from the querystring.
 		var req oidc.AuthenticationRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if err := req.FromQueryString(r.URL.Query()); err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		res, err := svc.core.Authenticate(&req)
+
+		// Attempt to authenticate the user.
+		res, err := svc.core.Authenticate(ctx, &req)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		qs := querystring.Encode(url.Values{}, res)
-		u, err := urlWithQuery(req.RedirectURI, qs)
+
+		u, err := urlWithQuery(req.RedirectURI, res.ToQueryString())
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+
 		http.Redirect(w, r, u, http.StatusFound)
 	}
 
 	getClientRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		// TODO: Check if the user is authorized to read the client
+		// details.
 		id := r.URL.Query().Get("client_id")
 		if id == "" {
 			tpl.Render(w, "client-register", nil)
@@ -280,6 +348,8 @@ func main() {
 
 	postClientRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		r.ParseForm()
+		// TODO: Check if the user is authorized to perform client
+		// registration.
 
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
@@ -323,7 +393,22 @@ func main() {
 		})
 	}
 
-	r.GET("/", getLogin)
+	getIndex := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		type data struct {
+			IsLoggedIn bool
+		}
+		var res data
+		sess, err := getSession(r)
+		if err != nil {
+			res.IsLoggedIn = false
+		}
+		if sess != nil {
+			res.IsLoggedIn = true
+		}
+		tpl.Render(w, "index", res)
+	}
+
+	r.GET("/", getIndex)
 
 	r.POST("/logout", postLogout)
 	r.GET("/register", getRegister)
@@ -363,4 +448,30 @@ func urlWithQuery(uri string, q url.Values) (string, error) {
 	}
 	u.RawQuery = q.Encode()
 	return u.String(), nil
+}
+
+// getHost tries its best to return the request host.
+func getHost(r *http.Request) *url.URL {
+	u := r.URL
+
+	// The scheme is http because that's the only protocol your server handles.
+	u.Scheme = "http"
+
+	// If client specified a host header, then use it for the full URL.
+	u.Host = r.Host
+
+	// Otherwise, use your server's host name.
+	if u.Host == "" {
+		u.Host = "your-host-name.com"
+	}
+	// if r.URL.IsAbs() {
+	//         host := r.Host
+	//         // Slice off any port information.
+	//         if i := strings.Index(host, ":"); i != -1 {
+	//                 host = host[:i]
+	//         }
+	//         u.Host = host
+	// }
+
+	return u
 }
