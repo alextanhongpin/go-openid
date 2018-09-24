@@ -82,3 +82,8 @@ func NewSimplerService(arg map[string]schema.Validator) *clientServiceImpl {
 	return clientClientServiceImpl
 }
 ```
+
+## TODOS
+
+- add check login multiple time (and captcha)
+- add block ip functionality
