@@ -7,8 +7,8 @@ package core
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
-	model "github.com/alextanhongpin/go-openid/pkg/model"
-	repository "github.com/alextanhongpin/go-openid/pkg/repository"
+	model "github.com/alextanhongpin/go-openid/model"
+	repository "github.com/alextanhongpin/go-openid/repository"
 	wire "github.com/google/go-cloud/wire"
 )
 

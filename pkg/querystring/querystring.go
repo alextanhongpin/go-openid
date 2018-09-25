@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// Decode parses the querystring into the given struct.
 func Decode(u url.Values, in interface{}) error {
 	t := reflect.TypeOf(in)
 	v := reflect.ValueOf(in)
@@ -51,6 +52,7 @@ func Decode(u url.Values, in interface{}) error {
 	}
 }
 
+// Encode takes a struct and converts it into a querystring.
 func Encode(u url.Values, in interface{}) url.Values {
 	t := reflect.TypeOf(in)
 	vt := reflect.ValueOf(in)

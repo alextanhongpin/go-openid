@@ -16,11 +16,11 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/internal/session"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
+	"github.com/alextanhongpin/go-openid/pkg/session"
 )
 
 // M represents simple map interface.
@@ -46,37 +46,6 @@ func main() {
 
 	svc := NewService()
 
-	// -- helpers
-
-	// TODO: Allow session manager to access the *http.Request to get the cookie.
-	hasSession := func(r *http.Request) bool {
-		c, err := r.Cookie("id")
-		if err != nil {
-			return false
-		}
-		// If the session does not exist, an error will be thrown.
-		sess, err := sessMgr.Get(c.Value)
-		if err != nil {
-			return false
-		}
-		return sess != nil
-	}
-
-	getSession := func(r *http.Request) (*session.Session, error) {
-		c, err := r.Cookie("id")
-		if err != nil {
-			return nil, err
-		}
-
-		return sessMgr.Get(c.Value)
-	}
-
-	setSession := func(w http.ResponseWriter, userID string) {
-		s := session.NewSession(userID)
-		sessMgr.Put(s.SID, s)
-		cookie := session.NewCookie(s.SID)
-		http.SetCookie(w, cookie)
-	}
 	// -- endpoints
 
 	getLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -86,7 +55,7 @@ func main() {
 		type data struct {
 			ReturnURL string
 		}
-		if ok := hasSession(r); ok {
+		if ok := sessMgr.HasSession(r); ok {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -119,7 +88,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
-		if ok := hasSession(r); ok {
+		if ok := sessMgr.HasSession(r); ok {
 			http.Error(w, "already logged in", http.StatusUnauthorized)
 			return
 		}
@@ -165,7 +134,7 @@ func main() {
 			return
 		}
 
-		setSession(w, user.ID)
+		sessMgr.SetSession(w, user.ID)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(M{
@@ -176,7 +145,7 @@ func main() {
 	getRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		// If the user already has a session (is logged in), redirect
 		// them back to the home page.
-		if ok := hasSession(r); ok {
+		if ok := sessMgr.HasSession(r); ok {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
@@ -193,7 +162,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
-		if ok := hasSession(r); ok {
+		if ok := sessMgr.HasSession(r); ok {
 			http.Error(w, "already logged in", http.StatusUnauthorized)
 			return
 		}
@@ -237,7 +206,7 @@ func main() {
 			return
 		}
 
-		setSession(w, user.ID)
+		sessMgr.SetSession(w, user.ID)
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(M{
@@ -262,7 +231,7 @@ func main() {
 			http.Redirect(w, r, u, http.StatusFound)
 		}
 
-		isAuthorized := hasSession(r)
+		isAuthorized := sessMgr.HasSession(r)
 
 		type response struct {
 			QueryString string
@@ -292,13 +261,13 @@ func main() {
 
 	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		ctx := r.Context()
-		if authorized := hasSession(r); !authorized {
+		if authorized := sessMgr.HasSession(r); !authorized {
 			// User is not logged in, throw error.
 			writeError(w, http.StatusUnauthorized, errors.New("not logged in"))
 			return
 		}
 
-		sess, err := getSession(r)
+		sess, err := sessMgr.GetSession(r)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -398,7 +367,7 @@ func main() {
 			IsLoggedIn bool
 		}
 		var res data
-		sess, err := getSession(r)
+		sess, err := sessMgr.GetSession(r)
 		if err != nil {
 			res.IsLoggedIn = false
 		}

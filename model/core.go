@@ -6,6 +6,5 @@ import "github.com/alextanhongpin/go-openid"
 type Core interface {
 	GetClient(id string) (*oidc.Client, error)
 	GetUser(id string) (*oidc.User, error)
-	// ValidateClient(clientID, redirectURI string) error
 	NewCode() string
 }

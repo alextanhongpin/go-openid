@@ -6,8 +6,8 @@ import (
 	"github.com/google/go-cloud/wire"
 
 	"github.com/alextanhongpin/go-openid/internal/database"
-	"github.com/alextanhongpin/go-openid/pkg/model"
-	"github.com/alextanhongpin/go-openid/pkg/repository"
+	"github.com/alextanhongpin/go-openid/model"
+	"github.com/alextanhongpin/go-openid/repository"
 )
 
 var ServiceSet = wire.NewSet(

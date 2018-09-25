@@ -2,7 +2,7 @@ package user
 
 import (
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/repository"
+	"github.com/alextanhongpin/go-openid/repository"
 )
 
 type modelImpl struct {

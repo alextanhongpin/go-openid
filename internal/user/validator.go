@@ -6,7 +6,7 @@ import (
 	"github.com/asaskevich/govalidator"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/model"
+	"github.com/alextanhongpin/go-openid/model"
 )
 
 type validatorImpl struct {

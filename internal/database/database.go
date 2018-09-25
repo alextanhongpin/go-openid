@@ -1,6 +1,6 @@
 package database
 
-import "github.com/alextanhongpin/go-openid/pkg/repository"
+import "github.com/alextanhongpin/go-openid/repository"
 
 // Database represents the data storage access layer.
 type Database struct {

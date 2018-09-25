@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/model"
+	"github.com/alextanhongpin/go-openid/model"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -14,22 +14,35 @@ type serviceImpl struct {
 	model model.Core
 }
 
+var ErrMustReauthenticate = errors.New("re-authentication required")
+
+// PreAuthenticate will only check if the authentication request is valid and
+// the type of flow it is using.
+func (s *serviceImpl) PreAuthenticate(ctx context.Context, req *oidc.AuthenticationRequest) error {
+
+	return nil
+}
+
+// Authenticate performs the full authentication and validation of all fields.
 func (s *serviceImpl) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
-	userID, ok := ctx.Value(oidc.UserContextKey).(string)
-	if !ok {
-		return nil, errors.New("user_id not present")
-	}
-	user, err := s.model.GetUser(userID)
-	if err != nil {
-		return nil, err
-	}
+	validateUserFields := func(ctx context.Context, req *oidc.AuthenticationRequest) error {
+		userID, ok := ctx.Value(oidc.UserContextKey).(string)
+		if !ok {
+			return errors.New("user_id not present")
+		}
+		user, err := s.model.GetUser(userID)
+		if err != nil {
+			return err
+		}
+		if time.Since(time.Unix(user.Profile.UpdatedAt, 0)) > time.Duration(req.MaxAge) {
+			// TODO: Must re-authenticate.
+			return ErrMustReauthenticate
+		}
 
-	if time.Since(time.Unix(user.Profile.UpdatedAt, 0)) > time.Duration(req.MaxAge) {
-		// TODO: Must re-authenticate.
-	}
-
-	if req.LoginHint == user.Email.Email {
-		// user.Email.Email
+		if req.LoginHint == user.Email.Email {
+			// user.Email.Email
+		}
+		return nil
 	}
 
 	validateRequiredFields := func(req *oidc.AuthenticationRequest) error {
@@ -61,18 +74,31 @@ func (s *serviceImpl) Authenticate(ctx context.Context, req *oidc.Authentication
 		return nil
 	}
 
+	validateClientFields := func(req *oidc.AuthenticationRequest) error {
+		// Fields to validate.
+		var (
+			clientID    = req.ClientID
+			redirectURI = req.RedirectURI
+		)
+		client, err := s.model.GetClient(clientID)
+		if err != nil {
+			return err
+		}
+		if !client.GetRedirectURIs().Contains(redirectURI) {
+			return errors.New("redirect_uri incorrect")
+		}
+		return nil
+	}
+
 	if err := validateRequiredFields(req); err != nil {
 		return nil, err
 	}
-	client, err := s.model.GetClient(req.ClientID)
-	if err != nil {
+	if err := validateUserFields(ctx, req); err != nil {
 		return nil, err
 	}
-
-	if !client.RedirectURIs.Contains(req.RedirectURI) {
-		return nil, errors.New("redirect_uri incorrect")
+	if err := validateClientFields(req); err != nil {
+		return nil, err
 	}
-
 	// Return the code to be exchanged for a token.
 	code := s.model.NewCode()
 

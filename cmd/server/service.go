@@ -6,7 +6,7 @@ import (
 	"github.com/alextanhongpin/go-openid/internal/client"
 	"github.com/alextanhongpin/go-openid/internal/core"
 	"github.com/alextanhongpin/go-openid/internal/user"
-	"github.com/alextanhongpin/go-openid/pkg/service"
+	"github.com/alextanhongpin/go-openid/service"
 )
 
 type serviceImpl struct {

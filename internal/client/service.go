@@ -2,7 +2,7 @@ package client
 
 import (
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/model"
+	"github.com/alextanhongpin/go-openid/model"
 )
 
 type serviceImpl struct {

@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/model"
-	"github.com/alextanhongpin/go-openid/pkg/schema"
+	"github.com/alextanhongpin/go-openid/model"
+	schema "github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
 type validatorImpl struct {

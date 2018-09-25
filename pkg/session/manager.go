@@ -3,27 +3,10 @@ package session
 import (
 	"errors"
 	"log"
-	"math/rand"
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/oklog/ulid"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-// Session represents the information that is tracked by the session.
-type Session struct {
-	UserID    string
-	SID       string
-	CreatedAt time.Time
-	ExpireAt  time.Time
-	IP        string
-	UserAgent string
-}
 
 // Manager represents the manager that handles the session creation and cleanup.
 type Manager struct {
@@ -122,35 +105,26 @@ func (m *Manager) Start() {
 	}()
 }
 
-// NewSession returns a new session and cookie.
-func NewSession(userID string) *Session {
-	now := time.Now().UTC()
-	sess := &Session{
-		UserID:    userID,
-		SID:       NewSessionID(now),
-		CreatedAt: now,
-		ExpireAt:  now.Add(20 * time.Minute),
-		IP:        "",
-		UserAgent: "",
+// GetSession retrieves the user session from the request.
+func (m *Manager) GetSession(r *http.Request) (*Session, error) {
+	c, err := r.Cookie(cookieName)
+	if err != nil {
+		return nil, err
 	}
-	return sess
+	// If the session does not exist, an error will be thrown.
+	return m.Get(c.Value)
 }
 
-// NewSessionID creates a new session id from the given time.
-func NewSessionID(t time.Time) string {
-	entropy := rand.New(rand.NewSource(t.UnixNano()))
-	return ulid.MustNew(ulid.Timestamp(t), entropy).String()
+// SetSession sets a new session in the response.
+func (m *Manager) SetSession(w http.ResponseWriter, userID string) {
+	s := NewSession(userID)
+	m.Put(s.SID, s)
+	cookie := NewCookie(s.SID)
+	http.SetCookie(w, cookie)
 }
 
-// NewCookie returns a new cookie with default settings.
-func NewCookie(sid string) *http.Cookie {
-	return &http.Cookie{
-		Name:  "id", // Use a generic name to represent the session id.
-		Value: sid,
-		// Path:     "/",
-		// Domain:   "",
-		MaxAge: int((20 * time.Minute).Seconds()),
-		// Secure:   true,
-		HttpOnly: true,
-	}
+// HasSession checks if a session exist.
+func (m *Manager) HasSession(r *http.Request) bool {
+	sess, err := m.GetSession(r)
+	return err == nil && sess != nil
 }

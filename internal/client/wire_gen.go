@@ -7,8 +7,8 @@ package client
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
-	repository "github.com/alextanhongpin/go-openid/pkg/repository"
 	schema "github.com/alextanhongpin/go-openid/pkg/schema"
+	"github.com/alextanhongpin/go-openid/repository"
 	wire "github.com/google/go-cloud/wire"
 )
 
