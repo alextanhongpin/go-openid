@@ -33,3 +33,13 @@ func (u *serviceImpl) Login(email, password string) (*oidc.User, error) {
 	}
 	return user, user.ComparePassword(password)
 }
+
+// GetUsers returns a list of paginated users.
+func (u *serviceImpl) GetUsers(limit int) ([]*oidc.User, error) {
+	return u.model.List(limit)
+}
+
+// GetUsers returns a list of paginated users.
+func (u *serviceImpl) GetUser(id string) (*oidc.User, error) {
+	return u.model.Get(id)
+}

@@ -8,4 +8,5 @@ type Client interface {
 	Put(id string, client *oidc.Client) error
 	Has(id string) bool
 	List(limit int) []*oidc.Client
+	GetByCredentials(clientID, clientSecret string) (*oidc.Client, error)
 }

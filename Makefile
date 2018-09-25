@@ -9,7 +9,7 @@ json:
 	@go generate -x
 
 client:
-	@cd cmd/client && go run *.go -client_id ${CLIENT_ID}
+	@cd cmd/client && go run -race *.go -client_id ${CLIENT_ID}
 
 server:
-	@cd cmd/server && find . ! -name '*test.go' -exec go run {} \;
+	@cd cmd/server && find . ! -name '*test.go' -exec go run -race {} \;

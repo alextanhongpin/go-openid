@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"time"
 
 	"github.com/alextanhongpin/go-openid"
 )
@@ -23,4 +24,9 @@ type Core interface {
 	// ValidateAuthnUser validates the request payload with the user info
 	// from the database.
 	ValidateAuthnUser(ctx context.Context, req *oidc.AuthenticationRequest) error
+
+	ValidateClientAuthHeader(authorization string) (*oidc.Client, error)
+
+	ProvideToken(userID string, duration time.Duration) (string, error)
+	ProvideIDToken(userID string) (string, error)
 }

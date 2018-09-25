@@ -52,11 +52,11 @@ func (c *ClientKV) Has(id string) bool {
 	return ok
 }
 
-// GetByIDAndSecret returns the client by client id and client secret.
-func (c *ClientKV) GetByIDAndSecret(id, secret string) (client *oidc.Client) {
+// GetByCredentials returns the client by client id and client secret.
+func (c *ClientKV) GetByCredentials(clientID, clientSecret string) (client *oidc.Client, err error) {
 	c.RLock()
 	for _, c := range c.db {
-		if c.ClientID == id && c.ClientSecret == secret {
+		if c.ClientID == clientID && c.ClientSecret == clientSecret {
 			client = c
 			break
 		}

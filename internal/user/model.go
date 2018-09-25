@@ -25,3 +25,11 @@ func (m *modelImpl) Create(email, password string) (*oidc.User, error) {
 
 	return user, m.repository.Put(user.ID, user)
 }
+
+func (m *modelImpl) List(limit int) ([]*oidc.User, error) {
+	return m.repository.List(10)
+}
+
+func (m *modelImpl) Get(id string) (*oidc.User, error) {
+	return m.repository.Get(id)
+}

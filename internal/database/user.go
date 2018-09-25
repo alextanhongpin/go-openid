@@ -38,6 +38,20 @@ func (u *UserKV) Get(id string) (*oidc.User, error) {
 	return user, nil
 }
 
+func (u *UserKV) List(limit int) (users []*oidc.User, err error) {
+	u.RLock()
+	defer u.RUnlock()
+	i := 0
+	for _, v := range u.db {
+		i++
+		users = append(users, v)
+		if i >= limit {
+			break
+		}
+	}
+	return
+}
+
 // Put stores the user in the db by the given id.
 func (u *UserKV) Put(id string, user *oidc.User) error {
 	email := user.Email.Email

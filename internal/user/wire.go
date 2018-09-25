@@ -10,7 +10,7 @@ import (
 	"github.com/alextanhongpin/go-openid/repository"
 )
 
-var ServiceSet = wire.NewSet(
+var serviceSet = wire.NewSet(
 	provideRepository,
 	wire.Bind(new(repository.User), new(database.UserKV)),
 	provideModel,
@@ -20,7 +20,7 @@ var ServiceSet = wire.NewSet(
 
 // NewService returns a new  service.
 func NewService() *serviceImpl {
-	panic(wire.Build(ServiceSet))
+	panic(wire.Build(serviceSet))
 }
 
 func provideRepository() *database.UserKV {

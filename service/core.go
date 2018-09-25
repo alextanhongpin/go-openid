@@ -10,4 +10,5 @@ import (
 type Core interface {
 	PreAuthenticate(*oidc.AuthenticationRequest) error
 	Authenticate(context.Context, *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error)
+	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
 }

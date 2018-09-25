@@ -10,4 +10,8 @@ type User interface {
 
 	// FindByEmail checks if the user with the given email exists.
 	FindByEmail(email string) (*oidc.User, error)
+
+	List(limit int) ([]*oidc.User, error)
+
+	Get(id string) (*oidc.User, error)
 }

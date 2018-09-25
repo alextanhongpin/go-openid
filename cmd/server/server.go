@@ -1,9 +1,9 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -15,6 +15,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 
 	"github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid/pkg/appsensor"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
@@ -24,6 +25,12 @@ import (
 
 // M represents simple map interface.
 type M map[string]interface{}
+
+// Credentials represent the user credentials for the application.
+type Credentials struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 func main() {
 	var (
@@ -42,6 +49,10 @@ func main() {
 	sessMgr := session.NewManager()
 	sessMgr.Start()
 	defer sessMgr.Stop()
+
+	// TODO: Run a cron job that handles deletion of unused data for a
+	// certain period of time.
+	aps := appsensor.NewLoginDetector()
 
 	svc := NewService()
 
@@ -82,31 +93,33 @@ func main() {
 	}
 
 	postLogin := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		var request struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
 
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
 		if ok := sessMgr.HasSession(r); ok {
-			http.Error(w, "already logged in", http.StatusUnauthorized)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		// This inline-function is just meant to break the steps in
-		// this function to determine the pipeline. It should be
-		// encapsulated into the service for testability.
-		performLogin := func(r *http.Request) (*oidc.User, error) {
-			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-				return nil, err
-			}
-			var (
-				email    = request.Email
-				password = request.Password
-			)
-			return svc.user.Login(email, password)
+
+		var req Credentials
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if locked := aps.IsLocked(req.Email); locked {
+			writeError(w, http.StatusTooManyRequests, errors.New("too many attempts"))
+			return
+		}
+
+		user, err := svc.user.Login(req.Email, req.Password)
+		if err != nil {
+			// Log attempts here.
+			aps.Increment(req.Email)
+			writeError(w, http.StatusBadRequest, err)
+			return
 		}
 
 		provideToken := func(userid string) (string, error) {
@@ -121,14 +134,6 @@ func main() {
 			)
 			claims := crypto.NewStandardClaims(aud, sub, iss, iat.Unix(), exp.Unix())
 			return crypto.NewJWT(key, claims)
-		}
-
-		// TODO: Check if the user has an existing session or not
-		// before performing login.
-		user, err := performLogin(r)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
-			return
 		}
 
 		accessToken, err := provideToken(user.ID)
@@ -156,29 +161,26 @@ func main() {
 	}
 
 	postRegister := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		var request struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
 
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
 		if ok := sessMgr.HasSession(r); ok {
-			http.Error(w, "already logged in", http.StatusUnauthorized)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
-		performRegister := func(r *http.Request) (*oidc.User, error) {
-			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-				return nil, err
-			}
-			var (
-				email    = request.Email
-				password = request.Password
-			)
-			return svc.user.Register(email, password)
+		var req Credentials
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		user, err := svc.user.Register(req.Email, req.Password)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
 		}
 
 		provideToken := func(userid string) (string, error) {
@@ -193,14 +195,6 @@ func main() {
 			)
 			claims := crypto.NewStandardClaims(aud, sub, iss, iat.Unix(), exp.Unix())
 			return crypto.NewJWT(key, claims)
-		}
-
-		// TODO: Check if the user has an existing session or not
-		// before performing login.
-		user, err := performRegister(r)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
-			return
 		}
 
 		accessToken, err := provideToken(user.ID)
@@ -258,18 +252,11 @@ func main() {
 
 		// Get the current session in order to check if the user has a
 		// valid session.
-		sess, err := sessMgr.GetSession(r)
-		if err != nil {
-			http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// If the user is logged in, but the last login time exceeded 1
-		// minute, prompt them to login again.
-		if prompt.Is(oidc.PromptLogin) && isAuthorized && time.Since(sess.UpdatedAt) > 1*time.Minute {
-			redirectToLogin()
-			return
-		}
+		// sess, err := sessMgr.GetSession(r)
+		// if err != nil {
+		//         http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
+		//         return
+		// }
 
 		type response struct {
 			QueryString string
@@ -290,7 +277,7 @@ func main() {
 		}
 
 		// Attach the user_id to the context.
-		ctx = context.WithValue(ctx, oidc.UserContextKey, sess.UserID)
+		ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
 
 		// Construct the request payload from the querystring.
 		var req oidc.AuthenticationRequest
@@ -306,7 +293,7 @@ func main() {
 			return
 		}
 
-		u, err := urlWithQuery(req.RedirectURI, res.ToQueryString())
+		u, err := buildURL(req.RedirectURI, res.ToQueryString())
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -340,14 +327,18 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Pragma", "no-cache")
 
-		var (
-			clientName   = r.FormValue("client_name")
-			redirectURIs = strings.Split(r.FormValue("redirect_uris"), " ")
-		)
+		buildClient := func(r *http.Request) *oidc.Client {
+			var (
+				clientName   = r.FormValue("client_name")
+				redirectURIs = strings.Split(r.FormValue("redirect_uris"), " ")
+			)
+			client := oidc.NewClient()
+			client.ClientName = clientName
+			client.RedirectURIs = redirectURIs
+			return client
+		}
 
-		client := oidc.NewClient()
-		client.ClientName = clientName
-		client.RedirectURIs = redirectURIs
+		client := buildClient(r)
 
 		newClient, err := svc.client.Register(client)
 		if err != nil {
@@ -359,10 +350,9 @@ func main() {
 			}
 			return
 		}
-		log.Println("registered:", newClient.ClientID)
 
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(M{"success": true})
+		json.NewEncoder(w).Encode(newClient)
 	}
 
 	postLogout := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -397,6 +387,39 @@ func main() {
 		tpl.Render(w, "index", res)
 	}
 
+	postToken := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		ctx := r.Context()
+
+		// Checks if the user has an active session. If the session is
+		// not active, user does not have the right credentials to
+		// access the token endpoint.
+		sess, err := sessMgr.GetSession(r)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// Put the extra data in the context to be validated by the
+		// service.
+		authorization := r.Header.Get("Authorization")
+		ctx = oidc.SetAuthContextKey(ctx, authorization)
+		ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
+
+		// Parse request body.
+		var req oidc.AccessTokenRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		res, err := svc.core.Token(ctx, &req)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		json.NewEncoder(w).Encode(res)
+	}
+
 	r.GET("/", getIndex)
 
 	r.POST("/logout", postLogout)
@@ -408,6 +431,7 @@ func main() {
 	r.POST("/connect/register", postClientRegister)
 	r.GET("/authorize", getAuthorize)
 	r.POST("/authorize", postAuthorize)
+	r.POST("/token", postToken)
 
 	srv := gsrv.New(*port, r)
 	<-srv
@@ -430,7 +454,7 @@ func writeError(w http.ResponseWriter, status int, err error) {
 	})
 }
 
-func urlWithQuery(uri string, q url.Values) (string, error) {
+func buildURL(uri string, q url.Values) (string, error) {
 	u, err := url.Parse(uri)
 	if err != nil {
 		return "", err

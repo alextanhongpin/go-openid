@@ -7,4 +7,5 @@ type User interface {
 	FindByEmail(email string) (*oidc.User, error)
 	Put(id string, user *oidc.User) error
 	Get(id string) (*oidc.User, error)
+	List(limit int) ([]*oidc.User, error)
 }

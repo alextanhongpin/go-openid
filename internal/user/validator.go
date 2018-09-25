@@ -30,6 +30,23 @@ func (u *validatorImpl) Create(email, password string) (*oidc.User, error) {
 	return u.model.Create(email, password)
 }
 
+func (u *validatorImpl) List(limit int) ([]*oidc.User, error) {
+	if limit < 0 {
+		limit = 10
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	return u.model.List(limit)
+}
+
+func (u *validatorImpl) Get(id string) (*oidc.User, error) {
+	if id == "" {
+		return nil, errors.New("user_id cannot be empty")
+	}
+	return u.model.Get(id)
+}
+
 // -- helpers
 
 func isEmail(email string) error {
