@@ -16,6 +16,7 @@ type AuthorizationRequest struct {
 	State        string `json:"state,omitempty"`
 }
 
+// GetResponseType returns the response type.
 func (a *AuthorizationRequest) GetResponseType() ResponseType {
 	return parseResponseType(a.ResponseType)
 }

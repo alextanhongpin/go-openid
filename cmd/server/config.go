@@ -10,10 +10,12 @@ var (
 	defaultDuration      = time.Hour
 )
 
+// Config represents the global app config.
 type Config struct {
 	AccessTokenKey []byte
 }
 
+// NewConfig returns a new config.
 func NewConfig() *Config {
 	return &Config{}
 }

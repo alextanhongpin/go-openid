@@ -8,7 +8,8 @@ import (
 	"github.com/oklog/ulid"
 )
 
-var cookieName = "id"
+// Key represents a general name for the cookie.
+const Key = "id"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
@@ -16,24 +17,25 @@ func init() {
 
 // Session represents the information that is tracked by the session.
 type Session struct {
-	UserID    string
-	SID       string
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	ExpireAt  time.Time
 	IP        string
+	SessionID string
 	UserAgent string
+	UserID    string
 }
 
 // NewSession returns a new session and cookie.
 func NewSession(userID string) *Session {
 	now := time.Now().UTC()
 	sess := &Session{
-		UserID:    userID,
-		SID:       NewSessionID(now),
 		CreatedAt: now,
 		ExpireAt:  now.Add(20 * time.Minute),
 		IP:        "",
+		SessionID: NewSessionID(now),
 		UserAgent: "",
+		UserID:    userID,
 	}
 	return sess
 }
@@ -45,10 +47,10 @@ func NewSessionID(t time.Time) string {
 }
 
 // NewCookie returns a new cookie with default settings.
-func NewCookie(sid string) *http.Cookie {
+func NewCookie(id string) *http.Cookie {
 	return &http.Cookie{
-		Name:  cookieName, // Use a generic name to represent the session id.
-		Value: sid,
+		Name:  Key, // Use a generic name to represent the session id.
+		Value: id,
 		// Path:     "/",
 		// Domain:   "",
 		MaxAge: int((20 * time.Minute).Seconds()),

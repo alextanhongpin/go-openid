@@ -1,11 +1,9 @@
 package oidc
 
 import (
-	"errors"
 	"net/url"
 
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
-	"github.com/asaskevich/govalidator"
 )
 
 //go:generate gencodec -type AuthenticationRequest -out gen_authn.go
@@ -65,49 +63,4 @@ type AuthenticationResponse struct {
 // ToQueryString converts the response struct into url.Values.
 func (a *AuthenticationResponse) ToQueryString() url.Values {
 	return querystring.Encode(url.Values{}, a)
-}
-
-// -- helpers
-
-func validateScope(scope string) error {
-	if scope == "" {
-		return errors.New("scope required")
-	}
-	if !parseScope(scope).Has(ScopeOpenID) {
-		return errors.New("invalid scope")
-	}
-	return nil
-}
-
-func validateResponseType(responseType string) error {
-	if responseType == "" {
-		return errors.New("response_type required")
-	}
-
-	var (
-		a = ResponseTypeCode
-		b = ResponseTypeIDToken
-		c = ResponseTypeToken
-	)
-
-	parsed := parseResponseType(responseType)
-	if !parsed.Has(a | b | c) {
-		return errors.New("invalid response_type")
-	}
-	return nil
-}
-
-func validateRedirectURI(redirectURI string, list RedirectURIs) error {
-	if !govalidator.IsURL(redirectURI) {
-		return errors.New("redirect_uri invalid")
-	}
-	if !list.Contains(redirectURI) {
-		return errors.New("redirect_uri does not match")
-	}
-	return nil
-}
-
-func verifyDisplay(display string) bool {
-	_, ok := displaymap[display]
-	return ok
 }

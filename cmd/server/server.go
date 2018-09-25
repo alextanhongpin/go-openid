@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -55,6 +54,10 @@ func main() {
 		type data struct {
 			ReturnURL string
 		}
+
+		// TODO: The user might have a session, but the session has
+		// expired. Need to invalidate the user first by deleting the
+		// old session, and creating a new one.
 		if ok := sessMgr.HasSession(r); ok {
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
@@ -223,6 +226,11 @@ func main() {
 			return
 		}
 
+		if err := svc.core.PreAuthenticate(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		redirectToLogin := func() {
 			redirectURI := getHost(r)
 			redirectURI.RawQuery = q.Encode()
@@ -232,41 +240,49 @@ func main() {
 		}
 
 		isAuthorized := sessMgr.HasSession(r)
+		prompt := req.GetPrompt()
+
+		// If the prompt is set to none, but the user is unauthorized,
+		// an error should be returned indicating that login is
+		// required.
+		if prompt.Is(oidc.PromptNone) && !isAuthorized {
+			http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// If the user is not authorized, login them first.
+		if !isAuthorized {
+			redirectToLogin()
+			return
+		}
+
+		// Get the current session in order to check if the user has a
+		// valid session.
+		sess, err := sessMgr.GetSession(r)
+		if err != nil {
+			http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// If the user is logged in, but the last login time exceeded 1
+		// minute, prompt them to login again.
+		if prompt.Is(oidc.PromptLogin) && isAuthorized && time.Since(sess.UpdatedAt) > 1*time.Minute {
+			redirectToLogin()
+			return
+		}
 
 		type response struct {
 			QueryString string
 		}
 		res := response{q.Encode()}
-		prompt := req.GetPrompt()
-		switch {
-		case prompt.Is(oidc.PromptNone) && isAuthorized:
-			// Success
-			tpl.Render(w, "consent", res)
-		case prompt.Is(oidc.PromptNone) && !isAuthorized:
-			http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
-			// ErrorLoginRequired
-			// http.Redirect(w, r, req.RedirectURI, http.StatusNotFound)
-		case prompt.Is(oidc.PromptLogin) && !isAuthorized:
-			// Force login:
-			redirectToLogin()
-		case prompt.Is(oidc.PromptLogin) && isAuthorized:
-			tpl.Render(w, "consent", res)
-		case prompt.Is(oidc.PromptConsent) && isAuthorized:
-			tpl.Render(w, "consent", res)
-		// case prompt.Is(oidc.PromptSelectAccount):
-		default:
-			http.Error(w, "invalid prompt", http.StatusBadRequest)
-		}
+		tpl.Render(w, "consent", res)
 	}
 
 	postAuthorize := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		ctx := r.Context()
-		if authorized := sessMgr.HasSession(r); !authorized {
-			// User is not logged in, throw error.
-			writeError(w, http.StatusUnauthorized, errors.New("not logged in"))
-			return
-		}
 
+		// User needs to have a session in order to call the post
+		// authorize endpoint.
 		sess, err := sessMgr.GetSession(r)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
@@ -350,16 +366,20 @@ func main() {
 	}
 
 	postLogout := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-		cookie, err := r.Cookie("id")
+		cookie, err := r.Cookie(session.Key)
 		if err != nil {
 			// ErrNoCookie should be handled as success.
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
-		sessMgr.Delete(cookie.Value)
-		json.NewEncoder(w).Encode(M{
-			"ok": true,
-		})
+
+		if err := sessMgr.Delete(cookie.Value); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+
+		// TODO: Look into the PRG pattern.
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
 	getIndex := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

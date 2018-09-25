@@ -21,6 +21,7 @@ var serviceSet = wire.NewSet(
 	provideService,
 )
 
+// NewService returns a new core service.
 func NewService() *serviceImpl {
 	panic(wire.Build(serviceSet))
 }
