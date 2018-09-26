@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type LoginDetector interface {
+	Stat(id string) *Attempt
+	IsLocked(id string) bool
+	Increment(id string)
+}
+
 type loginDetector struct {
 	repository   *repoInMemoryImpl
 	threshold    int64
