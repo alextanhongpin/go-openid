@@ -88,6 +88,7 @@ func (r *repositoryInMemoryImpl) Get(id string) (*Session, error) {
 	r.RLock()
 	sess, exist := r.data[id]
 	r.RUnlock()
+
 	if !exist {
 		return nil, errors.New("does not exist")
 	}

@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
@@ -10,6 +11,7 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/authheader"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/repository"
+
 	"github.com/asaskevich/govalidator"
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -20,12 +22,28 @@ type modelImpl struct {
 	user   repository.User
 }
 
+// NewModel returns a new model.
 func NewModel() *modelImpl {
 	return &modelImpl{
 		code:   database.NewCodeKV(),
 		client: database.NewClientKV(),
 		user:   database.NewUserKV(),
 	}
+}
+
+// GetCode returns the code repository.
+func (m *modelImpl) GetCode() repository.Code {
+	return m.code
+}
+
+// GetClient returns the client repository.
+func (m *modelImpl) GetClient() repository.Client {
+	return m.client
+}
+
+// GetUser returns the user repository.
+func (m *modelImpl) GetUser() repository.User {
+	return m.user
 }
 
 // ValidateAuthnRequest validates the required fields for the authentication
@@ -37,33 +55,40 @@ func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error 
 		prompt       = req.GetPrompt()
 		responseType = req.GetResponseType()
 		scope        = req.GetScope()
+
+		err = oidc.ErrInvalidRequest
 	)
 	// Scope cannot be none, and it should have at least an openid scope.
 	if scope.Is(oidc.ScopeNone) || !scope.Has(oidc.ScopeOpenID) {
-		return errors.New("scope required")
+		return err.WithDescription("scope is required")
 	}
 
 	// ResponseType cannot be none, and should have "code" for
 	// authorization code flow.
-	if responseType.Is(oidc.ResponseTypeNone) || !responseType.Has(oidc.ResponseTypeCode) {
-		return errors.New("response_type required")
+	if responseType.Is(oidc.ResponseTypeNone) {
+		return err.WithDescription("response_type is required")
+	}
+
+	if !responseType.Has(oidc.ResponseTypeCode) {
+		return err.WithDescription(fmt.Sprintf("%s is not valid", req.ResponseType))
 	}
 
 	if clientID == "" {
-		return errors.New("client_id required")
+		return err.WithDescription("client_id is required")
 	}
 
 	if redirectURI == "" {
-		return errors.New("redirect_uri required")
+		return err.WithDescription("redirect_uri is required")
 	}
 
 	if !govalidator.IsURL(redirectURI) {
-		return errors.New("redirect_uri invalid")
+		msg := fmt.Sprintf("%s is not a valid redirect_uri", redirectURI)
+		return err.WithDescription(msg)
 	}
 
 	// If prompt is "none", it cannot have other values.
 	if prompt.Has(oidc.PromptNone) && prompt.Has(oidc.PromptLogin|oidc.PromptConsent|oidc.PromptSelectAccount) {
-		return errors.New("prompt none may not contain other values")
+		return err.WithDescription("prompt none may not contain other values")
 	}
 	return nil
 }
@@ -79,14 +104,15 @@ func (m *modelImpl) ValidateAuthnUser(ctx context.Context, req *oidc.Authenticat
 	if err != nil {
 		return err
 	}
-	if time.Since(time.Unix(user.Profile.UpdatedAt, 0)) > time.Duration(req.MaxAge) {
+	// TODO: Only validate if max-age is provided, unless it is made a default value.
+	elapsed := time.Unix(user.Profile.UpdatedAt, 0)
+	if time.Since(elapsed) > time.Duration(req.MaxAge)*time.Second {
 		// TODO: Must re-authenticate.
 		return errors.New("re-authentication required")
 	}
-
-	if req.LoginHint == user.Email.Email {
-		// user.Email.Email
-	}
+	// if req.LoginHint == user.Email.Email {
+	// user.Email.Email
+	// }
 	return nil
 }
 

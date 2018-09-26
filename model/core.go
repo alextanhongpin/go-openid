@@ -27,6 +27,7 @@ type Core interface {
 
 	ValidateClientAuthHeader(authorization string) (*oidc.Client, error)
 
+	// TODO: rename to NewToken/NewIDToken.
 	ProvideToken(userID string, duration time.Duration) (string, error)
 	ProvideIDToken(userID string) (string, error)
 }

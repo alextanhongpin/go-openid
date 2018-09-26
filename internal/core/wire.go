@@ -6,6 +6,7 @@ import (
 	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/model"
 	"github.com/alextanhongpin/go-openid/repository"
+
 	"github.com/google/go-cloud/wire"
 )
 
