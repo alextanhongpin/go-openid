@@ -13,9 +13,22 @@ type serviceImpl struct {
 	model model.Core
 }
 
+// NewService returns a new service.
+func NewService(model model.Core) serviceImpl {
+	return serviceImpl{model}
+}
+
+// SetModel sets the existing model to the given model.
+func (s *serviceImpl) SetModel(model model.Core) {
+	s.model = model
+}
+
 // PreAuthenticate will only check if the authentication request is valid and
 // the type of flow it is using.
 func (s *serviceImpl) PreAuthenticate(req *oidc.AuthenticationRequest) error {
+	if req == nil {
+		return errors.New("arguments cannot be nil")
+	}
 	if err := s.model.ValidateAuthnRequest(req); err != nil {
 		return err
 	}

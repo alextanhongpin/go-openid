@@ -45,6 +45,7 @@ func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
 	return
 }
 
+// Has returns true if the client id exist in the storage.
 func (c *ClientKV) Has(id string) bool {
 	c.RLock()
 	_, ok := c.db[id]

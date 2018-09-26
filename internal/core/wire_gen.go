@@ -14,7 +14,7 @@ import (
 
 // Injectors from wire.go:
 
-func NewService() *serviceImpl {
+func New() *serviceImpl {
 	codeKV := provideCodeRepository()
 	clientKV := provideClientRepository()
 	userKV := provideUserRepository()

@@ -22,7 +22,7 @@ func NewService() *serviceImpl {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cr := core.NewService()
+	cr := core.New()
 	if err != nil {
 		log.Fatal(err)
 	}

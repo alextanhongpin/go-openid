@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/alextanhongpin/go-openid"
-	database "github.com/alextanhongpin/go-openid/internal/database"
+	"github.com/alextanhongpin/go-openid/internal/database"
 	"github.com/alextanhongpin/go-openid/pkg/authheader"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
 	"github.com/alextanhongpin/go-openid/repository"
@@ -23,32 +23,40 @@ type modelImpl struct {
 }
 
 // NewModel returns a new model.
-func NewModel() *modelImpl {
-	return &modelImpl{
+func NewModel() modelImpl {
+	return modelImpl{
 		code:   database.NewCodeKV(),
 		client: database.NewClientKV(),
 		user:   database.NewUserKV(),
 	}
 }
 
-// GetCode returns the code repository.
-func (m *modelImpl) GetCode() repository.Code {
-	return m.code
+// SetCode allows the user to set the code repository.
+func (m *modelImpl) SetCode(code repository.Code) {
+	// Would this be better in production to ensure the fields are set once
+	// only?
+	// sync.Once.Do(func() {
+	//         m.code = code
+	// })
+	m.code = code
 }
 
-// GetClient returns the client repository.
-func (m *modelImpl) GetClient() repository.Client {
-	return m.client
+// SetClient returns the client repository.
+func (m *modelImpl) SetClient(client repository.Client) {
+	m.client = client
 }
 
-// GetUser returns the user repository.
-func (m *modelImpl) GetUser() repository.User {
-	return m.user
+// SetUser returns the user repository.
+func (m *modelImpl) SetUser(user repository.User) {
+	m.user = user
 }
 
 // ValidateAuthnRequest validates the required fields for the authentication
 // request.
 func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error {
+	if req == nil {
+		return errors.New("arguments cannot be nil")
+	}
 	var (
 		clientID     = req.ClientID
 		redirectURI  = req.RedirectURI

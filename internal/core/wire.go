@@ -22,8 +22,8 @@ var serviceSet = wire.NewSet(
 	provideService,
 )
 
-// NewService returns a new core service.
-func NewService() *serviceImpl {
+// New returns a new core service.
+func New() *serviceImpl {
 	panic(wire.Build(serviceSet))
 }
 

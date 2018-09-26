@@ -7,6 +7,7 @@ import (
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/internal/core"
+	"github.com/alextanhongpin/go-openid/internal/database"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,9 +23,14 @@ func TestValidateAuthnRequest(t *testing.T) {
 		Scope:        "openid",
 	}
 
+	t.Run("validate nil field", func(t *testing.T) {
+		err := model.ValidateAuthnRequest(nil)
+		assert.NotNil(err, "should handle nil arguments")
+	})
+
 	t.Run("validate required fields", func(t *testing.T) {
 		err := model.ValidateAuthnRequest(req)
-		assert.Nil(err)
+		assert.Nil(err, "should succeed with valid arguments")
 	})
 
 	t.Run("validate missing client_id", func(t *testing.T) {
@@ -39,7 +45,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 			assert.Equal(code, verr.Code)
 			assert.Equal(desc, verr.Description)
 		} else {
-			assert.True(ok)
+			assert.True(ok, "should return custom error")
 		}
 	})
 
@@ -55,7 +61,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 			assert.Equal(code, verr.Code)
 			assert.Equal(desc, verr.Description)
 		} else {
-			assert.True(ok)
+			assert.True(ok, "should return custom error")
 		}
 	})
 
@@ -99,13 +105,17 @@ func TestValidateAuthnRequest(t *testing.T) {
 
 func TestClientValidation(t *testing.T) {
 	assert := assert.New(t)
-	model := core.NewModel()
 
-	client := model.GetClient()
+	// Setup repository
+	client := database.NewClientKV()
 	client.Put("app", &oidc.Client{
 		ClientID:     "app",
 		RedirectURIs: []string{"http://client.example.com/cb"},
 	})
+
+	// Setup model.
+	model := core.NewModel()
+	model.SetClient(client)
 
 	req := &oidc.AuthenticationRequest{
 		ClientID:     "app",
@@ -142,16 +152,18 @@ func TestUserValidation(t *testing.T) {
 	var (
 		userID = "1"
 	)
-	// Setup model.
-	model := core.NewModel()
 
 	// Setup repository.
-	user := model.GetUser()
+	user := database.NewUserKV()
 	user.Put(userID, &oidc.User{
 		Profile: oidc.Profile{
 			UpdatedAt: time.Now().UTC().Unix(),
 		},
 	})
+
+	// Setup model.
+	model := core.NewModel()
+	model.SetUser(user)
 
 	// Setup request.
 	req := &oidc.AuthenticationRequest{

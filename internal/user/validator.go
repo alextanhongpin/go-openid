@@ -50,6 +50,9 @@ func (u *validatorImpl) Get(id string) (*oidc.User, error) {
 // -- helpers
 
 func isEmail(email string) error {
+	if email == "" {
+		return errors.New("email cannot be empty")
+	}
 	if ok := govalidator.IsEmail(email); !ok {
 		return errors.New("invalid email")
 	}

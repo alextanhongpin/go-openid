@@ -16,6 +16,9 @@ type validatorImpl struct {
 
 // New will validate the new request.
 func (c *validatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
+	if client == nil {
+		return nil, errors.New("arguments cannot be nil")
+	}
 	_, err := c.client.Validate(client)
 	if err != nil {
 		return nil, err
@@ -25,6 +28,9 @@ func (c *validatorImpl) New(client *oidc.Client) (*oidc.Client, error) {
 
 // Save will validate the save request.
 func (c *validatorImpl) Save(client *oidc.Client) error {
+	if client == nil {
+		return errors.New("arguments cannot be nil")
+	}
 	_, err := c.clientResponse.Validate(client)
 	if err != nil {
 		return err
@@ -34,6 +40,7 @@ func (c *validatorImpl) Save(client *oidc.Client) error {
 
 // Read will validate the read request.
 func (c *validatorImpl) Read(clientID string) (*oidc.Client, error) {
+
 	if clientID == "" {
 		return nil, errors.New("client_id cannot be empty")
 	}

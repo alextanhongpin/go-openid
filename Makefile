@@ -1,4 +1,4 @@
-include .env
+-include .env
 export
 
 clean: # Cleans all the generate files from go:generate
@@ -13,3 +13,7 @@ client:
 
 server:
 	@cd cmd/server && find . ! -name '*test.go' -exec go run -race {} \;
+
+cover: 
+	@go test -coverprofile=coverage.out ./...
+	@go tool cover -html=coverage.out

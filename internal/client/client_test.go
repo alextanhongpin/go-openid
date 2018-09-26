@@ -15,6 +15,11 @@ func TestNewClientService(t *testing.T) {
 	service, err := client.NewService()
 	assert.Nil(err)
 
+	t.Run("register with nil request", func(t *testing.T) {
+		_, err := service.Register(nil)
+		assert.Equal("arguments cannot be nil", err.Error(), "should handle nil arguments")
+	})
+
 	t.Run("register with empty request", func(t *testing.T) {
 		client := new(oidc.Client)
 		_, err := service.Register(client)

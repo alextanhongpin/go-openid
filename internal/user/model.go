@@ -26,10 +26,12 @@ func (m *modelImpl) Create(email, password string) (*oidc.User, error) {
 	return user, m.repository.Put(user.ID, user)
 }
 
+// List should return a paginated array of user.
 func (m *modelImpl) List(limit int) ([]*oidc.User, error) {
 	return m.repository.List(10)
 }
 
+// Get should return a client by the client id.
 func (m *modelImpl) Get(id string) (*oidc.User, error) {
 	return m.repository.Get(id)
 }
