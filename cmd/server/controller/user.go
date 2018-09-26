@@ -13,6 +13,7 @@ import (
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/session"
 	"github.com/alextanhongpin/go-openid/service"
+
 	"github.com/julienschmidt/httprouter"
 )
 

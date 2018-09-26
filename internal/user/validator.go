@@ -24,6 +24,9 @@ func (u *validatorImpl) Create(email, password string) (*oidc.User, error) {
 	if len(email) == 0 || len(password) == 0 {
 		return nil, errors.New("arguments cannot be empty")
 	}
+	if len(password) < 8 {
+		return nil, errors.New("password cannot be less than 8 characters")
+	}
 	if err := isEmail(email); err != nil {
 		return nil, err
 	}
