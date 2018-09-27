@@ -26,7 +26,7 @@ func TestUserRegister(t *testing.T) {
 		var res oidc.ErrorJSON
 		err := json.NewDecoder(rr.Body).Decode(&res)
 		assert.Nil(err)
-		assert.Equal("", res.Code)
+		assert.True(len(res.Code) > 0)
 	})
 
 	tests := []struct {
@@ -121,10 +121,10 @@ func TestUserLogin(t *testing.T) {
 }
 
 func newController() controller.User {
-	ctl := controller.NewUser()
-	ctl.SetAppSensor(appsensor.NewLoginDetector())
-	ctl.SetSession(session.NewManager())
-	return ctl
+	c := controller.NewUser()
+	c.SetAppSensor(appsensor.NewLoginDetector())
+	c.SetSession(session.NewManager())
+	return c
 }
 
 func curl(method, endpoint string, payload io.Reader) *httptest.ResponseRecorder {

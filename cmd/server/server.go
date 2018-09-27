@@ -102,8 +102,9 @@ func makeClient(h *html5.Template) controller.Client {
 }
 
 func makeCoreController(h *html5.Template, s *session.Manager) controller.Core {
-	c := controller.NewCore()
-	c.SetTemplate(h)
-	c.SetSession(s)
+	c := controller.NewCore(
+		controller.CoreSession(s),
+		controller.CoreTemplate(h),
+	)
 	return c
 }

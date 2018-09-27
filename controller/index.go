@@ -5,6 +5,7 @@ import (
 
 	"github.com/alextanhongpin/go-openid/pkg/html5"
 	"github.com/alextanhongpin/go-openid/pkg/session"
+
 	"github.com/julienschmidt/httprouter"
 )
 

@@ -21,22 +21,35 @@ type Core struct {
 	session  *session.Manager
 }
 
-func NewCore() Core {
-	return Core{
+func NewCore(opts ...coreOption) Core {
+	c := Core{
 		service: core.New(),
+		session: session.NewManager(),
+	}
+	for _, o := range opts {
+		o(&c)
+	}
+	return c
+}
+
+type coreOption func(*Core)
+
+func CoreService(s service.Core) coreOption {
+	return func(c *Core) {
+		c.service = s
 	}
 }
 
-func (c *Core) SetService(s service.Core) {
-	c.service = s
+func CoreTemplate(h *html5.Template) coreOption {
+	return func(c *Core) {
+		c.template = h
+	}
 }
 
-func (c *Core) SetTemplate(h *html5.Template) {
-	c.template = h
-}
-
-func (c *Core) SetSession(s *session.Manager) {
-	c.session = s
+func CoreSession(s *session.Manager) coreOption {
+	return func(c *Core) {
+		c.session = s
+	}
 }
 
 func (c *Core) GetAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {

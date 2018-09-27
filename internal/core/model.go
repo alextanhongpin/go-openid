@@ -23,11 +23,34 @@ type modelImpl struct {
 }
 
 // NewModel returns a new model.
-func NewModel() modelImpl {
-	return modelImpl{
+func NewModel(opts ...modelOption) modelImpl {
+	m := modelImpl{
 		code:   database.NewCodeKV(),
 		client: database.NewClientKV(),
 		user:   database.NewUserKV(),
+	}
+	for _, o := range opts {
+		o(&m)
+	}
+	return m
+}
+
+type modelOption func(*modelImpl)
+
+func ModelUserRepository(user repository.User) modelOption {
+	return func(m *modelImpl) {
+		m.user = user
+	}
+}
+func ModelClientRepository(client repository.Client) modelOption {
+	return func(m *modelImpl) {
+		m.client = client
+	}
+}
+
+func ModelCodeRepository(code repository.Code) modelOption {
+	return func(m *modelImpl) {
+		m.code = code
 	}
 }
 
