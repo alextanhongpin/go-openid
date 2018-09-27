@@ -3,6 +3,7 @@ package controller_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http/httptest"
 	"testing"
 
@@ -18,13 +19,15 @@ import (
 func TestUserRegister(t *testing.T) {
 	assert := assert.New(t)
 
-	sessMgr := session.NewManager()
-	aps := appsensor.NewLoginDetector()
+	t.Run("register with invalid json", func(t *testing.T) {
+		rr := curl("POST", "/register", bytes.NewBuffer([]byte(`hello world`)))
+		assert.Equal(400, rr.Code)
 
-	// Setup Controller.
-	userController := controller.NewUser()
-	userController.SetAppSensor(aps)
-	userController.SetSession(sessMgr)
+		var res oidc.ErrorJSON
+		err := json.NewDecoder(rr.Body).Decode(&res)
+		assert.Nil(err)
+		assert.Equal("", res.Code)
+	})
 
 	tests := []struct {
 		test, email, password, desc string
@@ -43,28 +46,33 @@ func TestUserRegister(t *testing.T) {
 				Email:    tt.email,
 				Password: tt.password,
 			}
-			rr := postRegisterEndpoint(&userController, creds)
+			js, err := json.Marshal(creds)
+			assert.Nil(err)
+			rr := curl("POST", "/register", bytes.NewBuffer(js))
 			assert.Equal(400, rr.Code)
 
 			var res oidc.ErrorJSON
-			err := json.NewDecoder(rr.Body).Decode(&res)
+			err = json.NewDecoder(rr.Body).Decode(&res)
 			assert.Nil(err)
 			assert.Equal(tt.desc, res.Code)
 		})
 	}
 
 	t.Run("register with valid email and password", func(t *testing.T) {
-		credentials := &controller.Credentials{
+		creds := &controller.Credentials{
 			Email:    "john.doe@mail.com",
 			Password: "12345678",
 		}
-		rr := postRegisterEndpoint(&userController, credentials)
+		js, err := json.Marshal(creds)
+		assert.Nil(err)
+		rr := curl("POST", "/register", bytes.NewBuffer(js))
 		assert.Equal(200, rr.Code)
 		type response struct {
 			AccessToken string `json:"access_token"`
 		}
+
 		var res response
-		err := json.NewDecoder(rr.Body).Decode(&res)
+		err = json.NewDecoder(rr.Body).Decode(&res)
 		assert.Nil(err)
 		assert.True(len(res.AccessToken) > 0, "should return access_token")
 	})
@@ -73,20 +81,15 @@ func TestUserRegister(t *testing.T) {
 func TestUserLogin(t *testing.T) {
 	assert := assert.New(t)
 
-	sessMgr := session.NewManager()
-	aps := appsensor.NewLoginDetector()
-
-	// Setup Controller.
-	userController := controller.NewUser()
-	userController.SetAppSensor(aps)
-	userController.SetSession(sessMgr)
-
 	// Register an account.
-	credentials := &controller.Credentials{
+	creds := &controller.Credentials{
 		Email:    "john.doe@mail.com",
 		Password: "12345678",
 	}
-	rr := postRegisterEndpoint(&userController, credentials)
+
+	js, err := json.Marshal(creds)
+	assert.Nil(err)
+	rr := curl("POST", "/register", bytes.NewBuffer(js))
 	assert.Equal(200, rr.Code, "should register successfully")
 
 	// Test different scenarios.
@@ -100,46 +103,38 @@ func TestUserLogin(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.test, func(t *testing.T) {
-			credentials := &controller.Credentials{
+			creds := &controller.Credentials{
 				Email:    tt.email,
 				Password: tt.password,
 			}
-			rr := postLoginEndpoint(&userController, credentials)
+			js, err := json.Marshal(creds)
+			assert.Nil(err)
+			rr := curl("POST", "/login", bytes.NewBuffer(js))
 			assert.Equal(400, rr.Code)
 
 			var res oidc.ErrorJSON
-			err := json.NewDecoder(rr.Body).Decode(&res)
+			err = json.NewDecoder(rr.Body).Decode(&res)
 			assert.Nil(err)
 			assert.Equal(tt.desc, res.Code)
 		})
 	}
 }
 
-func postRegisterEndpoint(u *controller.User, r *controller.Credentials) *httptest.ResponseRecorder {
-	router := httprouter.New()
-	router.POST("/register", u.PostRegister)
-
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		panic(err)
-	}
-	req := httptest.NewRequest("POST", "/register", bytes.NewBuffer(jsonBody))
-
-	rr := httptest.NewRecorder()
-	router.ServeHTTP(rr, req)
-	return rr
+func newController() controller.User {
+	ctl := controller.NewUser()
+	ctl.SetAppSensor(appsensor.NewLoginDetector())
+	ctl.SetSession(session.NewManager())
+	return ctl
 }
 
-func postLoginEndpoint(u *controller.User, r *controller.Credentials) *httptest.ResponseRecorder {
+func curl(method, endpoint string, payload io.Reader) *httptest.ResponseRecorder {
+	ctl := newController()
+
 	router := httprouter.New()
-	router.POST("/login", u.PostLogin)
+	router.POST("/register", ctl.PostRegister)
+	router.POST("/login", ctl.PostLogin)
 
-	jsonBody, err := json.Marshal(r)
-	if err != nil {
-		panic(err)
-	}
-	req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(jsonBody))
-
+	req := httptest.NewRequest(method, endpoint, payload)
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	return rr
