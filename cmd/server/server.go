@@ -6,7 +6,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
-	"github.com/alextanhongpin/go-openid/cmd/server/controller"
+	"github.com/alextanhongpin/go-openid/controller"
 	"github.com/alextanhongpin/go-openid/internal/client"
 	"github.com/alextanhongpin/go-openid/pkg/appsensor"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
