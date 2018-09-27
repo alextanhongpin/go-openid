@@ -15,12 +15,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// Core represents the controller for the core endpoints.
 type Core struct {
 	service  service.Core
 	template *html5.Template
 	session  *session.Manager
 }
 
+// NewCore takes an optional list of core options and returns a Core
+// controller.
 func NewCore(opts ...coreOption) Core {
 	c := Core{
 		service: core.New(),
@@ -34,24 +37,28 @@ func NewCore(opts ...coreOption) Core {
 
 type coreOption func(*Core)
 
+// CoreService sets the service for the Core controller.
 func CoreService(s service.Core) coreOption {
 	return func(c *Core) {
 		c.service = s
 	}
 }
 
+// CoreTemplate sets the template for the Core controller.
 func CoreTemplate(h *html5.Template) coreOption {
 	return func(c *Core) {
 		c.template = h
 	}
 }
 
+// CoreSession sets the session for the Core controller.
 func CoreSession(s *session.Manager) coreOption {
 	return func(c *Core) {
 		c.session = s
 	}
 }
 
+// GetAuthorize represents the authorize endpoint.
 func (c *Core) GetAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	q := r.URL.Query()
 
@@ -98,6 +105,7 @@ func (c *Core) GetAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter
 	c.template.Render(w, "consent", res)
 }
 
+// PostAuthorize represents the post authorize endpoint.
 func (c *Core) PostAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
@@ -135,6 +143,7 @@ func (c *Core) PostAuthorize(w http.ResponseWriter, r *http.Request, _ httproute
 	http.Redirect(w, r, u, http.StatusFound)
 }
 
+// PostToken represents the post token endpoint.
 func (c *Core) PostToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ctx := r.Context()
 
