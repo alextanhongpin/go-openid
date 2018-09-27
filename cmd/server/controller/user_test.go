@@ -97,8 +97,8 @@ func TestUserLogin(t *testing.T) {
 		test, email, password, desc string
 	}{
 		{"login with invalid email", "john.doemail.com", "12345678", "invalid email"},
-		{"login with non-existing email", "jane.doe@mail.com", "12345678", "email does not exist"},
-		{"login with incorrect email", "john.doe@mail.com", "123456", "password do not match"},
+		{"login with incorrect/non-existing email", "jane@mail.com", "12345678", "email does not exist"},
+		{"login with incorrect password", "john.doe@mail.com", "123456", "email does not exist"},
 	}
 
 	for _, tt := range tests {
