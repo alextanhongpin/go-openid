@@ -6,14 +6,16 @@ import (
 )
 
 // NewCookie returns a new cookie with default settings.
-func NewCookie(id string) *http.Cookie {
+func NewCookie(id string, now time.Time) *http.Cookie {
+	duration := 20 * time.Minute
 	return &http.Cookie{
-		Name:  Key, // Use a generic name to represent the session id.
-		Value: id,
-		// Path:     "/",
-		// Domain:   "",
-		MaxAge: int((20 * time.Minute).Seconds()),
-		// Secure:   true,
+		Expires:  now.Add(duration),
 		HttpOnly: true,
+		MaxAge:   int((duration).Seconds()),
+		Name:     Key, // Use a generic name to represent the session id.
+		Path:     "/",
+		Value:    id,
+		// Domain:   "",
+		// Secure:   true,
 	}
 }

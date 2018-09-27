@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"time"
 )
 
 // Manager represents the manager that handles the session creation and cleanup.
@@ -40,7 +41,7 @@ func (m *Manager) GetSession(r *http.Request) (*Session, error) {
 // SetSession sets a new session in the response.
 func (m *Manager) SetSession(w http.ResponseWriter, userID string) {
 	s := NewSession(userID)
-	c := NewCookie(s.SessionID)
+	c := NewCookie(s.SessionID, time.Now().UTC())
 
 	m.repo.Put(s.SessionID, s)
 
