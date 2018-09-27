@@ -170,12 +170,12 @@ func main() {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
 
 		// Put the extra data in the context to be validated by the
 		// service.
 		authorization := r.Header.Get("Authorization")
 		ctx = oidc.SetAuthContextKey(ctx, authorization)
-		ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
 
 		// Parse request body.
 		var req oidc.AccessTokenRequest
@@ -183,6 +183,7 @@ func main() {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+
 		res, err := svc.core.Token(ctx, &req)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
