@@ -14,6 +14,7 @@ import (
 	"github.com/alextanhongpin/go-openid/model"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 	"github.com/alextanhongpin/go-openid/pkg/session"
+	"github.com/alextanhongpin/go-openid/service"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/assert"
@@ -30,9 +31,11 @@ func TestPostAuthorize(t *testing.T) {
 		State:        "xyz",
 	}
 
+	// Setup context with injected values.
+	ctx := oidc.SetUserIDContextKey(context.Background(), "john.doe@mail.com")
+
 	// Setup model behaviours.
 	model := new(coreModel)
-	ctx := oidc.SetUserIDContextKey(context.Background(), "john.doe@mail.com")
 	model.On("ValidateAuthnUser", ctx, req).Return(nil)
 	model.On("ValidateAuthnRequest", req).Return(nil)
 	model.On("ValidateAuthnClient", req).Return(nil)
@@ -71,6 +74,19 @@ func corecurl(model model.Core, method, endpoint string, payload io.Reader) *htt
 
 	router.ServeHTTP(rr, req)
 	return rr
+}
+
+type coreController struct {
+	model   model.Core
+	service service.Core
+}
+
+func newCoreController() coreController {
+	return coreController{}
+}
+
+func (c *coreController) curl(method, endpoint string, payload io.Reader) {
+
 }
 
 type coreModel struct {
