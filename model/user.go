@@ -1,6 +1,3 @@
-
-
-
 package model
 
 import "github.com/alextanhongpin/go-openid"

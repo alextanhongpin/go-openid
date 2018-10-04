@@ -1,7 +1,3 @@
-
-
-
-
 package user
 
 import (

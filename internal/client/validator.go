@@ -1,9 +1,3 @@
-
-
-
-
-
-
 package client
 
 import (

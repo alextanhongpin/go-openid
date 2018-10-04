@@ -1,9 +1,3 @@
-
-
-
-
-
-
 package main_test
 
 //

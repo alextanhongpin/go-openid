@@ -1,6 +1,3 @@
-
-
-
 package openid
 
 import "context"

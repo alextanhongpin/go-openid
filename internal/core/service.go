@@ -1,8 +1,3 @@
-
-
-
-
-
 package core
 
 import (
