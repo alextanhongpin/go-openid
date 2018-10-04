@@ -1,3 +1,8 @@
+
+
+
+
+
 package core
 
 import (
@@ -18,8 +23,8 @@ type Client struct {
 }
 
 // Exchange trades an authorization code with the access token.
-func (c *Client) Exchange(ctx context.Context, code, redirectURI string) (*oidc.AuthenticationResponse, error) {
-	tokenReq := oidc.AccessTokenRequest{
+func (c *Client) Exchange(ctx context.Context, code, redirectURI string) (*openid.AuthenticationResponse, error) {
+	tokenReq := openid.AccessTokenRequest{
 		GrantType:   "authorization_code",
 		Code:        code,
 		RedirectURI: redirectURI,
@@ -48,7 +53,7 @@ func (c *Client) Exchange(ctx context.Context, code, redirectURI string) (*oidc.
 	}
 	defer resp.Body.Close()
 
-	var res oidc.AuthenticationResponse
+	var res openid.AuthenticationResponse
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
 		return nil, err
 	}

@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 package client
 
 import (
@@ -8,7 +16,7 @@ import (
 )
 
 // NewClient returns a new client with the generated client id and secret. It basically clones an existing client, which can be unmarshalled from json, and injects the credentials.
-func NewClient(c *oidc.Client) (*oidc.Client, error) {
+func NewClient(c *openid.Client) (*openid.Client, error) {
 	client := c.Clone()
 
 	// Generate client id.

@@ -1,7 +1,11 @@
+
+
+
+
 {
 	"$id": "client-response.json",
 	"$schema": "http://json-schema.org/draft-07/schema#",
-	"description": "Client Metadata according to the OIDC Client Registration Specification",
+	"description": "Client Metadata according to the openid Client Registration Specification",
 	"type": "object",
 	"allOf": [{
 		"$ref": "#/definitions/client-response"

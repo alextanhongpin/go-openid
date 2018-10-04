@@ -1,4 +1,4 @@
-package oidc
+package openid
 
 import jwt "github.com/dgrijalva/jwt-go"
 
@@ -11,7 +11,7 @@ type ClientToken struct {
 	ClientID string
 }
 
-// Client represents the OIDC Client Metadata.
+// Client represents the openid Client Metadata.
 type Client struct {
 	ApplicationType              string   `json:"application_type,omitempty"`
 	ClientName                   string   `json:"client_name,omitempty"`

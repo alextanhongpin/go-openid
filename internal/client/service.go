@@ -1,3 +1,8 @@
+
+
+
+
+
 package client
 
 import (
@@ -14,7 +19,7 @@ type serviceImpl struct {
 
 // Register performs client registration which will return a new client with
 // client id and client secret.
-func (c *serviceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
+func (c *serviceImpl) Register(client *openid.Client) (*openid.Client, error) {
 	newClient, err := c.model.New(client)
 	if err != nil {
 		return nil, err
@@ -24,6 +29,6 @@ func (c *serviceImpl) Register(client *oidc.Client) (*oidc.Client, error) {
 }
 
 // Read returns a client by client id or error if the client is not found.
-func (c *serviceImpl) Read(clientID string) (*oidc.Client, error) {
+func (c *serviceImpl) Read(clientID string) (*openid.Client, error) {
 	return c.model.Read(clientID)
 }

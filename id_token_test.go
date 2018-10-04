@@ -1,12 +1,10 @@
-package oidc_test
+package openid_test
 
 import (
 	"testing"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/alextanhongpin/go-openid"
 )
 
 func TestIDToken(t *testing.T) {
@@ -21,11 +19,11 @@ func TestIDToken(t *testing.T) {
 		nonce = "xyz"
 	)
 
-	claims := &oidc.IDToken{
+	claims := &openid.IDToken{
 		StandardClaims: jwt.StandardClaims{
 			Issuer: iss,
 		},
-		Profile: &oidc.Profile{
+		Profile: &openid.Profile{
 			Name: name,
 		},
 		Nonce: nonce,
@@ -44,12 +42,12 @@ func TestIDToken(t *testing.T) {
 	})
 
 	t.Run("validating key", func(t *testing.T) {
-		token, err := jwt.ParseWithClaims(str, &oidc.IDToken{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(str, &openid.IDToken{}, func(token *jwt.Token) (interface{}, error) {
 			return key, nil
 		})
 		assert.Nil(err)
 
-		claims, ok := token.Claims.(*oidc.IDToken)
+		claims, ok := token.Claims.(*openid.IDToken)
 
 		assert.True(ok && token.Valid)
 		assert.Equal(iss, claims.StandardClaims.Issuer, "issuer should be equal")
@@ -57,7 +55,7 @@ func TestIDToken(t *testing.T) {
 		assert.Equal(nonce, claims.Nonce, "nonce should be equal")
 	})
 	t.Run("validating key method", func(t *testing.T) {
-		o := oidc.NewIDToken()
+		o := openid.NewIDToken()
 		err := o.ParseHS256(str, key)
 		assert.Nil(err)
 
@@ -66,13 +64,13 @@ func TestIDToken(t *testing.T) {
 		assert.Equal(nonce, o.Nonce, "nonce should be equal")
 	})
 	t.Run("sign verify key method", func(t *testing.T) {
-		o := oidc.NewIDToken()
+		o := openid.NewIDToken()
 		o.StandardClaims.Audience = "1"
 		o.StandardClaims.Subject = "100"
 		ss, err := o.SignHS256(key)
 		assert.Nil(err)
 
-		oo := oidc.NewIDToken()
+		oo := openid.NewIDToken()
 		err = oo.ParseHS256(ss, key)
 		assert.Nil(err)
 

@@ -1,4 +1,9 @@
-package oidc
+
+
+
+
+
+package openid
 
 import (
 	"fmt"

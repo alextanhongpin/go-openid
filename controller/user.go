@@ -34,32 +34,45 @@ type (
 )
 
 // NewUser returns a new user controller with a predefined service.
-func NewUser() User {
-	return User{
+func NewUser(opts ...userOption) User {
+	u := User{
 		service: user.NewService(),
 	}
+	for _, o := range opts {
+		o(&u)
+	}
+	return u
 }
 
 // -- setters
+type userOption func(*User)
 
-// SetService sets the current service.
-func (u *User) SetService(s service.User) {
-	u.service = s
+// UserService sets the current service.
+func UserService(s service.User) userOption {
+	return func(u *User) {
+		u.service = s
+	}
 }
 
-// SetTemplate sets the current template.
-func (u *User) SetTemplate(t *html5.Template) {
-	u.template = t
+// UserTemplate sets the current template.
+func UserTemplate(t *html5.Template) userOption {
+	return func(u *User) {
+		u.template = t
+	}
 }
 
-// SetSession sets the current session.
-func (u *User) SetSession(s *session.Manager) {
-	u.session = s
+// UserSession sets the current session.
+func UserSession(s *session.Manager) userOption {
+	return func(u *User) {
+		u.session = s
+	}
 }
 
-// SetAppSensor sets the current appsensor.
-func (u *User) SetAppSensor(a appsensor.LoginDetector) {
-	u.appsensor = a
+// UserAppSensor sets the current appsensor.
+func UserAppSensor(a appsensor.LoginDetector) userOption {
+	return func(u *User) {
+		u.appsensor = a
+	}
 }
 
 // GetLogin renders the login html.

@@ -17,19 +17,21 @@ type Client struct {
 	template *html5.Template
 }
 
-func NewClient() Client {
-	return Client{}
-}
-
-func (c *Client) SetService(s service.Client) {
-	c.service = s
-}
-
-func (c *Client) SetTemplate(h *html5.Template) {
-	c.template = h
+func NewClient(opts ...clientOption) Client {
+	c := Client{}
+	for _, o := range opts {
+		o(&c)
+	}
+	return c
 }
 
 func (c *Client) GetClientRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// sess, err := c.session.GetSession(r)
+	// if err != nil {
+	//         writeError(w, http.StatusBadRequest, err)
+	//         return
+	// }
+
 	// TODO: Check if the user is authorized to read the client
 	// details.
 	id := r.URL.Query().Get("client_id")
@@ -54,12 +56,12 @@ func (c *Client) PostClientRegister(w http.ResponseWriter, r *http.Request, _ ht
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Pragma", "no-cache")
 
-	buildClient := func(r *http.Request) *oidc.Client {
+	buildClient := func(r *http.Request) *openid.Client {
 		var (
 			clientName   = r.FormValue("client_name")
 			redirectURIs = strings.Split(r.FormValue("redirect_uris"), " ")
 		)
-		client := oidc.NewClient()
+		client := openid.NewClient()
 		client.ClientName = clientName
 		client.RedirectURIs = redirectURIs
 		return client
@@ -69,7 +71,7 @@ func (c *Client) PostClientRegister(w http.ResponseWriter, r *http.Request, _ ht
 
 	newClient, err := c.service.Register(client)
 	if err != nil {
-		v, ok := err.(*oidc.ErrorJSON)
+		v, ok := err.(*openid.ErrorJSON)
 		if ok {
 			json.NewEncoder(w).Encode(v)
 		} else {
@@ -80,4 +82,20 @@ func (c *Client) PostClientRegister(w http.ResponseWriter, r *http.Request, _ ht
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(newClient)
+}
+
+// -- options
+
+type clientOption func(c *Client)
+
+func ClientService(s service.Client) clientOption {
+	return func(c *Client) {
+		c.service = s
+	}
+}
+
+func ClientTemplate(h *html5.Template) clientOption {
+	return func(c *Client) {
+		c.template = h
+	}
 }

@@ -1,3 +1,7 @@
+
+
+
+
 package database
 
 import (
@@ -14,7 +18,7 @@ var (
 // UserKV represents the in-memory store for user.
 type UserKV struct {
 	sync.RWMutex
-	db map[string]*oidc.User
+	db map[string]*openid.User
 	// Maps email to id, and vice-versa.
 	idx map[string]string
 }
@@ -22,13 +26,13 @@ type UserKV struct {
 // NewUserKV returns a new user key-value store.
 func NewUserKV() *UserKV {
 	return &UserKV{
-		db:  make(map[string]*oidc.User),
+		db:  make(map[string]*openid.User),
 		idx: make(map[string]string),
 	}
 }
 
 // Get returns a user by id.
-func (u *UserKV) Get(id string) (*oidc.User, error) {
+func (u *UserKV) Get(id string) (*openid.User, error) {
 	u.RLock()
 	user, exist := u.db[id]
 	u.RUnlock()
@@ -38,7 +42,7 @@ func (u *UserKV) Get(id string) (*oidc.User, error) {
 	return user, nil
 }
 
-func (u *UserKV) List(limit int) (users []*oidc.User, err error) {
+func (u *UserKV) List(limit int) (users []*openid.User, err error) {
 	u.RLock()
 	defer u.RUnlock()
 	i := 0
@@ -53,7 +57,7 @@ func (u *UserKV) List(limit int) (users []*oidc.User, err error) {
 }
 
 // Put stores the user in the db by the given id.
-func (u *UserKV) Put(id string, user *oidc.User) error {
+func (u *UserKV) Put(id string, user *openid.User) error {
 	email := user.Email.Email
 	u.Lock()
 	u.db[id] = user
@@ -75,7 +79,7 @@ func (u *UserKV) Put(id string, user *oidc.User) error {
 
 // FindByEmail returns a user by the given email, or error if the email does
 // not exist.
-func (u *UserKV) FindByEmail(email string) (*oidc.User, error) {
+func (u *UserKV) FindByEmail(email string) (*openid.User, error) {
 	u.RLock()
 	id, exist := u.idx[email]
 	u.RUnlock()

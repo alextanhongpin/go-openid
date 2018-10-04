@@ -35,34 +35,11 @@ func NewCore(opts ...coreOption) Core {
 	return c
 }
 
-type coreOption func(*Core)
-
-// CoreService sets the service for the Core controller.
-func CoreService(s service.Core) coreOption {
-	return func(c *Core) {
-		c.service = s
-	}
-}
-
-// CoreTemplate sets the template for the Core controller.
-func CoreTemplate(h *html5.Template) coreOption {
-	return func(c *Core) {
-		c.template = h
-	}
-}
-
-// CoreSession sets the session for the Core controller.
-func CoreSession(s *session.Manager) coreOption {
-	return func(c *Core) {
-		c.session = s
-	}
-}
-
 // GetAuthorize represents the authorize endpoint.
 func (c *Core) GetAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	q := r.URL.Query()
 
-	var req oidc.AuthenticationRequest
+	var req openid.AuthenticationRequest
 	if err := querystring.Decode(q, &req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -87,8 +64,8 @@ func (c *Core) GetAuthorize(w http.ResponseWriter, r *http.Request, _ httprouter
 	// If the prompt is set to none, but the user is unauthorized,
 	// an error should be returned indicating that login is
 	// required.
-	if prompt.Is(oidc.PromptNone) && !isAuthorized {
-		http.Error(w, oidc.ErrLoginRequired.Error(), http.StatusBadRequest)
+	if prompt.Is(openid.PromptNone) && !isAuthorized {
+		http.Error(w, openid.ErrLoginRequired.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -118,10 +95,10 @@ func (c *Core) PostAuthorize(w http.ResponseWriter, r *http.Request, _ httproute
 	}
 
 	// Attach the user_id to the context.
-	ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
+	ctx = openid.SetUserIDContextKey(ctx, sess.UserID)
 
 	// Construct the request payload from the querystring.
-	var req oidc.AuthenticationRequest
+	var req openid.AuthenticationRequest
 	if err := req.FromQueryString(r.URL.Query()); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -155,15 +132,15 @@ func (c *Core) PostToken(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	ctx = oidc.SetUserIDContextKey(ctx, sess.UserID)
+	ctx = openid.SetUserIDContextKey(ctx, sess.UserID)
 
 	// Put the extra data in the context to be validated by the
 	// service.
 	authorization := r.Header.Get("Authorization")
-	ctx = oidc.SetAuthContextKey(ctx, authorization)
+	ctx = openid.SetAuthContextKey(ctx, authorization)
 
 	// Parse request body.
-	var req oidc.AccessTokenRequest
+	var req openid.AccessTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -176,4 +153,29 @@ func (c *Core) PostToken(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	}
 
 	json.NewEncoder(w).Encode(res)
+}
+
+// -- options
+
+type coreOption func(*Core)
+
+// CoreService sets the service for the Core controller.
+func CoreService(s service.Core) coreOption {
+	return func(c *Core) {
+		c.service = s
+	}
+}
+
+// CoreTemplate sets the template for the Core controller.
+func CoreTemplate(h *html5.Template) coreOption {
+	return func(c *Core) {
+		c.template = h
+	}
+}
+
+// CoreSession sets the session for the Core controller.
+func CoreSession(s *session.Manager) coreOption {
+	return func(c *Core) {
+		c.session = s
+	}
 }

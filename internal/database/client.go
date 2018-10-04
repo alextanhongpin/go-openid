@@ -1,28 +1,32 @@
+
+
+
+
 package database
 
 import (
 	"errors"
 	"sync"
 
-	oidc "github.com/alextanhongpin/go-openid"
+	openid "github.com/alextanhongpin/go-openid"
 )
 
 // ClientKV represents an in-memory client store.
 type ClientKV struct {
 	sync.RWMutex
-	db map[string]*oidc.Client
+	db map[string]*openid.Client
 	// TODO: Add cache-layer, both in-memory and redis
 }
 
 // NewClientKV returns a pointer to an in-memory client store.
 func NewClientKV() *ClientKV {
 	return &ClientKV{
-		db: make(map[string]*oidc.Client),
+		db: make(map[string]*openid.Client),
 	}
 }
 
 // Get returns a client by id and a status indicating that the client exist.
-func (c *ClientKV) Get(id string) (*oidc.Client, error) {
+func (c *ClientKV) Get(id string) (*openid.Client, error) {
 	c.RLock()
 	client, ok := c.db[id]
 	c.RUnlock()
@@ -33,7 +37,7 @@ func (c *ClientKV) Get(id string) (*oidc.Client, error) {
 }
 
 // GetByID returns the client by client id.
-func (c *ClientKV) GetByID(id string) (client *oidc.Client) {
+func (c *ClientKV) GetByID(id string) (client *openid.Client) {
 	c.RLock()
 	for _, c := range c.db {
 		if c.ClientID == id {
@@ -54,7 +58,7 @@ func (c *ClientKV) Has(id string) bool {
 }
 
 // GetByCredentials returns the client by client id and client secret.
-func (c *ClientKV) GetByCredentials(clientID, clientSecret string) (client *oidc.Client, err error) {
+func (c *ClientKV) GetByCredentials(clientID, clientSecret string) (client *openid.Client, err error) {
 	c.RLock()
 	for _, c := range c.db {
 		if c.ClientID == clientID && c.ClientSecret == clientSecret {
@@ -67,7 +71,7 @@ func (c *ClientKV) GetByCredentials(clientID, clientSecret string) (client *oidc
 }
 
 // Put insert a new client by id.
-func (c *ClientKV) Put(id string, client *oidc.Client) error {
+func (c *ClientKV) Put(id string, client *openid.Client) error {
 	c.Lock()
 	c.db[id] = client
 	c.Unlock()
@@ -82,9 +86,9 @@ func (c *ClientKV) Delete(id string) {
 }
 
 // List returns a paginated list of users.
-func (c *ClientKV) List(limit int) []*oidc.Client {
+func (c *ClientKV) List(limit int) []*openid.Client {
 	var i int
-	var clients []*oidc.Client
+	var clients []*openid.Client
 	for _, v := range c.db {
 		if i == limit {
 			break

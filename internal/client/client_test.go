@@ -1,3 +1,9 @@
+
+
+
+
+
+
 package client_test
 
 import (
@@ -21,16 +27,16 @@ func TestNewClientService(t *testing.T) {
 	})
 
 	t.Run("register with empty request", func(t *testing.T) {
-		client := new(oidc.Client)
+		client := new(openid.Client)
 		_, err := service.Register(client)
 		assert.Equal("redirect_uris is required", err.Error(), "should validate the only required field")
 	})
 
 	t.Run("register with additional field client_id", func(t *testing.T) {
-		client := new(oidc.Client)
+		client := new(openid.Client)
 
 		// Minimum required field is redirect_uris, which is fulfilled.
-		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
+		client.RedirectURIs = openid.RedirectURIs([]string{"https://server.example.com/cb"})
 
 		// Attempt to inject client_id to override system.
 		client.ClientID = "xyz"
@@ -40,8 +46,8 @@ func TestNewClientService(t *testing.T) {
 	})
 
 	t.Run("register and save with only redirect_uris", func(t *testing.T) {
-		client := new(oidc.Client)
-		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
+		client := new(openid.Client)
+		client.RedirectURIs = openid.RedirectURIs([]string{"https://server.example.com/cb"})
 		newClient, err := service.Register(client)
 		assert.Nil(err)
 
@@ -61,8 +67,8 @@ func TestNewClientService(t *testing.T) {
 	})
 
 	t.Run("register and save with default values", func(t *testing.T) {
-		client := oidc.NewClient()
-		client.RedirectURIs = oidc.RedirectURIs([]string{"https://server.example.com/cb"})
+		client := openid.NewClient()
+		client.RedirectURIs = openid.RedirectURIs([]string{"https://server.example.com/cb"})
 
 		newClient, err := service.Register(client)
 		assert.Nil(err)
@@ -119,7 +125,7 @@ func TestClientRegistration(t *testing.T) {
 		]
 	}`)
 
-	c := oidc.NewClient()
+	c := openid.NewClient()
 	err := c.UnmarshalJSON(body)
 	assert.Nil(err)
 

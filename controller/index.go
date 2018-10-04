@@ -16,20 +16,30 @@ type Index struct {
 }
 
 // NewIndex returns a new index.
-func NewIndex() Index {
-	return Index{}
+func NewIndex(opts ...indexOption) Index {
+	i := Index{}
+	for _, o := range opts {
+		o(&i)
+	}
+	return i
 }
+
+type indexOption func(i *Index)
 
 // -- setters
 
 // SetTemplate sets the existing template.
-func (i *Index) SetTemplate(t *html5.Template) {
-	i.template = t
+func IndexTemplate(t *html5.Template) indexOption {
+	return func(i *Index) {
+		i.template = t
+	}
 }
 
 // SetSession sets the existing session.
-func (i *Index) SetSession(s *session.Manager) {
-	i.session = s
+func IndexSession(s *session.Manager) indexOption {
+	return func(i *Index) {
+		i.session = s
+	}
 }
 
 // GetIndex represents the index endpoint.

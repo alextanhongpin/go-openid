@@ -1,3 +1,9 @@
+
+
+
+
+
+
 package main_test
 
 //
@@ -14,7 +20,7 @@ package main_test
 //         "github.com/julienschmidt/httprouter"
 //         "github.com/stretchr/testify/assert"
 //
-//         oidc "github.com/alextanhongpin/go-openid"
+//         openid "github.com/alextanhongpin/go-openid"
 //         "github.com/alextanhongpin/go-openid/pkg/crypto"
 //         "github.com/alextanhongpin/go-openid/pkg/querystring"
 // )
@@ -46,7 +52,7 @@ package main_test
 //         defaultUserID = "1"
 // )
 //
-// func testAuthzEndpoint(e *Endpoints, r *oidc.AuthorizationRequest) *httptest.ResponseRecorder {
+// func testAuthzEndpoint(e *Endpoints, r *openid.AuthorizationRequest) *httptest.ResponseRecorder {
 //         router := httprouter.New()
 //         router.GET("/authorize", e.Authorize)
 //
@@ -68,7 +74,7 @@ package main_test
 //         e := newMockEndpoint(s)
 //
 //         // Setup payload
-//         req := &oidc.AuthorizationRequest{
+//         req := &openid.AuthorizationRequest{
 //                 ResponseType: "code",
 //                 ClientID:     defaultClientID,
 //                 RedirectURI:  "https://client.example.com/cb",
@@ -84,7 +90,7 @@ package main_test
 //         // Get the response, which is a redirect uri stored in header Location
 //         u, _ := url.Parse(rr.Header().Get("Location"))
 //
-//         var res oidc.AuthorizationResponse
+//         var res openid.AuthorizationResponse
 //         err := querystring.Decode(&res, u.Query())
 //         assert.Nil(err)
 //
@@ -101,7 +107,7 @@ package main_test
 //         assert.Equal(code, codedb.Code, "should match the code in the db")
 // }
 //
-// func testTokenEndpoint(e *Endpoints, r *oidc.AccessTokenRequest, bearer string) *httptest.ResponseRecorder {
+// func testTokenEndpoint(e *Endpoints, r *openid.AccessTokenRequest, bearer string) *httptest.ResponseRecorder {
 //         router := httprouter.New()
 //         router.POST("/token", e.Token)
 //
@@ -122,7 +128,7 @@ package main_test
 //         e := defaultMockEndpoint()
 //
 //         // Setup payload
-//         req := &oidc.AccessTokenRequest{
+//         req := &openid.AccessTokenRequest{
 //                 GrantType:   "authorization_code",
 //                 Code:        defaultCode,
 //                 RedirectURI: defaultRedirectURI,
@@ -130,7 +136,7 @@ package main_test
 //         }
 //
 //         var (
-//                 bearer = oidc.EncodeBasicAuth(defaultClientID, defaultClientSecret)
+//                 bearer = openid.EncodeBasicAuth(defaultClientID, defaultClientSecret)
 //         )
 //         rr := testTokenEndpoint(e, req, bearer)
 //
@@ -156,7 +162,7 @@ package main_test
 //                 idToken      = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ..."
 //         )
 //
-//         var res oidc.AccessTokenResponse
+//         var res openid.AccessTokenResponse
 //         err := json.NewDecoder(rr.Body).Decode(&res)
 //         assert.Nil(err)
 //
@@ -172,7 +178,7 @@ package main_test
 //
 //         e := defaultMockEndpoint()
 //         // Setup payload
-//         req := &oidc.AccessTokenRequest{}
+//         req := &openid.AccessTokenRequest{}
 //
 //         rr := testTokenEndpoint(e, req, "")
 //
@@ -196,7 +202,7 @@ package main_test
 //         )
 //
 //         // Validate body
-//         var res oidc.ErrorJSON
+//         var res openid.ErrorJSON
 //         err := json.NewDecoder(rr.Body).Decode(&res)
 //         assert.Nil(err)
 //
@@ -286,7 +292,7 @@ package main_test
 //         assert.Equal(header, rr.Header().Get("WWW-Authenticate"), "should return WWW-Authenticate response header with error message")
 // }
 //
-// func testClientRegistration(e *Endpoints, r *oidc.ClientRegistrationRequest, bearer string) *httptest.ResponseRecorder {
+// func testClientRegistration(e *Endpoints, r *openid.ClientRegistrationRequest, bearer string) *httptest.ResponseRecorder {
 //         router := httprouter.New()
 //         router.POST("/connect/register", e.RegisterClient)
 //
@@ -309,7 +315,7 @@ package main_test
 //         e := newMockEndpoint(s)
 //
 //         // Setup payload
-//         req := &oidc.ClientPublic{
+//         req := &openid.ClientPublic{
 //                 ClientName: defaultClientName,
 //         }
 //
@@ -351,7 +357,7 @@ package main_test
 //                 registrationClientURI   = ""
 //         )
 //
-//         var res oidc.ClientPrivate
+//         var res openid.ClientPrivate
 //         if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 //                 t.Fatal(err)
 //         }
@@ -382,8 +388,8 @@ package main_test
 //         e := defaultMockEndpoint()
 //
 //         // Setup payload
-//         req := &oidc.ClientPublic{
-//                 ClientName:   "oidc_app",
+//         req := &openid.ClientPublic{
+//                 ClientName:   "openid_app",
 //                 RedirectURIs: []string{"not_valid_url"},
 //         }
 //
@@ -408,7 +414,7 @@ package main_test
 //                 desc = "One or more redirect_uri values are incorrect"
 //         )
 //
-//         var res oidc.ClientErrorResponse
+//         var res openid.ClientErrorResponse
 //         err := json.NewDecoder(rr.Body).Decode(&res)
 //         assert.Nil(err)
 //
@@ -469,15 +475,15 @@ package main_test
 //                 clientSecret = "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q"
 //         )
 //
-//         var client oidc.Client
+//         var client openid.Client
 //         err = json.NewDecoder(rr.Body).Decode(&client)
 //         assert.Nil(err)
 //
 //         assert.Equal(clientID, client.ClientPrivate.ClientID)
 //         assert.Equal(clientSecret, client.ClientPrivate.ClientSecret)
 //         // Response body
-//         //	client := &oidc.Client{
-//         //		ClientPublic: &oidc.ClientPublic{
+//         //	client := &openid.Client{
+//         //		ClientPublic: &openid.ClientPublic{
 //         //			TokenEndpointAuthMethod: "token_endpoint_auth_method",
 //         //			ApplicationType:         "web",
 //         //			RedirectURIs: []string{"https://client.example.org/callback",
@@ -492,7 +498,7 @@ package main_test
 //         //			Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
 //         //			RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
 //         //		},
-//         //		ClientPrivate: &oidc.ClientPrivate{
+//         //		ClientPrivate: &openid.ClientPrivate{
 //         //			ClientID:     "s6BhdRkqt3",
 //         //			ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
 //         //
@@ -627,8 +633,8 @@ package main_test
 // }
 //
 // func newMockDatabase() *Database {
-//         claims := &oidc.StandardClaims{
-//                 Profile: &oidc.Profile{
+//         claims := &openid.StandardClaims{
+//                 Profile: &openid.Profile{
 //                         Sub:               "248289761001",
 //                         Name:              "Jane Doe",
 //                         GivenName:         "Jane",
@@ -636,7 +642,7 @@ package main_test
 //                         PreferredUsername: "j.doe",
 //                         Picture:           "http://example.com/janedoe/me.jpg",
 //                 },
-//                 Email: &oidc.Email{
+//                 Email: &openid.Email{
 //                         Email: "janedoe@example.com",
 //                 },
 //         }
@@ -646,19 +652,19 @@ package main_test
 //                 StandardClaims: claims,
 //         }
 //
-//         client := &oidc.Client{
-//                 ClientPublic: &oidc.ClientPublic{
+//         client := &openid.Client{
+//                 ClientPublic: &openid.ClientPublic{
 //                         ClientName:   defaultClientName,
 //                         RedirectURIs: []string{defaultRedirectURI},
 //                 },
-//                 ClientPrivate: &oidc.ClientPrivate{
+//                 ClientPrivate: &openid.ClientPrivate{
 //                         ClientID:     defaultClientID,
 //                         ClientSecret: defaultClientSecret,
 //                 },
 //         }
 //
-//         client2 := &oidc.Client{
-//                 ClientPublic: &oidc.ClientPublic{
+//         client2 := &openid.Client{
+//                 ClientPublic: &openid.ClientPublic{
 //                         TokenEndpointAuthMethod: "token_endpoint_auth_method",
 //                         ApplicationType:         "web",
 //                         RedirectURIs: []string{"https://client.example.org/callback",
@@ -673,7 +679,7 @@ package main_test
 //                         Contacts:                     []string{"ve7jtb@example.org", "mary@example.org"},
 //                         RequestURIs:                  []string{"https://client.example.org/rf.txt#qpXaRLh_n93TTR9F252ValdatUQvQiJi5BDub2BeznA"},
 //                 },
-//                 ClientPrivate: &oidc.ClientPrivate{
+//                 ClientPrivate: &openid.ClientPrivate{
 //                         ClientID:     "s6BhdRkqt3",
 //                         ClientSecret: "OylyaC56ijpAQ7G5ZZGL7MMQ6Ap6mEeuhSTFVps2N4Q",
 //
@@ -687,7 +693,7 @@ package main_test
 //         db := NewDatabase()
 //
 //         db.Client.Put(client.ClientID, client)
-//         db.Code.Put(client.ClientID, oidc.NewCode(defaultCode))
+//         db.Code.Put(client.ClientID, openid.NewCode(defaultCode))
 //         db.Client.Put(client2.ClientPrivate.ClientID, client2)
 //
 //         db.User.Put("1", user)

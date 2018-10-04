@@ -1,3 +1,6 @@
+
+
+
 package model
 
 import "github.com/alextanhongpin/go-openid"
@@ -6,12 +9,12 @@ import "github.com/alextanhongpin/go-openid"
 type User interface {
 	// Create returns creates a new user with the given username and
 	// password.
-	Create(email, password string) (*oidc.User, error)
+	Create(email, password string) (*openid.User, error)
 
 	// FindByEmail checks if the user with the given email exists.
-	FindByEmail(email string) (*oidc.User, error)
+	FindByEmail(email string) (*openid.User, error)
 
-	List(limit int) ([]*oidc.User, error)
+	List(limit int) ([]*openid.User, error)
 
-	Get(id string) (*oidc.User, error)
+	Get(id string) (*openid.User, error)
 }

@@ -1,3 +1,7 @@
+
+
+
+
 package user
 
 import (
@@ -13,7 +17,7 @@ type serviceImpl struct {
 }
 
 // Register registers a new user with the given email and password.
-func (u *serviceImpl) Register(email, password string) (*oidc.User, error) {
+func (u *serviceImpl) Register(email, password string) (*openid.User, error) {
 	user, err := u.model.FindByEmail(email)
 	switch {
 	case err == database.ErrEmailDoesNotExist:
@@ -26,7 +30,7 @@ func (u *serviceImpl) Register(email, password string) (*oidc.User, error) {
 }
 
 // Login verifies if the given username and password is correct.
-func (u *serviceImpl) Login(email, password string) (*oidc.User, error) {
+func (u *serviceImpl) Login(email, password string) (*openid.User, error) {
 	user, err := u.model.FindByEmail(email)
 	if err != nil {
 		return nil, err
@@ -35,11 +39,11 @@ func (u *serviceImpl) Login(email, password string) (*oidc.User, error) {
 }
 
 // GetUsers returns a list of paginated users.
-func (u *serviceImpl) GetUsers(limit int) ([]*oidc.User, error) {
+func (u *serviceImpl) GetUsers(limit int) ([]*openid.User, error) {
 	return u.model.List(limit)
 }
 
 // GetUsers returns a list of paginated users.
-func (u *serviceImpl) GetUser(id string) (*oidc.User, error) {
+func (u *serviceImpl) GetUser(id string) (*openid.User, error) {
 	return u.model.Get(id)
 }

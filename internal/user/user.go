@@ -1,3 +1,7 @@
+
+
+
+
 package user
 
 import (
@@ -8,10 +12,10 @@ import (
 )
 
 // NewUser returns a new user with default values.
-func NewUser() *oidc.User {
+func NewUser() *openid.User {
 	id := crypto.NewXID()
 
-	user := new(oidc.User)
+	user := new(openid.User)
 	user.ID = id
 	user.Profile.UpdatedAt = time.Now().UTC().Unix()
 

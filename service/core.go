@@ -1,3 +1,8 @@
+
+
+
+
+
 package service
 
 import (
@@ -8,7 +13,7 @@ import (
 
 // Core represents the core service for the OpenID Connect Specification.
 type Core interface {
-	PreAuthenticate(*oidc.AuthenticationRequest) error
-	Authenticate(context.Context, *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error)
-	Token(context.Context, *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error)
+	PreAuthenticate(*openid.AuthenticationRequest) error
+	Authenticate(context.Context, *openid.AuthenticationRequest) (*openid.AuthenticationResponse, error)
+	Token(context.Context, *openid.AccessTokenRequest) (*openid.AccessTokenResponse, error)
 }

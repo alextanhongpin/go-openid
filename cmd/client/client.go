@@ -1,3 +1,7 @@
+
+
+
+
 package main
 
 import (
@@ -27,7 +31,7 @@ func main() {
 		tpl.Render(w, "authorize", nil)
 	}
 
-	oidcClient := core.Client{
+	openidClient := core.Client{
 		ClientID:             cfg.ClientID,
 		ClientSecret:         cfg.ClientSecret,
 		TokenRegistrationURI: "http://localhost:8080/token",
@@ -39,7 +43,7 @@ func main() {
 		// should be displayed to let the users login without being
 		// redirected. The question is, how to maintain the login
 		// token/session in the popup.
-		req := oidc.AuthenticationRequest{
+		req := openid.AuthenticationRequest{
 			ResponseType: "code",
 			Scope:        "openid profile email",
 			ClientID:     cfg.ClientID,
@@ -60,7 +64,7 @@ func main() {
 
 	getAuthorizeCallback := func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		q := r.URL.Query()
-		var authzReq oidc.AuthorizationResponse
+		var authzReq openid.AuthorizationResponse
 		if err := querystring.Decode(q, &authzReq); err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -70,7 +74,7 @@ func main() {
 			redirectURI = "http://localhost:4000/authorize/callback"
 		)
 
-		res, err := oidcClient.Exchange(r.Context(), code, redirectURI)
+		res, err := openidClient.Exchange(r.Context(), code, redirectURI)
 		if err != nil {
 			json.NewEncoder(w).Encode(M{
 				"error": err.Error(),

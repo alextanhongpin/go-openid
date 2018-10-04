@@ -1,11 +1,10 @@
-package oidc_test
+package openid_test
 
 import (
 	"net/http"
 	"net/url"
 	"testing"
 
-	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +22,7 @@ func TestDiscoveryEmail(t *testing.T) {
 		host     = "example.com"
 	)
 
-	var res oidc.Discovery
+	var res openid.Discovery
 	err := querystring.Decode(q, &res)
 	assert.Nil(err)
 
@@ -62,7 +61,7 @@ func TestDiscoveryURL(t *testing.T) {
 		rel      = "http://openid.net/specs/connect/1.0/issuer"
 	)
 
-	var res oidc.Discovery
+	var res openid.Discovery
 	err := querystring.Decode(q, &res)
 	assert.Nil(err)
 

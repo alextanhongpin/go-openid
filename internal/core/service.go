@@ -1,3 +1,8 @@
+
+
+
+
+
 package core
 
 import (
@@ -25,7 +30,7 @@ func (s *serviceImpl) SetModel(model model.Core) {
 
 // PreAuthenticate will only check if the authentication request is valid and
 // the type of flow it is using.
-func (s *serviceImpl) PreAuthenticate(req *oidc.AuthenticationRequest) error {
+func (s *serviceImpl) PreAuthenticate(req *openid.AuthenticationRequest) error {
 	if req == nil {
 		return errors.New("arguments cannot be nil")
 	}
@@ -37,7 +42,7 @@ func (s *serviceImpl) PreAuthenticate(req *oidc.AuthenticationRequest) error {
 }
 
 // Authenticate performs the full authentication and validation of all fields.
-func (s *serviceImpl) Authenticate(ctx context.Context, req *oidc.AuthenticationRequest) (*oidc.AuthenticationResponse, error) {
+func (s *serviceImpl) Authenticate(ctx context.Context, req *openid.AuthenticationRequest) (*openid.AuthenticationResponse, error) {
 	if err := s.model.ValidateAuthnRequest(req); err != nil {
 		return nil, err
 	}
@@ -47,14 +52,14 @@ func (s *serviceImpl) Authenticate(ctx context.Context, req *oidc.Authentication
 	if err := s.model.ValidateAuthnClient(req); err != nil {
 		return nil, err
 	}
-	return &oidc.AuthenticationResponse{
+	return &openid.AuthenticationResponse{
 		Code:  s.model.NewCode(),
 		State: req.State,
 	}, nil
 }
 
-func (s *serviceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (*oidc.AccessTokenResponse, error) {
-	auth, ok := oidc.GetAuthContextKey(ctx)
+func (s *serviceImpl) Token(ctx context.Context, req *openid.AccessTokenRequest) (*openid.AccessTokenResponse, error) {
+	auth, ok := openid.GetAuthContextKey(ctx)
 	if !ok {
 		return nil, errors.New("missing authorization header")
 	}
@@ -66,7 +71,7 @@ func (s *serviceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (
 		return nil, errors.New("redirect_uri does not match")
 	}
 
-	userID, ok := oidc.GetUserIDContextKey(ctx)
+	userID, ok := openid.GetUserIDContextKey(ctx)
 	if !ok {
 		return nil, errors.New("unauthorized")
 	}
@@ -86,7 +91,7 @@ func (s *serviceImpl) Token(ctx context.Context, req *oidc.AccessTokenRequest) (
 		return nil, err
 	}
 
-	res := oidc.AccessTokenResponse{
+	res := openid.AccessTokenResponse{
 		AccessToken:  accessToken,
 		TokenType:    "Bearer",
 		ExpiresIn:    int64((2 * time.Hour).Seconds()),

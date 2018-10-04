@@ -1,3 +1,7 @@
+
+
+
+
 package core_test
 
 import (
@@ -15,7 +19,7 @@ func TestServiceAuthenticate(t *testing.T) {
 
 	// Setup repository.
 	client := database.NewClientKV()
-	client.Put("hello", &oidc.Client{
+	client.Put("hello", &openid.Client{
 		ClientID:     "hello",
 		RedirectURIs: []string{"http://client.example.com/cb"},
 	})
@@ -27,7 +31,7 @@ func TestServiceAuthenticate(t *testing.T) {
 	// Setup service.
 	service := core.NewService(&model)
 
-	req := &oidc.AuthenticationRequest{
+	req := &openid.AuthenticationRequest{
 		ClientID:     "hello",
 		RedirectURI:  "http://client.example.com/cb",
 		ResponseType: "code",

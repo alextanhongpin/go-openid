@@ -1,3 +1,8 @@
+
+
+
+
+
 package client
 
 import (
@@ -17,12 +22,12 @@ func NewModel(r repository.Client) *modelImpl {
 }
 
 // New returns a new client with client id and client secret.
-func (c *modelImpl) New(client *oidc.Client) (*oidc.Client, error) {
+func (c *modelImpl) New(client *openid.Client) (*openid.Client, error) {
 	return NewClient(client)
 }
 
 // Save stores the new, non-existing client into the database.
-func (c *modelImpl) Save(client *oidc.Client) error {
+func (c *modelImpl) Save(client *openid.Client) error {
 	if exist := c.repository.Has(client.ClientID); exist {
 		return errors.New("client already exist")
 	}
@@ -30,6 +35,6 @@ func (c *modelImpl) Save(client *oidc.Client) error {
 }
 
 // Read returns a client by client_id from the repository.
-func (c *modelImpl) Read(clientID string) (*oidc.Client, error) {
+func (c *modelImpl) Read(clientID string) (*openid.Client, error) {
 	return c.repository.Get(clientID)
 }

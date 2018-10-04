@@ -1,4 +1,4 @@
-package oidc
+package openid
 
 import (
 	"strings"
@@ -89,7 +89,7 @@ func parseResponseType(responseType string) (i ResponseType) {
 // the issue of duplicate scopes "email email". Also, it's possible to check if
 // the scopes are an exact match, or contains one of the scope in the list.
 
-// Scope represents the OIDC scope.
+// Scope represents the openid scope.
 type Scope int
 
 const (
@@ -143,7 +143,7 @@ var displaymap = map[string]struct{}{
 
 // -- flow
 
-// CheckFlow returns the current OIDC registration flow.
+// CheckFlow returns the current openid registration flow.
 func CheckFlow(enum ResponseType) string {
 	var (
 		code    = ResponseTypeCode

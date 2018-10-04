@@ -1,3 +1,6 @@
+
+
+
 package service
 
 import "github.com/alextanhongpin/go-openid"
@@ -6,9 +9,9 @@ import "github.com/alextanhongpin/go-openid"
 type Client interface {
 	// Register a new client and return a client with client id and client
 	// secret.
-	Register(client *oidc.Client) (*oidc.Client, error)
+	Register(client *openid.Client) (*openid.Client, error)
 
 	// Read returns a client by client id, and returns error if the client
 	// is not found.
-	Read(clientID string) (*oidc.Client, error)
+	Read(clientID string) (*openid.Client, error)
 }

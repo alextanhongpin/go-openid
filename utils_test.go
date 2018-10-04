@@ -1,4 +1,4 @@
-package oidc_test
+package openid_test
 
 import (
 	"errors"

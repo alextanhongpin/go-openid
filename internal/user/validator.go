@@ -1,3 +1,8 @@
+
+
+
+
+
 package user
 
 import (
@@ -13,14 +18,14 @@ type validatorImpl struct {
 	model model.User
 }
 
-func (u *validatorImpl) FindByEmail(email string) (*oidc.User, error) {
+func (u *validatorImpl) FindByEmail(email string) (*openid.User, error) {
 	if err := isEmail(email); err != nil {
 		return nil, err
 	}
 	return u.model.FindByEmail(email)
 }
 
-func (u *validatorImpl) Create(email, password string) (*oidc.User, error) {
+func (u *validatorImpl) Create(email, password string) (*openid.User, error) {
 	if len(email) == 0 || len(password) == 0 {
 		return nil, errors.New("arguments cannot be empty")
 	}
@@ -33,7 +38,7 @@ func (u *validatorImpl) Create(email, password string) (*oidc.User, error) {
 	return u.model.Create(email, password)
 }
 
-func (u *validatorImpl) List(limit int) ([]*oidc.User, error) {
+func (u *validatorImpl) List(limit int) ([]*openid.User, error) {
 	if limit < 0 {
 		limit = 10
 	}
@@ -43,7 +48,7 @@ func (u *validatorImpl) List(limit int) ([]*oidc.User, error) {
 	return u.model.List(limit)
 }
 
-func (u *validatorImpl) Get(id string) (*oidc.User, error) {
+func (u *validatorImpl) Get(id string) (*openid.User, error) {
 	if id == "" {
 		return nil, errors.New("user_id cannot be empty")
 	}

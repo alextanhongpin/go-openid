@@ -1,3 +1,7 @@
+
+
+
+
 package core
 
 import (
@@ -76,7 +80,7 @@ func (m *modelImpl) SetUser(user repository.User) {
 
 // ValidateAuthnRequest validates the required fields for the authentication
 // request.
-func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error {
+func (m *modelImpl) ValidateAuthnRequest(req *openid.AuthenticationRequest) error {
 	if req == nil {
 		return errors.New("arguments cannot be nil")
 	}
@@ -87,20 +91,20 @@ func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error 
 		responseType = req.GetResponseType()
 		scope        = req.GetScope()
 
-		err = oidc.ErrInvalidRequest
+		err = openid.ErrInvalidRequest
 	)
 	// Scope cannot be none, and it should have at least an openid scope.
-	if scope.Is(oidc.ScopeNone) || !scope.Has(oidc.ScopeOpenID) {
+	if scope.Is(openid.ScopeNone) || !scope.Has(openid.ScopeOpenID) {
 		return err.WithDescription("scope is required")
 	}
 
 	// ResponseType cannot be none, and should have "code" for
 	// authorization code flow.
-	if responseType.Is(oidc.ResponseTypeNone) {
+	if responseType.Is(openid.ResponseTypeNone) {
 		return err.WithDescription("response_type is required")
 	}
 
-	if !responseType.Has(oidc.ResponseTypeCode) {
+	if !responseType.Has(openid.ResponseTypeCode) {
 		return err.WithDescription(fmt.Sprintf("%s is not valid", req.ResponseType))
 	}
 
@@ -118,7 +122,7 @@ func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error 
 	}
 
 	// If prompt is "none", it cannot have other values.
-	if prompt.Has(oidc.PromptNone) && prompt.Has(oidc.PromptLogin|oidc.PromptConsent|oidc.PromptSelectAccount) {
+	if prompt.Has(openid.PromptNone) && prompt.Has(openid.PromptLogin|openid.PromptConsent|openid.PromptSelectAccount) {
 		return err.WithDescription("prompt none may not contain other values")
 	}
 	return nil
@@ -126,8 +130,8 @@ func (m *modelImpl) ValidateAuthnRequest(req *oidc.AuthenticationRequest) error 
 
 // ValidateAuthnUser validates the authentication request with the user data in
 // the database.
-func (m *modelImpl) ValidateAuthnUser(ctx context.Context, req *oidc.AuthenticationRequest) error {
-	userID, ok := oidc.GetUserIDContextKey(ctx)
+func (m *modelImpl) ValidateAuthnUser(ctx context.Context, req *openid.AuthenticationRequest) error {
+	userID, ok := openid.GetUserIDContextKey(ctx)
 	if !ok {
 		return errors.New("user_id missing")
 	}
@@ -149,7 +153,7 @@ func (m *modelImpl) ValidateAuthnUser(ctx context.Context, req *oidc.Authenticat
 
 // ValidateAuthnClient validates the provided client request with the client
 // data in the storage.
-func (m *modelImpl) ValidateAuthnClient(req *oidc.AuthenticationRequest) error {
+func (m *modelImpl) ValidateAuthnClient(req *openid.AuthenticationRequest) error {
 	var (
 		clientID    = req.ClientID
 		redirectURI = req.RedirectURI
@@ -167,12 +171,12 @@ func (m *modelImpl) ValidateAuthnClient(req *oidc.AuthenticationRequest) error {
 // NewCode returns a new code.
 func (m *modelImpl) NewCode() string {
 	c := crypto.NewXID()
-	code := oidc.NewCode(c)
+	code := openid.NewCode(c)
 	m.code.Put(c, code)
 	return c
 }
 
-func (m *modelImpl) ValidateClientAuthHeader(authorization string) (*oidc.Client, error) {
+func (m *modelImpl) ValidateClientAuthHeader(authorization string) (*openid.Client, error) {
 	token, err := authheader.Basic(authorization)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,7 @@
-package oidc
+
+
+
+package openid
 
 import "context"
 

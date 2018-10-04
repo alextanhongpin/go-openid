@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -21,9 +22,9 @@ func TestUserRegister(t *testing.T) {
 
 	t.Run("register with invalid json", func(t *testing.T) {
 		rr := curl("POST", "/register", bytes.NewBuffer([]byte(`hello world`)))
-		assert.Equal(400, rr.Code)
+		assert.Equal(http.StatusBadRequest, rr.Code)
 
-		var res oidc.ErrorJSON
+		var res openid.ErrorJSON
 		err := json.NewDecoder(rr.Body).Decode(&res)
 		assert.Nil(err)
 		assert.True(len(res.Code) > 0)
@@ -49,9 +50,9 @@ func TestUserRegister(t *testing.T) {
 			js, err := json.Marshal(creds)
 			assert.Nil(err)
 			rr := curl("POST", "/register", bytes.NewBuffer(js))
-			assert.Equal(400, rr.Code)
+			assert.Equal(http.StatusBadRequest, rr.Code)
 
-			var res oidc.ErrorJSON
+			var res openid.ErrorJSON
 			err = json.NewDecoder(rr.Body).Decode(&res)
 			assert.Nil(err)
 			assert.Equal(tt.desc, res.Code)
@@ -66,7 +67,7 @@ func TestUserRegister(t *testing.T) {
 		js, err := json.Marshal(creds)
 		assert.Nil(err)
 		rr := curl("POST", "/register", bytes.NewBuffer(js))
-		assert.Equal(200, rr.Code)
+		assert.Equal(http.StatusOK, rr.Code)
 		type response struct {
 			AccessToken string `json:"access_token"`
 		}
@@ -90,7 +91,7 @@ func TestUserLogin(t *testing.T) {
 	js, err := json.Marshal(creds)
 	assert.Nil(err)
 	rr := curl("POST", "/register", bytes.NewBuffer(js))
-	assert.Equal(200, rr.Code, "should register successfully")
+	assert.Equal(http.StatusOK, rr.Code, "should register successfully")
 
 	// Test different scenarios.
 	tests := []struct {
@@ -110,9 +111,9 @@ func TestUserLogin(t *testing.T) {
 			js, err := json.Marshal(creds)
 			assert.Nil(err)
 			rr := curl("POST", "/login", bytes.NewBuffer(js))
-			assert.Equal(400, rr.Code)
+			assert.Equal(http.StatusBadRequest, rr.Code)
 
-			var res oidc.ErrorJSON
+			var res openid.ErrorJSON
 			err = json.NewDecoder(rr.Body).Decode(&res)
 			assert.Nil(err)
 			assert.Equal(tt.desc, res.Code)
@@ -121,9 +122,10 @@ func TestUserLogin(t *testing.T) {
 }
 
 func newController() controller.User {
-	c := controller.NewUser()
-	c.SetAppSensor(appsensor.NewLoginDetector())
-	c.SetSession(session.NewManager())
+	c := controller.NewUser(
+		controller.UserAppSensor(appsensor.NewLoginDetector()),
+		controller.UserSession(session.NewManager()),
+	)
 	return c
 }
 

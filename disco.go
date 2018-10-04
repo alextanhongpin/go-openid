@@ -1,4 +1,4 @@
-package oidc
+package openid
 
 // Discovery represents the OpenID Discovery protocol.
 type Discovery struct {

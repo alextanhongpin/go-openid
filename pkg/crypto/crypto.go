@@ -1,3 +1,9 @@
+
+
+
+
+
+
 package crypto
 
 import (
@@ -12,12 +18,12 @@ import (
 	"github.com/alextanhongpin/go-openid"
 )
 
-// Crypto represents the encryption/decryption methods for OIDC
+// Crypto represents the encryption/decryption methods for openid
 type Crypto interface {
 	Code() string
 	UUID() string
 	NewJWT(aud, sub, iss string, dur time.Duration) (string, error)
-	ParseJWT(token string) (*oidc.IDToken, error)
+	ParseJWT(token string) (*openid.IDToken, error)
 }
 
 type Impl struct {
@@ -50,13 +56,13 @@ func (c *Impl) NewJWT(aud, sub, iss string, dur time.Duration) (string, error) {
 	return token.SignedString(c.key)
 }
 
-func (c *Impl) ParseJWT(token string) (*oidc.IDToken, error) {
-	t, err := jwt.ParseWithClaims(token, &oidc.IDToken{}, func(token *jwt.Token) (interface{}, error) {
+func (c *Impl) ParseJWT(token string) (*openid.IDToken, error) {
+	t, err := jwt.ParseWithClaims(token, &openid.IDToken{}, func(token *jwt.Token) (interface{}, error) {
 		return c.key, nil
 	})
 
 	if t.Valid {
-		if claims, ok := t.Claims.(*oidc.IDToken); ok && t.Valid {
+		if claims, ok := t.Claims.(*openid.IDToken); ok && t.Valid {
 			return claims, nil
 		}
 	} else if ve, ok := err.(*jwt.ValidationError); ok {

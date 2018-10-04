@@ -1,3 +1,9 @@
+
+
+
+
+
+
 package core_test
 
 import (
@@ -16,7 +22,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 	assert := assert.New(t)
 	model := core.NewModel()
 
-	req := &oidc.AuthenticationRequest{
+	req := &openid.AuthenticationRequest{
 		ClientID:     "hello",
 		RedirectURI:  "http://client.example.com/cb",
 		ResponseType: "code",
@@ -37,7 +43,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 		copy := *req
 		copy.ClientID = ""
 		err := model.ValidateAuthnRequest(&copy)
-		if verr, ok := err.(*oidc.ErrorJSON); ok {
+		if verr, ok := err.(*openid.ErrorJSON); ok {
 			var (
 				code = "invalid_request"
 				desc = "client_id is required"
@@ -53,7 +59,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 		copy := *req
 		copy.RedirectURI = ""
 		err := model.ValidateAuthnRequest(&copy)
-		if verr, ok := err.(*oidc.ErrorJSON); ok {
+		if verr, ok := err.(*openid.ErrorJSON); ok {
 			var (
 				code = "invalid_request"
 				desc = "redirect_uri is required"
@@ -90,7 +96,7 @@ func TestValidateAuthnRequest(t *testing.T) {
 		copy := *req
 		copy.Scope = ""
 		err := model.ValidateAuthnRequest(&copy)
-		if verr, ok := err.(*oidc.ErrorJSON); ok {
+		if verr, ok := err.(*openid.ErrorJSON); ok {
 			var (
 				code = "invalid_request"
 				desc = "scope is required"
@@ -108,7 +114,7 @@ func TestClientValidation(t *testing.T) {
 
 	// Setup repository
 	client := database.NewClientKV()
-	client.Put("app", &oidc.Client{
+	client.Put("app", &openid.Client{
 		ClientID:     "app",
 		RedirectURIs: []string{"http://client.example.com/cb"},
 	})
@@ -117,7 +123,7 @@ func TestClientValidation(t *testing.T) {
 	model := core.NewModel()
 	model.SetClient(client)
 
-	req := &oidc.AuthenticationRequest{
+	req := &openid.AuthenticationRequest{
 		ClientID:     "app",
 		RedirectURI:  "http://client.example.com/cb",
 		ResponseType: "code",
@@ -155,8 +161,8 @@ func TestUserValidation(t *testing.T) {
 
 	// Setup repository.
 	user := database.NewUserKV()
-	user.Put(userID, &oidc.User{
-		Profile: oidc.Profile{
+	user.Put(userID, &openid.User{
+		Profile: openid.Profile{
 			UpdatedAt: time.Now().UTC().Unix(),
 		},
 	})
@@ -166,7 +172,7 @@ func TestUserValidation(t *testing.T) {
 	model.SetUser(user)
 
 	// Setup request.
-	req := &oidc.AuthenticationRequest{
+	req := &openid.AuthenticationRequest{
 		ClientID:     "hello",
 		RedirectURI:  "http://client.example.com/cb",
 		ResponseType: "code",
@@ -176,7 +182,7 @@ func TestUserValidation(t *testing.T) {
 
 	t.Run("validate existing user", func(t *testing.T) {
 		ctx := context.Background()
-		ctx = oidc.SetUserIDContextKey(ctx, userID)
+		ctx = openid.SetUserIDContextKey(ctx, userID)
 		err := model.ValidateAuthnUser(ctx, req)
 		assert.Nil(err)
 	})
