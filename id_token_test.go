@@ -3,6 +3,8 @@ package openid_test
 import (
 	"testing"
 
+	openid "github.com/alextanhongpin/go-openid"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 )

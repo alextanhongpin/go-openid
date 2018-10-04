@@ -3,6 +3,8 @@ package openid_test
 import (
 	"testing"
 
+	openid "github.com/alextanhongpin/go-openid"
+
 	"github.com/stretchr/testify/assert"
 )
 

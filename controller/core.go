@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -97,6 +98,10 @@ func (c *Core) PostAuthorize(w http.ResponseWriter, r *http.Request, _ httproute
 	// Attach the user_id to the context.
 	ctx = openid.SetUserIDContextKey(ctx, sess.UserID)
 
+	if len(r.URL.Query()) == 0 {
+		writeError(w, http.StatusUnprocessableEntity, errors.New("request is empty"))
+		return
+	}
 	// Construct the request payload from the querystring.
 	var req openid.AuthenticationRequest
 	if err := req.FromQueryString(r.URL.Query()); err != nil {

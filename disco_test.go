@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	openid "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 
 	"github.com/stretchr/testify/assert"

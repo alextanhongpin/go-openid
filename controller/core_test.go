@@ -2,18 +2,19 @@ package controller_test
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"io"
-	"log"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/controller"
-	"github.com/alextanhongpin/go-openid/internal/core"
-	"github.com/alextanhongpin/go-openid/model"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 	"github.com/alextanhongpin/go-openid/pkg/session"
+	"github.com/alextanhongpin/go-openid/service"
 	"github.com/alextanhongpin/go-openid/testdata"
 
 	"github.com/julienschmidt/httprouter"
@@ -22,54 +23,99 @@ import (
 
 func TestPostAuthorize(t *testing.T) {
 	assert := assert.New(t)
-	req := &openid.AuthenticationRequest{
-		ClientID:     "1",
-		Scope:        "openid",
-		ResponseType: "code",
-		RedirectURI:  "http://client.example/cb",
-		State:        "xyz",
-	}
+
+	var (
+		req = &openid.AuthenticationRequest{
+			ClientID:     "1",
+			Scope:        "openid",
+			ResponseType: "code",
+			RedirectURI:  "http://client.example/cb",
+			State:        "xyz",
+		}
+		res = &openid.AuthenticationResponse{
+			Code:  "code123",
+			State: "xyz",
+		}
+	)
 
 	// Setup context with injected values.
-	ctx := openid.SetUserIDContextKey(context.Background(), "john.doe@mail.com")
+	ctx := context.Background()
+	ctx = openid.SetUserIDContextKey(ctx, "john.doe@mail.com")
 
-	// Setup model behaviours.
-	model := testdata.NewCoreModel()
-	model.On("ValidateAuthnUser", ctx, req).Return(nil)
-	model.On("ValidateAuthnRequest", req).Return(nil)
-	model.On("ValidateAuthnClient", req).Return(nil)
+	s := testdata.NewCoreService()
+	t.Run("call with valid parameters and invalid session", func(t *testing.T) {
+		s.On("Authenticate", context.Background(), req).Return(res, nil)
+		u := querystring.Encode(url.Values{}, req)
+		rr := corecurl(&s, false, "POST", "/authorize?"+u.Encode(), nil)
 
-	u := querystring.Encode(url.Values{}, req)
-	rr := corecurl(&model, "POST", "/authorize?"+u.Encode(), nil)
+		var (
+			code = http.StatusBadRequest
+			msg  = "http: named cookie not present"
+		)
 
-	assert.Equal(302, rr.Code, "should equal response status found")
-	log.Println(rr.Body.String(), rr.Header().Get("Location"))
+		assert.Equal(code, rr.Code, "should equal response status found")
+
+		var res openid.ErrorJSON
+		err := json.NewDecoder(rr.Body).Decode(&res)
+		assert.Nil(err)
+		assert.Equal(msg, res.Code)
+	})
+
+	t.Run("call with valid parameters", func(t *testing.T) {
+		s.On("Authenticate", ctx, req).Return(res, nil)
+		u := querystring.Encode(url.Values{}, req)
+		rr := corecurl(&s, true, "POST", "/authorize?"+u.Encode(), nil)
+
+		var (
+			code     = http.StatusFound
+			location = "http://client.example/cb?code=code123&state=xyz"
+		)
+
+		assert.Equal(code, rr.Code, "should equal response status found")
+		assert.Equal(location, rr.Header().Get("Location"))
+	})
+
+	t.Run("call with empty requests", func(t *testing.T) {
+		s.On("Authenticate", ctx, nil).Return(nil, errors.New("bad request"))
+		rr := corecurl(&s, true, "POST", "/authorize", nil)
+
+		var (
+			code = http.StatusUnprocessableEntity
+		)
+		assert.Equal(code, rr.Code, "should return status 400 - Bad Request")
+
+		var res openid.ErrorJSON
+		err := json.NewDecoder(rr.Body).Decode(&res)
+		assert.Nil(err)
+		assert.Equal("request is empty", res.Code)
+	})
+
 }
 
-func corecurl(model model.Core, method, endpoint string, payload io.Reader) *httptest.ResponseRecorder {
-
-	ctx := context.Background()
+func corecurl(svc service.Core, enableSession bool, method, endpoint string, payload io.Reader) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-
-	// Setup services.
-	svc := core.NewService(model)
 
 	// Create a fake session with the following email.
 	sess := session.NewManager()
-	sess.SetSession(rr, "john.doe@mail.com")
+	if enableSession {
+		sess.SetSession(rr, "john.doe@mail.com")
+	}
 
 	ctl := controller.NewCore(
 		controller.CoreSession(sess),
-		controller.CoreService(&svc),
+		controller.CoreService(svc),
 	)
 
 	router := httprouter.New()
 	router.POST("/authorize", ctl.PostAuthorize)
 
+	ctx := context.Background()
 	req := httptest.NewRequest(method, endpoint, payload)
-	// Set the cookie.
-	req.Header.Set("Cookie", rr.HeaderMap["Set-Cookie"][0])
 	req = req.WithContext(ctx)
+	// Set the cookie.
+	if enableSession {
+		req.Header.Set("Cookie", rr.HeaderMap["Set-Cookie"][0])
+	}
 
 	router.ServeHTTP(rr, req)
 	return rr
