@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// Manager represents the manager that handles the session creation and cleanup.
+// Manager represents the manager that handles the session creation and
+// cleanup.
 type Manager struct {
 	repo Repository
 }

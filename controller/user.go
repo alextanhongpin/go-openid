@@ -75,9 +75,12 @@ func UserAppSensor(a appsensor.LoginDetector) userOption {
 	}
 }
 
+// type GetLoginResponse struct {
+//         ReturnURL string
+// }
+
 // GetLogin renders the login html.
 func (u *User) GetLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
 	// TODO: Add CSRF.
 	// Check if the querystring contains the authentication request.
 	// If yes, send it into the body as the request body.
@@ -88,10 +91,10 @@ func (u *User) GetLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Par
 	// TODO: The user might have a session, but the session has
 	// expired. Need to invalidate the user first by deleting the
 	// old session, and creating a new one.
-	if ok := u.session.HasSession(r); ok {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	// if ok := u.session.HasSession(r); ok {
+	//         http.Redirect(w, r, "/", http.StatusFound)
+	//         return
+	// }
 
 	parseURI := func(u url.Values) (string, error) {
 		base64uri := u.Get("return_url")
@@ -118,10 +121,11 @@ func (u *User) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Pragma", "no-cache")
 
-	if ok := u.session.HasSession(r); ok {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	// If the session already exists, redirect them back to the home page.
+	// if ok := u.session.HasSession(r); ok {
+	//         http.Redirect(w, r, "/", http.StatusFound)
+	//         return
+	// }
 
 	var req Credentials
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -129,6 +133,7 @@ func (u *User) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
+	// Check if the user is logging with many failed attempts.
 	if locked := u.appsensor.IsLocked(req.Email); locked {
 		writeError(w, http.StatusTooManyRequests, errors.New("too many attempts"))
 		return
@@ -162,8 +167,10 @@ func (u *User) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 		return
 	}
 
+	// Set the user session.
 	u.session.SetSession(w, user.ID)
 
+	// Set success ok.
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(M{
 		"access_token": accessToken,
@@ -174,10 +181,10 @@ func (u *User) PostLogin(w http.ResponseWriter, r *http.Request, _ httprouter.Pa
 func (u *User) GetRegister(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	// If the user already has a session (is logged in), redirect
 	// them back to the home page.
-	if ok := u.session.HasSession(r); ok {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	// if ok := u.session.HasSession(r); ok {
+	//         http.Redirect(w, r, "/", http.StatusFound)
+	//         return
+	// }
 	u.template.Render(w, "register", nil)
 }
 
@@ -187,10 +194,17 @@ func (u *User) PostRegister(w http.ResponseWriter, r *http.Request, _ httprouter
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Pragma", "no-cache")
 
-	if ok := u.session.HasSession(r); ok {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	// TODO: Implement this.
+	// sess, ok := r.Context(entity.ContextKeySession).(*session.Session)
+	// if ok {
+	//         http.Redirect(w, r, "/", http.StatusFound)
+	//         return
+	// }
+
+	// if ok := u.session.HasSession(r); ok {
+	//         http.Redirect(w, r, "/", http.StatusFound)
+	//         return
+	// }
 
 	var req Credentials
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

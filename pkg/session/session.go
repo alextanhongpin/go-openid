@@ -10,10 +10,6 @@ import (
 // Key represents a general name for the cookie.
 const Key = "id"
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // Session represents the information that is tracked by the session.
 type Session struct {
 	CreatedAt time.Time

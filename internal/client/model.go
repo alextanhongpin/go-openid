@@ -29,6 +29,13 @@ func (c *modelImpl) Save(client *openid.Client) error {
 	return c.repository.Put(client.ClientID, client)
 }
 
+func (c *modelImpl) CheckExist(exist bool) error {
+	if exist {
+		return errors.New("client already exist")
+	}
+	return nil
+}
+
 // Read returns a client by client_id from the repository.
 func (c *modelImpl) Read(clientID string) (*openid.Client, error) {
 	return c.repository.Get(clientID)

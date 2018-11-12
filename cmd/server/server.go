@@ -8,6 +8,7 @@ import (
 
 	"github.com/alextanhongpin/go-openid/controller"
 	"github.com/alextanhongpin/go-openid/internal/client"
+	"github.com/alextanhongpin/go-openid/middleware"
 	"github.com/alextanhongpin/go-openid/pkg/appsensor"
 	"github.com/alextanhongpin/go-openid/pkg/gsrv"
 	"github.com/alextanhongpin/go-openid/pkg/html5"
@@ -51,10 +52,12 @@ func main() {
 			controller.UserTemplate(tpl),
 		)
 		r.POST("/logout", c.PostLogout)
-		r.GET("/register", c.GetRegister)
-		r.GET("/login", c.GetLogin)
-		r.POST("/login", c.PostLogin)
-		r.POST("/register", c.PostRegister)
+		// Middleware is good for extracting business logic - but it
+		// masks out business logic for testing too.
+		r.GET("/register", middleware.RedirectIfSessionExists(c.GetRegister, sessMgr, "/"))
+		r.GET("/login", middleware.RedirectIfSessionExists(c.GetLogin, sessMgr, "/"))
+		r.POST("/login", middleware.RedirectIfSessionExists(c.PostLogin, sessMgr, "/"))
+		r.POST("/register", middleware.RedirectIfSessionExists(c.PostRegister, sessMgr, "/"))
 	}
 	{
 		s, err := client.NewService()
