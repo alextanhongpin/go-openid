@@ -12,9 +12,7 @@ import (
 func TestNewClientService(t *testing.T) {
 	assert := assert.New(t)
 
-	service, err := client.NewService()
-	assert.Nil(err)
-
+	service := client.New()
 	t.Run("register with nil request", func(t *testing.T) {
 		_, err := service.Register(nil)
 		assert.Equal("arguments cannot be nil", err.Error(), "should handle nil arguments")
@@ -123,8 +121,7 @@ func TestClientRegistration(t *testing.T) {
 	err := c.UnmarshalJSON(body)
 	assert.Nil(err)
 
-	service, err := client.NewService()
-	assert.Nil(err)
+	service := client.New()
 
 	newClient, err := service.Register(c)
 	assert.Nil(err)

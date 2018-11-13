@@ -7,27 +7,18 @@ package client
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
-	schema "github.com/alextanhongpin/go-openid/pkg/schema"
-	"github.com/alextanhongpin/go-openid/repository"
+	model "github.com/alextanhongpin/go-openid/model"
+	repository "github.com/alextanhongpin/go-openid/repository"
 	wire "github.com/google/go-cloud/wire"
 )
 
 // Injectors from wire.go:
 
-func NewService() (*serviceImpl, error) {
-	client := provideRepository()
-	clientModelImpl := provideModel(client)
-	schemaClient, err := provideClientValidator()
-	if err != nil {
-		return nil, err
-	}
-	clientResponse, err := provideClientResponseValidator()
-	if err != nil {
-		return nil, err
-	}
-	clientValidatorImpl := provideValidator(clientModelImpl, schemaClient, clientResponse)
-	clientServiceImpl := provideService(clientValidatorImpl)
-	return clientServiceImpl, nil
+func New() *Service {
+	client := provideModel()
+	repositoryClient := provideRepository()
+	service := NewService(client, repositoryClient)
+	return service
 }
 
 // wire.go:
@@ -35,36 +26,13 @@ func NewService() (*serviceImpl, error) {
 var clientServiceSet = wire.NewSet(
 	provideRepository,
 	provideModel,
-	provideClientValidator,
-	provideClientResponseValidator,
-	provideValidator,
-	provideService,
+	NewService,
 )
 
 func provideRepository() repository.Client {
 	return database.NewClientKV()
 }
 
-func provideModel(repo repository.Client) *modelImpl {
-	return NewModel(repo)
-}
-
-func provideClientValidator() (*schema.Client, error) {
-	return schema.NewClientValidator()
-}
-
-func provideClientResponseValidator() (*schema.ClientResponse, error) {
-	return schema.NewClientResponseValidator()
-}
-
-func provideValidator(model *modelImpl, client *schema.Client, clientResponse *schema.ClientResponse) *validatorImpl {
-	return &validatorImpl{
-		model:          model,
-		client:         client,
-		clientResponse: clientResponse,
-	}
-}
-
-func provideService(model *validatorImpl) *serviceImpl {
-	return &serviceImpl{model}
+func provideModel() model.Client {
+	return NewModel()
 }
