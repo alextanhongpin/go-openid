@@ -1,19 +1,39 @@
+// +build wireinject
+
 package user
 
 import (
-	"time"
+	"github.com/google/go-cloud/wire"
 
-	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/crypto"
+	"github.com/alextanhongpin/go-openid/internal/database"
+	"github.com/alextanhongpin/go-openid/model"
+	"github.com/alextanhongpin/go-openid/repository"
 )
 
-// NewUser returns a new user with default values.
-func NewUser() *openid.User {
-	id := crypto.NewXID()
+var serviceSet = wire.NewSet(
+	provideRepository,
+	wire.Bind(new(repository.User), new(database.UserKV)),
+	provideModel,
+	wire.Bind(new(model.User), new(Model)),
+	provideService,
+)
 
-	user := new(openid.User)
-	user.ID = id
-	user.Profile.UpdatedAt = time.Now().UTC().Unix()
+// New returns a new  service.
+func New() *Service {
+	panic(wire.Build(serviceSet))
+}
 
-	return user
+func provideRepository() *database.UserKV {
+	return database.NewUserKV()
+}
+
+func provideModel() *Model {
+	return &Model{}
+}
+
+func provideService(model model.User, repository repository.User) *Service {
+	return &Service{
+		model:      model,
+		repository: repository,
+	}
 }

@@ -7,35 +7,37 @@ package user
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
-	"github.com/alextanhongpin/go-openid/model"
-	"github.com/alextanhongpin/go-openid/repository"
+	model "github.com/alextanhongpin/go-openid/model"
+	repository "github.com/alextanhongpin/go-openid/repository"
 	wire "github.com/google/go-cloud/wire"
 )
 
-// Injectors from wire.go:
+// Injectors from user.go:
 
-func NewService() *serviceImpl {
+func New() *Service {
+	model := provideModel()
 	userKV := provideRepository()
-	userModelImpl := provideModel(userKV)
-	userServiceImpl := provideService(userModelImpl)
-	return userServiceImpl
+	service := provideService(model, userKV)
+	return service
 }
 
-// wire.go:
+// user.go:
 
-var ServiceSet = wire.NewSet(
-	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.User), new(modelImpl)), provideService,
+var serviceSet = wire.NewSet(
+	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.User), new(Model)), provideService,
 )
 
 func provideRepository() *database.UserKV {
 	return database.NewUserKV()
 }
 
-func provideModel(repo repository.User) *modelImpl {
-	return &modelImpl{repository: repo}
+func provideModel() *Model {
+	return &Model{}
 }
 
-func provideService(model2 model.User) *serviceImpl {
-	decorateValidator := &validatorImpl{model: model2}
-	return &serviceImpl{model: decorateValidator}
+func provideService(model2 model.User, repository2 repository.User) *Service {
+	return &Service{
+		model:      model2,
+		repository: repository2,
+	}
 }
