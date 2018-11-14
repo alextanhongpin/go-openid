@@ -6,15 +6,14 @@ import (
 	"github.com/google/go-cloud/wire"
 
 	"github.com/alextanhongpin/go-openid/internal/database"
-	"github.com/alextanhongpin/go-openid/model"
 	"github.com/alextanhongpin/go-openid/repository"
 )
 
 var serviceSet = wire.NewSet(
 	provideRepository,
 	wire.Bind(new(repository.User), new(database.UserKV)),
-	provideModel,
-	wire.Bind(new(model.User), new(Model)),
+	// provideModel,
+	// wire.Bind(new(model.User), new(Model)),
 	provideService,
 )
 
@@ -27,13 +26,8 @@ func provideRepository() *database.UserKV {
 	return database.NewUserKV()
 }
 
-func provideModel() *Model {
-	return &Model{}
-}
-
-func provideService(model model.User, repository repository.User) *Service {
+func provideService(repository repository.User) *Service {
 	return &Service{
-		model:      model,
 		repository: repository,
 	}
 }

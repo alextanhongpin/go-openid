@@ -2,67 +2,38 @@ package user
 
 import (
 	"errors"
-	"strings"
 	"time"
 
-	"github.com/alextanhongpin/go-openid"
-	"github.com/alextanhongpin/go-openid/pkg/crypto"
-	"github.com/asaskevich/govalidator"
+	openid "github.com/alextanhongpin/go-openid"
+	database "github.com/alextanhongpin/go-openid/internal/database"
+	repository "github.com/alextanhongpin/go-openid/repository"
+	"github.com/rs/xid"
 )
 
-type Model struct {
+func Register(repo repository.User, user *openid.User) error {
+	return repo.Put(user.ID, user)
 }
 
-func NewModel() *Model {
-	return &Model{}
+func IsRegistered(repo repository.User, email string) error {
+	user, err := repo.FindByEmail(email)
+	if user != nil {
+		return errors.New("user already exist")
+	}
+	if err == database.ErrEmailDoesNotExist {
+		return nil
+	}
+	return err
 }
 
-// NewUser stores the username and hashed password into the storage.
-func (m *Model) NewUser(email, password string) (*openid.User, error) {
-	user := new(openid.User)
-	user.ID = crypto.NewXID()
-	user.Profile = openid.Profile{}
-	user.Profile.UpdatedAt = time.Now().UTC().Unix()
-	if err := user.SetPassword(password); err != nil {
-		return nil, err
+// NewUser creates a new User.
+func NewUser(email string) *openid.User {
+	return &openid.User{
+		ID: xid.New().String(),
+		Profile: openid.Profile{
+			UpdatedAt: time.Now().UTC().Unix(),
+		},
+		Email: openid.Email{
+			Email: email,
+		},
 	}
-	user.Email = openid.Email{
-		Email: email,
-	}
-	return user, nil
-}
-
-func (m *Model) ValidateEmail(email string) error {
-	if email == "" {
-		return errors.New("email cannot be empty")
-	}
-	if ok := govalidator.IsEmail(email); !ok {
-		return errors.New("invalid email")
-	}
-	return nil
-}
-
-func (m *Model) ValidatePassword(password string) error {
-	if len(password) == 0 {
-		return errors.New("arguments cannot be empty")
-	}
-	if len(password) < 8 {
-		return errors.New("password cannot be less than 8 characters")
-	}
-	return nil
-}
-
-func (m *Model) ValidateLimit(limit int) error {
-	if limit < 0 {
-		return errors.New("limit cannot be less then 0")
-	}
-	if limit > 100 {
-		return errors.New("limit cannot be more than 100")
-	}
-	return nil
-}
-
-func IsEmptyString(str string) bool {
-	// Handle empty space.
-	return len(strings.TrimSpace(str)) == 0
 }

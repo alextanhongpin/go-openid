@@ -7,7 +7,6 @@ package user
 
 import (
 	database "github.com/alextanhongpin/go-openid/internal/database"
-	model "github.com/alextanhongpin/go-openid/model"
 	repository "github.com/alextanhongpin/go-openid/repository"
 	wire "github.com/google/go-cloud/wire"
 )
@@ -15,29 +14,23 @@ import (
 // Injectors from user.go:
 
 func New() *Service {
-	model := provideModel()
 	userKV := provideRepository()
-	service := provideService(model, userKV)
+	service := provideService(userKV)
 	return service
 }
 
 // user.go:
 
 var serviceSet = wire.NewSet(
-	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideModel, wire.Bind(new(model.User), new(Model)), provideService,
+	provideRepository, wire.Bind(new(repository.User), new(database.UserKV)), provideService,
 )
 
 func provideRepository() *database.UserKV {
 	return database.NewUserKV()
 }
 
-func provideModel() *Model {
-	return &Model{}
-}
-
-func provideService(model2 model.User, repository2 repository.User) *Service {
+func provideService(repository2 repository.User) *Service {
 	return &Service{
-		model:      model2,
 		repository: repository2,
 	}
 }
