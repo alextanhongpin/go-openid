@@ -5,15 +5,15 @@ import (
 
 	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/crypto"
-	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
 type Model struct {
+	validator *Validator
 }
 
 // NewModel returns a new client model implementation.
-func NewModel() *Model {
-	return &Model{}
+func NewModel(validator *Validator) *Model {
+	return &Model{validator}
 }
 
 func (m *Model) GenerateClientID() string {
@@ -54,20 +54,12 @@ func (m *Model) GenerateRegistrationClientURI() string {
 }
 
 func (m *Model) ValidateClient(o *openid.Client) error {
-	validator, err := schema.NewClientValidator()
-	if err != nil {
-		return err
-	}
-	_, err = validator.Validate(o)
+	_, err := m.validator.client.Validate(o)
 	return err
 }
 
 func (m *Model) ValidateClientResponse(o *openid.Client) error {
-	validator, err := schema.NewClientResponseValidator()
-	if err != nil {
-		return err
-	}
-	_, err = validator.Validate(o)
+	_, err := m.validator.clientResponse.Validate(o)
 	return err
 }
 

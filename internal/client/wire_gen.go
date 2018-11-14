@@ -12,19 +12,24 @@ import (
 	wire "github.com/google/go-cloud/wire"
 )
 
-// Injectors from wire.go:
+// Injectors from client.go:
 
-func New() *Service {
-	client := provideModel()
+func New() (*Service, error) {
+	validator, err := provideValidator()
+	if err != nil {
+		return nil, err
+	}
+	client := provideModel(validator)
 	repositoryClient := provideRepository()
 	service := NewService(client, repositoryClient)
-	return service
+	return service, nil
 }
 
-// wire.go:
+// client.go:
 
 var clientServiceSet = wire.NewSet(
 	provideRepository,
+	provideValidator,
 	provideModel,
 	NewService,
 )
@@ -33,6 +38,10 @@ func provideRepository() repository.Client {
 	return database.NewClientKV()
 }
 
-func provideModel() model.Client {
-	return NewModel()
+func provideModel(validator *Validator) model.Client {
+	return NewModel(validator)
+}
+
+func provideValidator() (*Validator, error) {
+	return NewValidator()
 }

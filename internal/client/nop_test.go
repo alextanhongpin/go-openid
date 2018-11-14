@@ -3,8 +3,9 @@ package client_test
 import (
 	"testing"
 
-	"github.com/alextanhongpin/go-openid/internal/client"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/alextanhongpin/go-openid/internal/client"
 )
 
 func TestNopService(t *testing.T) {

@@ -12,7 +12,9 @@ import (
 func TestNewClientService(t *testing.T) {
 	assert := assert.New(t)
 
-	service := client.New()
+	service, err := client.New()
+	assert.Nil(err)
+
 	t.Run("register with nil request", func(t *testing.T) {
 		_, err := service.Register(nil)
 		assert.Equal("arguments cannot be nil", err.Error(), "should handle nil arguments")
@@ -34,7 +36,7 @@ func TestNewClientService(t *testing.T) {
 		client.ClientID = "xyz"
 
 		_, err := service.Register(client)
-		assert.Equal("Additional property client_id is not allowed", err.Error(), "should return error indicating redirect_uris is required")
+		assert.Equal("Additional property client_id is not allowed", err.Error(), "should return error indicating additional property is not allowed")
 	})
 
 	t.Run("register and save with only redirect_uris", func(t *testing.T) {
@@ -121,7 +123,8 @@ func TestClientRegistration(t *testing.T) {
 	err := c.UnmarshalJSON(body)
 	assert.Nil(err)
 
-	service := client.New()
+	service, err := client.New()
+	assert.Nil(err)
 
 	newClient, err := service.Register(c)
 	assert.Nil(err)

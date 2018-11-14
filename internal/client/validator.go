@@ -1,7 +1,6 @@
 package client
 
 import (
-	openid "github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/schema"
 )
 
@@ -25,12 +24,4 @@ func NewValidator() (*Validator, error) {
 		client:         client,
 		clientResponse: clientResponse,
 	}, nil
-}
-
-func (v *Validator) Register(c *openid.Client) (*openid.Client, error) {
-	return c, nil
-}
-
-func (v *Validator) Read(clientID string) (*openid.Client, error) {
-	return nil, nil
 }
