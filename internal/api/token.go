@@ -153,8 +153,6 @@ func (t *tokenResponseBuilder) provideAccessToken(sub string) (string, error) {
 		Issuer:    "openid",
 		Subject:   sub, // UserID
 	}
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// return token.SignedString(t.signingKey)
 	return signJWT(t.signingKey, claims)
 }
 
@@ -169,16 +167,12 @@ func (t *tokenResponseBuilder) provideRefreshToken(sub string) (string, error) {
 		Issuer:    "openid",
 		Subject:   sub, // UserID
 	}
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// return token.SignedString(t.signingKey)
 	return signJWT(t.signingKey, claims)
 }
 
 func (t *tokenResponseBuilder) provideIDToken() (string, error) {
 	claims := NewIDToken()
 	return signJWT(t.signingKey, claims)
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// return token.SignedString(t.signingKey)
 }
 
 func signJWT(key []byte, claims jwt.Claims) (string, error) {

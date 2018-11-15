@@ -7,6 +7,7 @@ import (
 )
 
 type (
+	// AuthenticateRequest represents the authentication request.
 	AuthenticateRequest struct {
 		Scope        string
 		ResponseType string
@@ -15,12 +16,16 @@ type (
 		State        string
 	}
 
+	// AuthenticateResponse represents the successfull authentication
+	// response.
 	AuthenticateResponse struct {
 		Code  string
 		State string
 	}
 )
 
+// NewAuthenticateRequest returns a new AuthenticateRequest with the response
+// type code.
 func NewAuthenticateRequest(scope, clientID, redirectURI string) *AuthenticateRequest {
 	return &AuthenticateRequest{
 		Scope:        scope,
@@ -29,6 +34,9 @@ func NewAuthenticateRequest(scope, clientID, redirectURI string) *AuthenticateRe
 		RedirectURI:  redirectURI,
 	}
 }
+
+// NewAuthenticateResponse returns a new AuthenticateResponse with a unique,
+// code that is valid for a fixed duration.
 func NewAuthenticateResponse(code, state string) *AuthenticateResponse {
 	return &AuthenticateResponse{
 		Code:  code,
@@ -36,6 +44,7 @@ func NewAuthenticateResponse(code, state string) *AuthenticateResponse {
 	}
 }
 
+// Authenticate performs a validation on the request.
 func Authenticate(repo ClientRepository, req *AuthenticateRequest) error {
 	// Pre-Authenticate: Performs validations.
 	if err := ValidateAuthenticateRequest(req); err != nil {
@@ -53,12 +62,23 @@ func Authenticate(repo ClientRepository, req *AuthenticateRequest) error {
 	return nil
 }
 
+// PostAuthenticate returns a response with a code. This is called after
+// Authenticate method validates the request successfully.
 func PostAuthenticate(state string, code func() string) *AuthenticateResponse {
 	return NewAuthenticateResponse(code(), state)
 }
 
-// Full/Partial? Partial will not return any response. By default, it will always be treated as full, and hence does not need the suffix -Full. AuthenticatePartial if no response is required. If there are multiple steps, can add the suffix -Flow.
-func AuthenticateFlow(repo ClientRepository, req *AuthenticateRequest, codeGenerator func() string) (*AuthenticateResponse, error) {
+// NOTE: Full/Partial? Partial will not return any response. By default, it
+// will always be treated as full, and hence does not need the suffix -Full.
+// AuthenticatePartial if no response is required. If there are multiple steps,
+// can add the suffix -Flow.
+
+// AuthenticateFlow represents the authentication flow.
+func AuthenticateFlow(
+	repo ClientRepository,
+	req *AuthenticateRequest,
+	codeGenerator func() string,
+) (*AuthenticateResponse, error) {
 	// Combines both pre-authenticate and do work.
 	if err := Authenticate(repo, req); err != nil {
 		return nil, err
@@ -67,6 +87,8 @@ func AuthenticateFlow(repo ClientRepository, req *AuthenticateRequest, codeGener
 	return res, nil
 }
 
+// ValidateAuthenticateRequest checks for the required fields and the values
+// set.
 func ValidateAuthenticateRequest(req *AuthenticateRequest) error {
 	// Validate required fields.
 	fields := []struct {
@@ -92,10 +114,18 @@ func ValidateAuthenticateRequest(req *AuthenticateRequest) error {
 	return nil
 }
 
+// ValidateClient validates the client by checking if the given clientID exists
+// in the repository.
 func ValidateClient(repo ClientRepository, clientID string) (*Client, error) {
 	return repo.GetClientByClientID(clientID)
 }
 
-func ValidateClientCredentials(repo ClientRepository, clientID, clientSecret string) (*Client, error) {
+// ValidateClientCredentials checks if the given client credentials matches a
+// client in the repository.
+func ValidateClientCredentials(
+	repo ClientRepository,
+	clientID,
+	clientSecret string,
+) (*Client, error) {
 	return repo.GetClientByCredentials(clientID, clientSecret)
 }

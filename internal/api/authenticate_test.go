@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 )
 
@@ -9,6 +10,9 @@ type clientRepository struct {
 }
 
 func (c *clientRepository) GetClientByClientID(clientID string) (*Client, error) {
+	if c.client.ClientID != clientID {
+		return nil, errors.New("client_id not found")
+	}
 	return c.client, nil
 }
 
@@ -17,26 +21,34 @@ func (c *clientRepository) GetClientByCredentials(clientID, clientSecret string)
 }
 
 func TestAuthenticate(t *testing.T) {
+	var (
+		scope       = "openid profile"
+		clientID    = "1"
+		redirectURI = "https://client.example.com/cb"
+		state       = "xyz"
+		code        = "c0d3"
+	)
 	// Prepare request.
-	request := NewAuthenticateRequest("openid", "client_id", "redirect_uri")
-	request.State = "xyz"
+	request := NewAuthenticateRequest(scope, clientID, redirectURI)
+	request.State = state
 
 	// Prepare repository.
 	clientRepo := new(clientRepository)
 	clientRepo.client = NewClient()
-	clientRepo.client.RedirectURIs = append(clientRepo.client.RedirectURIs, "redirect_uri")
+	clientRepo.client.ClientID = clientID
+	clientRepo.client.RedirectURIs = append(clientRepo.client.RedirectURIs, redirectURI)
 
 	// Call service.
 	response, err := AuthenticateFlow(clientRepo, request, func() string {
-		return "new_code"
+		return code
 	})
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}
-	if code := response.Code; code != "new_code" {
-		t.Fatalf("want %v, got %v", "new_code", code)
+	if got := response.Code; got != code {
+		t.Fatalf("want %v, got %v", code, got)
 	}
-	if state := response.State; state != "xyz" {
-		t.Fatalf("want %v, got %v", "xyz", state)
+	if got := response.State; got != state {
+		t.Fatalf("want %v, got %v", state, got)
 	}
 }

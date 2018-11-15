@@ -4,8 +4,8 @@ import "time"
 
 type Code struct {
 	CreatedAt time.Time
-	TTL       time.Duration
 	ID        string
+	TTL       time.Duration
 }
 
 func NewCode(id string, ttl time.Duration) *Code {
