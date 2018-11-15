@@ -9,4 +9,5 @@ type Client interface {
 	Has(id string) bool
 	List(limit int) []*openid.Client
 	GetByCredentials(clientID, clientSecret string) (*openid.Client, error)
+	// GetClientByClientID(clientID string) (*openid.Client, error)
 }
