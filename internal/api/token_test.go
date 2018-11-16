@@ -5,6 +5,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
 type codeRepository struct {
@@ -16,12 +18,6 @@ func (c *codeRepository) GetCodeByID(id string) (*Code, error) {
 		return nil, errors.New("code does not exist")
 	}
 	return c.code, nil
-}
-
-type tokenResponseBuilderMock struct{}
-
-func (t *tokenResponseBuilderMock) Build(*TokenRequest) (*TokenResponse, error) {
-	return NewTokenResponse("access_token", "refresh_token", "id_token", 3600), nil
 }
 
 func TestTokenFlow(t *testing.T) {
@@ -46,9 +42,17 @@ func TestTokenFlow(t *testing.T) {
 		Code:        code,
 		RedirectURI: "https://client.example.com/cb",
 	}
-	// responseBuilder := NewTokenResponseBuilder(3600, []byte("secret"))
-	responseBuilder := new(tokenResponseBuilderMock)
-	res, err := Token(ctx, clientRepo, codeRepo, req, responseBuilder)
+	responseBuilder := NewTokenResponseFactory()
+	responseBuilder.SetOverride(func(t *TokenResponse) error {
+		t.AccessToken = "access_token"
+		t.RefreshToken = "refresh_token"
+		t.IDToken = "id_token"
+		t.ExpiresIn = 3600
+		return nil
+	})
+	claimFactory := NewClaimFactory(jwt.StandardClaims{})
+	signer := NewNopSigner()
+	res, err := Token(ctx, clientRepo, codeRepo, responseBuilder, claimFactory, signer, req)
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}

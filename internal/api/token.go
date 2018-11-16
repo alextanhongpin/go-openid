@@ -24,33 +24,32 @@ type (
 		IDToken      string
 	}
 
-	TokenResponseBuilder interface {
-		Build(*TokenRequest) (*TokenResponse, error)
+	TokenResponseBuilder struct {
+		defaults TokenResponse
+		override func(t *TokenResponse)
 	}
-)
 
-func NewTokenResponse(accessToken, refreshToken, idToken string, durationInSeconds int64) *TokenResponse {
-	return &TokenResponse{
-		AccessToken:  accessToken,
-		TokenType:    "Bearer",
-		RefreshToken: refreshToken,
-		ExpiresIn:    durationInSeconds,
-		IDToken:      idToken,
+	TokenResponseFactory interface {
+		Build(...TokenResponseModifier) (*TokenResponse, error)
+		SetOverride(TokenResponseModifier)
 	}
-}
+
+	TokenResponseModifier func(t *TokenResponse) error
+)
 
 func Token(
 	ctx context.Context,
 	clientRepo ClientRepository,
 	codeRepo CodeRepository,
+	responseFactory TokenResponseFactory,
+	claimFactory ClaimFactory,
+	signer Signer,
 	req *TokenRequest,
-	responseBuilder TokenResponseBuilder,
 ) (*TokenResponse, error) {
 	// Pre-Work
 	if err := ValidateTokenRequest(req); err != nil {
 		return nil, err
 	}
-
 	clientID, ok := ctx.Value(ContextKeyClientID).(string)
 	if !ok || stringIsEmpty(clientID) {
 		return nil, errors.New("client_id is required")
@@ -72,19 +71,40 @@ func Token(
 	if err != nil {
 		return nil, err
 	}
-	// if code.HasExpired(time.Now())
 	if code.HasExpired() {
 		return nil, errors.New("code is invalid")
 	}
-	// if err := ValidateCodeExpiration(code); err != nil {
-	//         return err
-	// }
-	// Post-Work
-	// b := builder.TokenResponse()
-	// b.Build()
-	res, err := responseBuilder.Build(req)
+	// Get this from the session through the context.
+	sub := "hello"
+
+	// The timestamp is passed in through the controller.
+	now, ok := ctx.Value(ContextKeyTimestamp).(time.Time)
+	if !ok {
+		now = time.Now().UTC()
+	}
+
+	issuedAtModifier := makeIssuedAtModifier(now)
+	subjectModifier := makeSubjectModifier(sub)
+	expiresIn := 2 * time.Hour
+	accessToken := claimFactory.Build(
+		issuedAtModifier,
+		subjectModifier,
+		makeExpireAtModifier(now, expiresIn),
+	)
+	refreshToken := claimFactory.Build(
+		issuedAtModifier,
+		subjectModifier,
+		makeExpireAtModifier(now, 24*time.Hour),
+	)
+	res, err := responseFactory.Build(
+		makeAccessTokenExpiresIn(int64(expiresIn.Seconds())),
+		makeAccessTokenModifier(signer, accessToken),
+		makeRefreshTokenModifier(signer, refreshToken),
+		makeIDTokenModifier(signer),
+	)
 	return res, err
 }
+
 func ValidateTokenRequest(req *TokenRequest) error {
 	// Validate required fields.
 	if stringIsEmpty(req.Code) {
@@ -98,6 +118,7 @@ func ValidateTokenRequest(req *TokenRequest) error {
 	}
 	// Validate type.
 	if req.GrantType != "authorization_code" {
+		return fmt.Errorf(`grant_type "%s" is invalid`, req.GrantType)
 	}
 	if err := ValidateURI(req.RedirectURI); err != nil {
 		return fmt.Errorf(`"%s" is not a valid redirect_uri`, req.RedirectURI)
@@ -105,77 +126,99 @@ func ValidateTokenRequest(req *TokenRequest) error {
 	return nil
 }
 
-// This is actually template design pattern, not builder.
-type tokenResponseBuilder struct {
-	// The fields here can be set to private to prevent others from modifying it.
-	// options TokenResponseBuilderOptions
-
-	// How long before the token expire.
-	durationInSeconds int64
-	signingKey        []byte
+func NewTokenResponseBuilder(defaults TokenResponse) *TokenResponseBuilder {
+	return &TokenResponseBuilder{
+		defaults: defaults,
+		override: func(t *TokenResponse) {},
+	}
+}
+func (t *TokenResponseBuilder) SetOverride(override func(t *TokenResponse)) {
+	t.override = override
+}
+func (t *TokenResponseBuilder) SetExpiresIn(durationInSeconds int64) {
+	t.defaults.ExpiresIn = durationInSeconds
+}
+func (t *TokenResponseBuilder) SetAccessToken(token string) {
+	t.defaults.AccessToken = token
+}
+func (t *TokenResponseBuilder) SetRefreshToken(token string) {
+	t.defaults.RefreshToken = token
+}
+func (t *TokenResponseBuilder) SetIDToken(token string) {
+	t.defaults.IDToken = token
+}
+func (t *TokenResponseBuilder) Build() *TokenResponse {
+	result := t.defaults
+	if t.override != nil {
+		t.override(&result)
+	}
+	return &result
 }
 
-func NewTokenResponseBuilder(durationInSeconds int64, signingKey []byte) *tokenResponseBuilder {
-	return &tokenResponseBuilder{
-		durationInSeconds: durationInSeconds,
-		signingKey:        signingKey,
+// This is actually template design pattern, not builder.
+type tokenResponseFactory struct {
+	// The fields here can be set to private to prevent others from modifying it.
+	// options TokenResponseFactoryOptions
+
+	// How long before the token expire.
+	defaults TokenResponse
+	override TokenResponseModifier
+}
+
+func NewTokenResponseFactory() *tokenResponseFactory {
+	return &tokenResponseFactory{
+		defaults: TokenResponse{
+			TokenType: "Bearer",
+			ExpiresIn: 3600,
+		},
 	}
+}
+func (t *tokenResponseFactory) SetOverride(override TokenResponseModifier) {
+	t.override = override
 }
 
 // Should not accept a request from build.
-func (t *tokenResponseBuilder) Build(req *TokenRequest) (*TokenResponse, error) {
-	var accessToken, refreshToken, idToken string
+func (t *tokenResponseFactory) Build(modifiers ...TokenResponseModifier) (*TokenResponse, error) {
 	var err error
-	sub := "subject"
-	accessToken, err = t.provideAccessToken(sub)
-	if err != nil {
-		return nil, err
+	result := t.defaults
+	for _, modifier := range modifiers {
+		err = modifier(&result)
+		if err != nil {
+			return nil, err
+		}
 	}
-	refreshToken, err = t.provideRefreshToken(sub)
-	if err != nil {
-		return nil, err
+	if t.override != nil {
+		err = t.override(&result)
 	}
-	idToken, err = t.provideIDToken()
-	if err != nil {
-		return nil, err
-	}
-	return NewTokenResponse(accessToken, refreshToken, idToken, t.durationInSeconds), nil
+	return &result, err
 }
 
-func (t *tokenResponseBuilder) provideAccessToken(sub string) (string, error) {
-	now := time.Now().UTC()
-	exp := now.Add(time.Duration(t.durationInSeconds) * time.Second).Unix()
-	iat := now.Unix()
-	claims := &jwt.StandardClaims{
-		Audience:  "https://server.example.com",
-		ExpiresAt: exp,
-		IssuedAt:  iat,
-		Issuer:    "openid",
-		Subject:   sub, // UserID
+func makeRefreshTokenModifier(signer Signer, claims jwt.Claims) TokenResponseModifier {
+	return func(t *TokenResponse) error {
+		var err error
+		t.RefreshToken, err = signer.Sign(claims)
+		return err
 	}
-	return signJWT(t.signingKey, claims)
 }
-
-func (t *tokenResponseBuilder) provideRefreshToken(sub string) (string, error) {
-	now := time.Now().UTC()
-	exp := now.Add(time.Duration(2*t.durationInSeconds) * time.Second).Unix()
-	iat := now.Unix()
-	claims := &jwt.StandardClaims{
-		Audience:  "https://server.example.com",
-		ExpiresAt: exp,
-		IssuedAt:  iat,
-		Issuer:    "openid",
-		Subject:   sub, // UserID
+func makeAccessTokenModifier(signer Signer, claims jwt.Claims) TokenResponseModifier {
+	return func(t *TokenResponse) error {
+		var err error
+		t.AccessToken, err = signer.Sign(claims)
+		return err
 	}
-	return signJWT(t.signingKey, claims)
+}
+func makeIDTokenModifier(signer Signer) TokenResponseModifier {
+	return func(t *TokenResponse) error {
+		var err error
+		claims := NewIDToken()
+		t.IDToken, err = signer.Sign(claims)
+		return err
+	}
 }
 
-func (t *tokenResponseBuilder) provideIDToken() (string, error) {
-	claims := NewIDToken()
-	return signJWT(t.signingKey, claims)
-}
-
-func signJWT(key []byte, claims jwt.Claims) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(key)
+func makeAccessTokenExpiresIn(timestamp int64) TokenResponseModifier {
+	return func(t *TokenResponse) error {
+		t.ExpiresIn = timestamp
+		return nil
+	}
 }

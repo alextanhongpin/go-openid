@@ -1,25 +1,33 @@
 package main
 
-import "context"
+import (
+	"context"
+)
 
 type Service struct {
-	clientRepo           ClientRepository
-	codeRepo             CodeRepository
-	codeGenerator        func() string
-	tokenResponseBuilder TokenResponseBuilder
+	clientRepo      ClientRepository
+	codeRepo        CodeRepository
+	codeGenerator   func() string
+	responseFactory TokenResponseFactory
+	claimFactory    ClaimFactory
+	signer          Signer
 }
 
 func New(
 	clientRepo ClientRepository,
 	codeRepo CodeRepository,
 	codeGenerator func() string,
-	tokenResponseBuilder TokenResponseBuilder,
+	responseFactory TokenResponseFactory,
+	claimFactory ClaimFactory,
+	signer Signer,
 ) *Service {
 	return &Service{
 		clientRepo,
 		codeRepo,
 		codeGenerator,
-		tokenResponseBuilder,
+		responseFactory,
+		claimFactory,
+		signer,
 	}
 }
 
@@ -39,7 +47,7 @@ func (s *Service) Authenticate(ctx context.Context, req *AuthenticateRequest) (*
 */
 
 func (s *Service) token(ctx context.Context, req *TokenRequest) (*TokenResponse, error) {
-	return Token(ctx, s.clientRepo, s.codeRepo, req, s.tokenResponseBuilder)
+	return Token(ctx, s.clientRepo, s.codeRepo, s.responseFactory, s.claimFactory, s.signer, req)
 }
 
 // Token represents the token flow.

@@ -6,5 +6,8 @@ func (c ContextKey) String() string {
 	return string(c)
 }
 
-var ContextKeyClientID = ContextKey("client_id")
-var ContextKeyClientSecret = ContextKey("client_secret")
+var (
+	ContextKeyClientID     = ContextKey("client_id")
+	ContextKeyClientSecret = ContextKey("client_secret")
+	ContextKeyTimestamp    = ContextKey("timestamp")
+)
