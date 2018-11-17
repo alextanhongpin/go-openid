@@ -10,3 +10,7 @@ type Error struct {
 func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Message, e.Description)
 }
+
+func MakeErrRequired(field string) error {
+	return fmt.Errorf(`"%s" is required`, field)
+}

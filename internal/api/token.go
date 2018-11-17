@@ -23,10 +23,6 @@ type (
 		ExpiresIn    int64
 		IDToken      string
 	}
-	// TokenOptions struct {
-	//         AccessTokenDurationInSeconds  int64
-	//         RefreshTokenDurationInSeconds int64
-	// }
 )
 
 func Token(
@@ -81,27 +77,32 @@ func Token(
 		Subject:  sub,
 	}
 
-	accessToken := defaultClaims
-	accessToken.ExpiresAt = now.Add(2 * time.Hour).Unix()
+	accessTokenClaims := defaultClaims
+	accessTokenClaims.ExpiresAt = now.Add(2 * time.Hour).Unix()
 
-	refreshToken := defaultClaims
-	refreshToken.ExpiresAt = now.Add(24 * time.Hour).Unix()
+	refreshTokenClaims := defaultClaims
+	refreshTokenClaims.ExpiresAt = now.Add(24 * time.Hour).Unix()
 
-	res := TokenResponse{
-		ExpiresIn: int64((2 * time.Hour).Seconds()),
-		TokenType: "Bearer",
-	}
-	res.AccessToken, err = signer.Sign(accessToken)
+	accessToken, err := signer.Sign(accessTokenClaims)
 	if err != nil {
 		return nil, err
 	}
-	res.RefreshToken, err = signer.Sign(refreshToken)
+	refreshToken, err := signer.Sign(refreshTokenClaims)
 	if err != nil {
 		return nil, err
 	}
 	claims := NewIDToken()
-	res.IDToken, err = signer.Sign(claims)
-	return &res, err
+	idToken, err := signer.Sign(claims)
+	if err != nil {
+		return nil, err
+	}
+	return &TokenResponse{
+		ExpiresIn:    int64((2 * time.Hour).Seconds()),
+		TokenType:    "Bearer",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		IDToken:      idToken,
+	}, nil
 }
 
 func ValidateTokenRequest(req *TokenRequest) error {
@@ -119,6 +120,7 @@ func ValidateTokenRequest(req *TokenRequest) error {
 	if req.GrantType != "authorization_code" {
 		return fmt.Errorf(`grant_type "%s" is invalid`, req.GrantType)
 	}
+	// Another option is to create the URI type with a validate method.
 	if err := ValidateURI(req.RedirectURI); err != nil {
 		return fmt.Errorf(`"%s" is not a valid redirect_uri`, req.RedirectURI)
 	}

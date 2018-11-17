@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -23,6 +22,12 @@ type (
 		State string
 	}
 )
+
+type Scope string
+
+func (s Scope) Has(scope string) bool {
+	return strings.Contains(string(s), scope)
+}
 
 // NewAuthenticateRequest returns a new AuthenticateRequest with the response
 // type code.
@@ -101,12 +106,13 @@ func ValidateAuthenticateRequest(req *AuthenticateRequest) error {
 	}
 	for _, field := range fields {
 		if stringIsEmpty(field.value) {
-			return fmt.Errorf(`"%s" is required`, field.label)
+			return MakeErrRequired(field.label)
 		}
 	}
 	// Validate specific fields.
-	if !strings.Contains(req.Scope, "openid") {
-		return errors.New(`scope "openid" is required`)
+	// Hide implementation details with structs.
+	if !Scope(req.Scope).Has("openid") {
+		return MakeErrRequired("openid")
 	}
 	if !strings.EqualFold(req.ResponseType, "code") {
 		return errors.New(`response_type "code" is invalid`)
