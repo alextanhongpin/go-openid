@@ -5,28 +5,22 @@ import (
 )
 
 type Service struct {
-	clientRepo      ClientRepository
-	codeRepo        CodeRepository
-	codeGenerator   func() string
-	responseFactory TokenResponseFactory
-	claimFactory    ClaimFactory
-	signer          Signer
+	clientRepo    ClientRepository
+	codeRepo      CodeRepository
+	codeGenerator func() string
+	signer        Signer
 }
 
 func New(
 	clientRepo ClientRepository,
 	codeRepo CodeRepository,
 	codeGenerator func() string,
-	responseFactory TokenResponseFactory,
-	claimFactory ClaimFactory,
 	signer Signer,
 ) *Service {
 	return &Service{
 		clientRepo,
 		codeRepo,
 		codeGenerator,
-		responseFactory,
-		claimFactory,
 		signer,
 	}
 }
@@ -36,18 +30,8 @@ func (s *Service) Authenticate(ctx context.Context, req *AuthenticateRequest) (*
 	return AuthenticateFlow(s.clientRepo, req, s.codeGenerator)
 }
 
-/*
-   u, err := url.Parse(req.RedirectURI)
-   if err != nil {}
-   q := u.Query()
-   q.Set("code", res.Code)
-   q.Set("state", res.State)
-   u.RawQuery = q.Encode()
-   location := u.String()
-*/
-
 func (s *Service) token(ctx context.Context, req *TokenRequest) (*TokenResponse, error) {
-	return Token(ctx, s.clientRepo, s.codeRepo, s.responseFactory, s.claimFactory, s.signer, req)
+	return Token(ctx, s.clientRepo, s.codeRepo, s.signer, req)
 }
 
 // Token represents the token flow.

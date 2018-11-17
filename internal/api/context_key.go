@@ -10,4 +10,5 @@ var (
 	ContextKeyClientID     = ContextKey("client_id")
 	ContextKeyClientSecret = ContextKey("client_secret")
 	ContextKeyTimestamp    = ContextKey("timestamp")
+	ContextKeySubject      = ContextKey("subject")
 )

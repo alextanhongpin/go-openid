@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"testing"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/stretchr/testify/assert"
 )
 
 type codeRepository struct {
@@ -21,18 +23,24 @@ func (c *codeRepository) GetCodeByID(id string) (*Code, error) {
 }
 
 func TestTokenFlow(t *testing.T) {
+	assert := assert.New(t)
 	var (
 		clientID     = "client_id"
 		clientSecret = "client_secret"
 		code         = "xyz"
+		subject      = "user_1"
+		redirectURI  = "https://client.example.com/cb"
+		now          = time.Now()
 	)
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, ContextKeyClientID, clientID)
 	ctx = context.WithValue(ctx, ContextKeyClientSecret, clientSecret)
+	ctx = context.WithValue(ctx, ContextKeySubject, subject)
+	ctx = context.WithValue(ctx, ContextKeyTimestamp, now)
 
 	clientRepo := new(clientRepository)
 	clientRepo.client = NewClient()
-	clientRepo.client.RedirectURIs = append(clientRepo.client.RedirectURIs, "https://client.example.com/cb")
+	clientRepo.client.RedirectURIs = append(clientRepo.client.RedirectURIs, redirectURI)
 
 	codeRepo := new(codeRepository)
 	codeRepo.code = NewCode(code, 10*time.Second)
@@ -40,30 +48,31 @@ func TestTokenFlow(t *testing.T) {
 	req := &TokenRequest{
 		GrantType:   "authorization_code",
 		Code:        code,
-		RedirectURI: "https://client.example.com/cb",
+		RedirectURI: redirectURI,
 	}
-	responseBuilder := NewTokenResponseFactory()
-	responseBuilder.SetOverride(func(t *TokenResponse) error {
-		t.AccessToken = "access_token"
-		t.RefreshToken = "refresh_token"
-		t.IDToken = "id_token"
-		t.ExpiresIn = 3600
-		return nil
-	})
-	claimFactory := NewClaimFactory(jwt.StandardClaims{})
 	signer := NewNopSigner()
-	res, err := Token(ctx, clientRepo, codeRepo, responseBuilder, claimFactory, signer, req)
+	res, err := Token(ctx, clientRepo, codeRepo, signer, req)
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}
-	if accessToken := res.AccessToken; accessToken != "access_token" {
-		t.Fatalf("want %v, got %v", "access_token", accessToken)
-	}
-	if refreshToken := res.RefreshToken; refreshToken != "refresh_token" {
-		t.Fatalf("want %v, got %v", "refresh_token", refreshToken)
-	}
-	if idToken := res.IDToken; idToken != "id_token" {
-		t.Fatalf("want %v, got %v", "id_token", idToken)
-	}
+	accessTokenClaims, err := signer.Parse(res.AccessToken)
+	assert.Nil(err)
+	assert.Equal(subject, accessTokenClaims.Subject)
+	assert.Equal(now.Add(2*time.Hour).Unix(), accessTokenClaims.ExpiresAt)
+}
 
+func TestClaimFactory(t *testing.T) {
+	claimFactory := NewClaimFactory(jwt.StandardClaims{
+		Audience: "home",
+		Issuer:   "john",
+	})
+	claims := claimFactory.Build(
+		func(j *jwt.StandardClaims) {
+			j.Audience = "audience B"
+		},
+		makeSubjectModifier("subject A"),
+	)
+	if aud := claims.Audience; aud != "audience B" {
+		log.Fatalf("want %s, got %s", "audience B", aud)
+	}
 }

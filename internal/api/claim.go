@@ -11,10 +11,12 @@ type (
 
 	ClaimFactory interface {
 		Build(...ClaimModifier) *jwt.StandardClaims
+		// Build
 		SetOverride(ClaimModifier)
 	}
 
 	claimFactory struct {
+		// secret string
 		defaults  jwt.StandardClaims
 		modifiers []ClaimModifier
 		override  ClaimModifier
