@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 type clientRepository struct {
@@ -38,10 +39,12 @@ func TestAuthenticate(t *testing.T) {
 	clientRepo.client.ClientID = clientID
 	clientRepo.client.RedirectURIs = append(clientRepo.client.RedirectURIs, redirectURI)
 
+	codeRepo := new(codeRepository)
+	codeFactory := func() *Code {
+		return NewCode(code, 10*time.Minute)
+	}
 	// Call service.
-	response, err := AuthenticateFlow(clientRepo, request, func() string {
-		return code
-	})
+	response, err := Authenticate(clientRepo, codeRepo, codeFactory, request)
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}

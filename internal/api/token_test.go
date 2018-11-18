@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"testing"
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,6 +13,9 @@ type codeRepository struct {
 	code *Code
 }
 
+func (c *codeRepository) Create(*Code) error {
+	return nil
+}
 func (c *codeRepository) GetCodeByID(id string) (*Code, error) {
 	if c.code.ID != id {
 		return nil, errors.New("code does not exist")
@@ -59,20 +60,4 @@ func TestTokenFlow(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(subject, accessTokenClaims.Subject)
 	assert.Equal(now.Add(2*time.Hour).Unix(), accessTokenClaims.ExpiresAt)
-}
-
-func TestClaimFactory(t *testing.T) {
-	claimFactory := NewClaimFactory(jwt.StandardClaims{
-		Audience: "home",
-		Issuer:   "john",
-	})
-	claims := claimFactory.Build(
-		func(j *jwt.StandardClaims) {
-			j.Audience = "audience B"
-		},
-		makeSubjectModifier("subject A"),
-	)
-	if aud := claims.Audience; aud != "audience B" {
-		log.Fatalf("want %s, got %s", "audience B", aud)
-	}
 }

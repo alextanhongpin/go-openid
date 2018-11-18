@@ -33,33 +33,8 @@ func GetCode(repo CodeRepository, id string) (*Code, error) {
 	return repo.GetCodeByID(id)
 }
 
-func NewCodeBuilder(defaults Code) *CodeBuilder {
-	return &CodeBuilder{
-		defaults:  defaults,
-		overwrite: func(c *Code) {},
-	}
+func CreateCode(repo CodeRepository, code *Code) error {
+	return repo.Create(code)
 }
 
-func (c *CodeBuilder) Setoverwrite(overwrite func(c *Code)) {
-	c.overwrite = overwrite
-}
-
-func (c *CodeBuilder) SetCreatedAt(createdAt time.Time) {
-	c.defaults.CreatedAt = createdAt
-}
-
-func (c *CodeBuilder) SetID(id string) {
-	c.defaults.ID = id
-}
-
-func (c *CodeBuilder) SetTTL(ttl time.Duration) {
-	c.defaults.TTL = ttl
-}
-
-func (c *CodeBuilder) Build() *Code {
-	result := c.defaults
-	if c.overwrite != nil {
-		c.overwrite(&result)
-	}
-	return &result
-}
+type CodeFactory func() *Code

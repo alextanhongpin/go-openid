@@ -8,18 +8,27 @@ import (
 type (
 	// AuthenticateRequest represents the authentication request.
 	AuthenticateRequest struct {
-		Scope        string
-		ResponseType string
-		ClientID     string
-		RedirectURI  string
-		State        string
+		AcrValues    string `json:"acr_values,omitempty"`
+		ClientID     string `json:"client_id,omitempty"`
+		Display      string `json:"display,omitempty"`
+		IDTokenHint  string `json:"id_token_hint,omitempty"`
+		LoginHint    string `json:"login_hint,omitempty"`
+		MaxAge       int64  `json:"max_age,omitempty"`
+		Nonce        string `json:"nonce,omitempty"`
+		Prompt       string `json:"prompt,omitempty"`
+		RedirectURI  string `json:"redirect_uri,omitempty"`
+		ResponseMode string `json:"response_mode,omitempty"`
+		ResponseType string `json:"response_type,omitempty"`
+		Scope        string `json:"scope,omitempty"`
+		State        string `json:"state,omitempty"`
+		UILocales    string `json:"ui_locales,omitempty"`
 	}
 
 	// AuthenticateResponse represents the successfull authentication
 	// response.
 	AuthenticateResponse struct {
-		Code  string
-		State string
+		Code  string `json:"code,omitempty"`
+		State string `json:"state,omitempty"`
 	}
 )
 
@@ -49,46 +58,36 @@ func NewAuthenticateResponse(code, state string) *AuthenticateResponse {
 	}
 }
 
-// Authenticate performs a validation on the request.
-func Authenticate(repo ClientRepository, req *AuthenticateRequest) error {
-	// Pre-Authenticate: Performs validations.
-	if err := ValidateAuthenticateRequest(req); err != nil {
-		return err
-	}
-	// Do work
-	client, err := ValidateClient(repo, req.ClientID)
-	if err != nil {
-		return err
-	}
-	if !URIs(client.RedirectURIs).Contains(req.RedirectURI) {
-		return errors.New("redirect_uri is invalid")
-	}
-	// Post-Authenticate: Builds response.
-	return nil
-}
-
-// PostAuthenticate returns a response with a code. This is called after
-// Authenticate method validates the request successfully.
-func PostAuthenticate(state string, code func() string) *AuthenticateResponse {
-	return NewAuthenticateResponse(code(), state)
-}
-
 // NOTE: Full/Partial? Partial will not return any response. By default, it
 // will always be treated as full, and hence does not need the suffix -Full.
 // AuthenticatePartial if no response is required. If there are multiple steps,
 // can add the suffix -Flow.
 
 // AuthenticateFlow represents the authentication flow.
-func AuthenticateFlow(
+func Authenticate(
 	repo ClientRepository,
+	codeRepo CodeRepository,
+	codeFactory CodeFactory,
 	req *AuthenticateRequest,
-	codeGenerator func() string,
 ) (*AuthenticateResponse, error) {
-	// Combines both pre-authenticate and do work.
-	if err := Authenticate(repo, req); err != nil {
+	// Pre-Authenticate: Performs validations.
+	if err := ValidateAuthenticateRequest(req); err != nil {
 		return nil, err
 	}
-	res := PostAuthenticate(req.State, codeGenerator)
+	// Can it be simplified to get client by clientID and redirectURI?
+	client, err := ValidateClient(repo, req.ClientID)
+	if err != nil {
+		return nil, err
+	}
+	if !URIs(client.RedirectURIs).Contains(req.RedirectURI) {
+		return nil, errors.New("redirect_uri is invalid")
+	}
+	// Create a code and store it.
+	code := codeFactory()
+	if err := CreateCode(codeRepo, code); err != nil {
+		return nil, err
+	}
+	res := NewAuthenticateResponse(code.ID, req.State)
 	return res, nil
 }
 

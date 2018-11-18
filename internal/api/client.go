@@ -1,5 +1,10 @@
 package main
 
+import (
+	"context"
+	"time"
+)
+
 // Client represents the openid Client Metadata.
 type Client struct {
 	ApplicationType              string   `json:"application_type,omitempty"`
@@ -49,4 +54,33 @@ func NewClient() *Client {
 		ResponseTypes:                []string{"code"},
 		UserinfoEncryptedResponseEnc: "A128CBC-HS256",
 	}
+}
+
+type StringGenerator func(n int) (string, error)
+
+func RegisterClient(ctx context.Context, stringGenerator StringGenerator, req *Client) (*Client, error) {
+	// TODO: Validate URI.
+	now, ok := ctx.Value(ContextKeyTimestamp).(time.Time)
+	if !ok {
+		now = time.Now().UTC()
+	}
+
+	var err error
+	req.ClientSecret, err = stringGenerator(32)
+	if err != nil {
+		return nil, err
+	}
+	req.ClientID, err = stringGenerator(32)
+	if err != nil {
+		return nil, err
+	}
+	// req.RegistrationAccessToken = ""
+	// req.RegistrationClientURI = ""
+	req.ClientIDIssuedAt = now.Unix()
+	req.ClientSecretExpiresAt = 0
+	return req, nil
+}
+
+func ReadClient(repo ClientRepository, clientID string) (*Client, error) {
+	return repo.GetClientByClientID(clientID)
 }
