@@ -8,5 +8,6 @@ type (
 	CodeRepository interface {
 		GetCodeByID(id string) (*Code, error)
 		Create(code *Code) error
+		Delete(id string) error
 	}
 )

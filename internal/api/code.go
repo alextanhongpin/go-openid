@@ -25,8 +25,8 @@ func NewCode(id string, ttl time.Duration) *Code {
 	}
 }
 
-func (c *Code) HasExpired() bool {
-	return time.Since(c.CreatedAt) > c.TTL
+func (c *Code) IsValid() bool {
+	return time.Since(c.CreatedAt) < c.TTL
 }
 
 func GetCode(repo CodeRepository, id string) (*Code, error) {
