@@ -66,34 +66,46 @@ func NewAuthenticateResponse(code, state string) *AuthenticateResponse {
 // AuthenticateFlow represents the authentication flow.
 func Authenticate(
 	repo ClientRepository,
-	codeRepo CodeRepository,
-	codeFactory CodeFactory,
+	// Bad, there are two Code parameters here, we are dealing with
+	// implmentation logic.
+	// codeRepo CodeRepository,
+	// codeFactory CodeFactory,
+	codeInteractor *CodeInteractor,
 	req *AuthenticateRequest,
 ) (*AuthenticateResponse, error) {
-	// Pre-Authenticate: Performs validations.
-	if err := ValidateAuthenticateRequest(req); err != nil {
+	// Validate the required fields. The logic is tied to the struct.
+	if err := req.HasRequiredFields(); err != nil {
 		return nil, err
 	}
 	// Can it be simplified to get client by clientID and redirectURI?
-	client, err := ValidateClient(repo, req.ClientID)
+	// client, err := ValidateClient(repo, req.ClientID)
+	client, err := repo.GetClientByClientID(req.ClientID)
 	if err != nil {
 		return nil, err
 	}
-	if !URIs(client.RedirectURIs).Contains(req.RedirectURI) {
+	if !client.HasRedirectURI(req.RedirectURI) {
 		return nil, errors.New("redirect_uri is invalid")
 	}
-	// Create a code and store it.
-	code := codeFactory()
-	if err := CreateCode(codeRepo, code); err != nil {
+	code, err := codeInteractor.NewCode()
+	if err != nil {
 		return nil, err
 	}
-	res := NewAuthenticateResponse(code.ID, req.State)
-	return res, nil
+	// Redundant, since we only have two fields.
+	// res := NewAuthenticateResponse(code.ID, req.State)
+	// return res, nil
+	return &AuthenticateResponse{
+		Code:  code.ID,
+		State: req.State,
+	}, nil
 }
 
+// How to avoid building an anemic model? Bind more logic to the struct. For
+// entity, we can't really know for sure what data to validate, but for
+// request/response struct they are pretty much consistent - we know what
+// fields are required  or not.
 // ValidateAuthenticateRequest checks for the required fields and the values
 // set.
-func ValidateAuthenticateRequest(req *AuthenticateRequest) error {
+func (req *AuthenticateRequest) HasRequiredFields() error {
 	// Validate required fields.
 	fields := []struct {
 		label, value string
@@ -113,24 +125,8 @@ func ValidateAuthenticateRequest(req *AuthenticateRequest) error {
 	if !Scope(req.Scope).Has("openid") {
 		return MakeErrRequired("openid")
 	}
-	if !strings.EqualFold(req.ResponseType, "code") {
+	if req.ResponseType != "code" {
 		return errors.New(`response_type "code" is invalid`)
 	}
 	return nil
-}
-
-// ValidateClient validates the client by checking if the given clientID exists
-// in the repository.
-func ValidateClient(repo ClientRepository, clientID string) (*Client, error) {
-	return repo.GetClientByClientID(clientID)
-}
-
-// ValidateClientCredentials checks if the given client credentials matches a
-// client in the repository.
-func ValidateClientCredentials(
-	repo ClientRepository,
-	clientID,
-	clientSecret string,
-) (*Client, error) {
-	return repo.GetClientByCredentials(clientID, clientSecret)
 }

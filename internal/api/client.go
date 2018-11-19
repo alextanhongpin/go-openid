@@ -45,6 +45,10 @@ type Client struct {
 	RegistrationClientURI        string   `json:"registration_client_uri,omitempty"`
 }
 
+func (c *Client) HasRedirectURI(uri string) bool {
+	return URIs(c.RedirectURIs).Contains(uri)
+}
+
 // NewClient returns a new client with default values.
 func NewClient() *Client {
 	return &Client{

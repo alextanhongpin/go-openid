@@ -33,7 +33,7 @@ func Token(
 	req *TokenRequest,
 ) (*TokenResponse, error) {
 	// Pre-Work
-	if err := ValidateTokenRequest(req); err != nil {
+	if err := req.HasRequiredFields(); err != nil {
 		return nil, err
 	}
 	clientID, ok := ctx.Value(ContextKeyClientID).(string)
@@ -44,12 +44,11 @@ func Token(
 	if !ok || stringIsEmpty(clientSecret) {
 		return nil, errors.New("client_secret is required")
 	}
-	// Do Work.
-	client, err := ValidateClientCredentials(clientRepo, clientID, clientSecret)
+	client, err := clientRepo.GetClientByCredentials(clientID, clientSecret)
 	if err != nil {
 		return nil, err
 	}
-	if !URIs(client.RedirectURIs).Contains(req.RedirectURI) {
+	if !client.HasRedirectURI(req.RedirectURI) {
 		return nil, errors.New("redirect_uri is invalid")
 	}
 	// Fetch first , then validate.
@@ -60,39 +59,36 @@ func Token(
 	if code.HasExpired() {
 		return nil, errors.New("code is invalid")
 	}
+	// TODO: Delete the code from repository.
 	// Get this from the session through the context.
 	sub, ok := ctx.Value(ContextKeySubject).(string)
 	if !ok || stringIsEmpty(sub) {
 		return nil, errors.New("subject is required")
 	}
 
-	// The timestamp is passed in through the controller.
+	// The timestamp is passed in through the controller. This allows us to
+	// control mutable data.
 	now, ok := ctx.Value(ContextKeyTimestamp).(time.Time)
 	if !ok {
 		now = time.Now().UTC()
 	}
-
-	defaultClaims := jwt.StandardClaims{
-		IssuedAt: now.Unix(),
-		Subject:  sub,
-	}
-
-	accessTokenClaims := defaultClaims
-	accessTokenClaims.ExpiresAt = now.Add(2 * time.Hour).Unix()
-
-	refreshTokenClaims := defaultClaims
-	refreshTokenClaims.ExpiresAt = now.Add(24 * time.Hour).Unix()
-
-	accessToken, err := signer.Sign(accessTokenClaims)
+	accessToken, err := signer.Sign(jwt.StandardClaims{
+		IssuedAt:  now.Unix(),
+		Subject:   sub,
+		ExpiresAt: now.Add(2 * time.Hour).Unix(),
+	})
 	if err != nil {
 		return nil, err
 	}
-	refreshToken, err := signer.Sign(refreshTokenClaims)
+	refreshToken, err := signer.Sign(jwt.StandardClaims{
+		IssuedAt:  now.Unix(),
+		Subject:   sub,
+		ExpiresAt: now.Add(24 * time.Hour).Unix(),
+	})
 	if err != nil {
 		return nil, err
 	}
-	claims := NewIDToken()
-	idToken, err := signer.Sign(claims)
+	idToken, err := signer.Sign(NewIDToken())
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +101,7 @@ func Token(
 	}, nil
 }
 
-func ValidateTokenRequest(req *TokenRequest) error {
+func (req *TokenRequest) HasRequiredFields() error {
 	// Validate required fields.
 	if stringIsEmpty(req.Code) {
 		return errors.New("code is required")

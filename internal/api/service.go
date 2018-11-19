@@ -5,22 +5,25 @@ import (
 )
 
 type Service struct {
-	clientRepo  ClientRepository
-	codeRepo    CodeRepository
-	codeFactory CodeFactory
-	signer      Signer
+	clientRepo     ClientRepository
+	codeInteractor *CodeInteractor
+	codeRepo       CodeRepository
+	// codeFactory CodeFactory
+	signer Signer
 }
 
 func New(
 	clientRepo ClientRepository,
+	codeInteractor *CodeInteractor,
 	codeRepo CodeRepository,
-	codeFactory CodeFactory,
+	// codeFactory CodeFactory,
 	signer Signer,
 ) *Service {
 	return &Service{
 		clientRepo,
+		codeInteractor,
 		codeRepo,
-		codeFactory,
+		// codeFactory,
 		signer,
 	}
 }
@@ -29,8 +32,9 @@ func New(
 func (s *Service) Authenticate(ctx context.Context, req *AuthenticateRequest) (*AuthenticateResponse, error) {
 	return Authenticate(
 		s.clientRepo,
-		s.codeRepo,
-		s.codeFactory,
+		s.codeInteractor,
+		// s.codeRepo,
+		// s.codeFactory,
 		req,
 	)
 }

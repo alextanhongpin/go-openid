@@ -37,4 +37,20 @@ func CreateCode(repo CodeRepository, code *Code) error {
 	return repo.Create(code)
 }
 
-type CodeFactory func() *Code
+type (
+	CodeFactory func() *Code
+
+	// CodeInteractor hides the implementation when dealing with code
+	// creation. It also adds additional business logic not belonging to
+	// the code entity.
+	CodeInteractor struct {
+		factory    CodeFactory
+		repository CodeRepository
+	}
+)
+
+func (c *CodeInteractor) NewCode() (*Code, error) {
+	code := c.factory()
+	err := c.repository.Create(code)
+	return code, err
+}
