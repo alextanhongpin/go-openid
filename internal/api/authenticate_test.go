@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -46,8 +47,10 @@ func TestAuthenticate(t *testing.T) {
 			return NewCode(code, 10*time.Minute)
 		},
 	}
+
 	// Call service.
-	response, err := Authenticate(clientRepo, codeInteractor, request)
+	authSvc := MakeAuthenticateService(clientRepo, codeInteractor)
+	response, err := authSvc(context.Background(), request)
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}

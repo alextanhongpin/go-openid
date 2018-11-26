@@ -2,50 +2,36 @@ package main
 
 import (
 	"context"
+	"time"
 )
 
-type Service struct {
-	clientRepo     ClientRepository
-	codeInteractor *CodeInteractor
-	codeRepo       CodeRepository
-	// codeFactory CodeFactory
-	signer Signer
-}
+// type ServiceFacade struct {
+//         Authenticate AuthenticateService
+//         Token        TokenService
+// }
 
-func New(
-	clientRepo ClientRepository,
-	codeInteractor *CodeInteractor,
-	codeRepo CodeRepository,
-	// codeFactory CodeFactory,
-	signer Signer,
-) *Service {
-	return &Service{
-		clientRepo,
-		codeInteractor,
-		codeRepo,
-		// codeFactory,
-		signer,
+// AuthenticateService performs the authentication flow.
+type AuthenticateService func(ctx context.Context, req *AuthenticateRequest) (*AuthenticateResponse, error)
+
+// MakeAuthenticateService returns a new AuthenticateService.
+func MakeAuthenticateService(repo ClientRepository, code *CodeInteractor) AuthenticateService {
+	return func(ctx context.Context, req *AuthenticateRequest) (*AuthenticateResponse, error) {
+		return Authenticate(repo, code, req)
 	}
 }
 
-// Authenticate performs the authentication flow.
-func (s *Service) Authenticate(ctx context.Context, req *AuthenticateRequest) (*AuthenticateResponse, error) {
-	return Authenticate(
-		s.clientRepo,
-		s.codeInteractor,
-		// s.codeRepo,
-		// s.codeFactory,
-		req,
-	)
-}
+// TokenService represents the token flow.
+type TokenService func(ctx context.Context, req *TokenRequest) (*TokenResponse, error)
 
-// Token represents the token flow.
-func (s *Service) Token(ctx context.Context, req *TokenRequest) (*TokenResponse, error) {
-	return Token(
-		ctx,
-		s.clientRepo,
-		s.codeRepo,
-		s.signer,
-		req,
-	)
+// MakeTokenService returns a new TokenService.
+func MakeTokenService(clientRepo ClientRepository, codeRepo CodeRepository, signer Signer) TokenService {
+	tokenOpts := TokenOptions{
+		AccessTokenDuration:  1 * time.Hour,
+		RefreshTokenDuration: 2 * time.Hour,
+		Issuer:               "go-openid",
+		TokenType:            "bearer",
+	}
+	return func(ctx context.Context, req *TokenRequest) (*TokenResponse, error) {
+		return Token(ctx, tokenOpts, clientRepo, codeRepo, signer, req)
+	}
 }

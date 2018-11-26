@@ -45,7 +45,7 @@ func (req *TokenRequest) ValidateRequiredFields() error {
 	return nil
 }
 
-func (req *TokenRequest) ValidateClient(repo clientRepository, clientID, clientSecret string) error {
+func (req *TokenRequest) ValidateClient(repo ClientRepository, clientID, clientSecret string) error {
 	if clientID == "" {
 		return errors.New("client_id is required")
 	}
@@ -133,7 +133,7 @@ func (s *Service) Token (ctx context.Context, req *AuthenticateRequest) {
 func Token(
 	ctx context.Context,
 	opts TokenOptions,
-	clientRepo clientRepository,
+	clientRepo ClientRepository,
 	codeRepo CodeRepository,
 	signer Signer,
 	req *TokenRequest,

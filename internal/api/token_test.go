@@ -23,20 +23,24 @@ func (c *codeRepository) GetCodeByID(id string) (*Code, error) {
 	return c.code, nil
 }
 
+func (c *codeRepository) Delete(id string) error {
+	return nil
+}
+
 func TestTokenFlow(t *testing.T) {
 	assert := assert.New(t)
 	var (
 		clientID     = "client_id"
 		clientSecret = "client_secret"
 		code         = "xyz"
-		subject      = "user_1"
+		userID       = "user_1"
 		redirectURI  = "https://client.example.com/cb"
 		now          = time.Now()
 	)
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, ContextKeyClientID, clientID)
 	ctx = context.WithValue(ctx, ContextKeyClientSecret, clientSecret)
-	ctx = context.WithValue(ctx, ContextKeySubject, subject)
+	ctx = context.WithValue(ctx, ContextKeyUserID, userID)
 	ctx = context.WithValue(ctx, ContextKeyTimestamp, now)
 
 	clientRepo := new(clientRepository)
@@ -52,12 +56,13 @@ func TestTokenFlow(t *testing.T) {
 		RedirectURI: redirectURI,
 	}
 	signer := NewNopSigner()
-	res, err := Token(ctx, clientRepo, codeRepo, signer, req)
+	tokenSvc := MakeTokenService(clientRepo, codeRepo, signer)
+	res, err := tokenSvc(ctx, req)
 	if err != nil {
 		t.Fatalf("want error nil, got %v", err)
 	}
 	accessTokenClaims, err := signer.Parse(res.AccessToken)
 	assert.Nil(err)
-	assert.Equal(subject, accessTokenClaims.Subject)
-	assert.Equal(now.Add(2*time.Hour).Unix(), accessTokenClaims.ExpiresAt)
+	assert.Equal(userID, accessTokenClaims.Subject)
+	assert.Equal(now.Add(1*time.Hour).Unix(), accessTokenClaims.ExpiresAt)
 }

@@ -16,9 +16,7 @@ type JWTSigner struct {
 }
 
 func NewSigner(secret []byte) *JWTSigner {
-	return &JWTSigner{
-		secret: secret,
-	}
+	return &JWTSigner{secret}
 }
 
 func NewNopSigner() *JWTSigner {
