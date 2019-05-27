@@ -4,19 +4,6 @@ import (
 	"fmt"
 )
 
-// Authentication Error Response
-var (
-	ErrAccountSelectionRequired = NewError("account_selection_required")
-	ErrConsentRequired          = NewError("consent_required")
-	ErrInteractionRequired      = NewError("interaction_required")
-	ErrInvalidRequestObject     = NewError("invalid_request_object")
-	ErrInvalidRequestURI        = NewError("invalid_request_uri")
-	ErrLoginRequired            = NewError("login_required")
-	ErrRegistrationNotSupported = NewError("registration_not_supported")
-	ErrRequestNotSupported      = NewError("request_not_supported")
-	ErrRequestURINotSupported   = NewError("request_uri_not_supported")
-)
-
 const (
 	AccessDenied            = "access_denied"
 	InvalidRequest          = "invalid_request"
