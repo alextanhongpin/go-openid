@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/url"
 
-	openid "github.com/alextanhongpin/go-openid"
+	"github.com/alextanhongpin/go-openid"
 	"github.com/alextanhongpin/go-openid/pkg/querystring"
 )
 

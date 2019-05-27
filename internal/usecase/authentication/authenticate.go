@@ -38,9 +38,16 @@ func (u *UseCase) Authenticate(ctx context.Context, req usecase.AuthenticationRe
 	if !client.RedirectURIs.Contains(req.RedirectURI) {
 		return nil, errors.New("redirect_uri is invalid")
 	}
-	code, err := u.codeService.Code()
+	// Create a new code.
+	code := u.codeService.Code()
+
+	// Persist the code.
+	success, err := u.codes.Create(code)
 	if err != nil {
 		return nil, err
+	}
+	if !success {
+		return nil, errors.New("insert code failed")
 	}
 	return &usecae.AuthenticationResponse{
 		Code:  code.ID,
